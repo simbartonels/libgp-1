@@ -13,6 +13,7 @@ SET(LIBGP_SRC
   src/cov_se_iso.cc
   src/cov_sum.cc
   src/cov_prod.cc
+  src/abstract_gp.cc
   src/gp.cc
   src/gp_utils.cc
   src/sampleset.cc
@@ -36,6 +37,7 @@ SET(LIBGP_INTERFACES
   include/cov_se_iso.h
   include/cov_sum.h
   include/cov_prod.h
+  include/abstract_gp.h
   include/gp.h
   include/gp_utils.h
   include/sampleset.h

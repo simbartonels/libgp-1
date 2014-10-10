@@ -2,6 +2,7 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
+#include "abstract_gp.h"
 #include "gp.h"
 #include "gp_utils.h"
 
@@ -21,12 +22,14 @@ int main (int argc, char const *argv[])
   params << 0.0, 0.0, -2.0;
   // set parameters of covariance function
   gp.covf().set_loghyper(params);
+
   // add training patterns
   for(int i = 0; i < n; ++i) {
     double x[] = {drand48()*4-2, drand48()*4-2};
     y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
     gp.add_pattern(x, y);
   }
+
   // total squared error
   for(int i = 0; i < m; ++i) {
     double x[] = {drand48()*4-2, drand48()*4-2};
