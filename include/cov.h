@@ -69,7 +69,7 @@ namespace libgp
 
       /** Get number of parameters for this covariance function.
        *  @return parameter vector dimensionality */
-      size_t get_param_dim();
+      virtual size_t get_param_dim();
 
       /** Get input dimensionality.
        *  @return input dimensionality */
@@ -77,14 +77,14 @@ namespace libgp
 
       /** Get log-hyperparameter of covariance function.
        *  @return log-hyperparameter */
-      Eigen::VectorXd get_loghyper();
+      virtual Eigen::VectorXd get_loghyper();
 
       /** Returns a string representation of this covariance function.
        *  @return string containing the name of this covariance function */
       virtual std::string to_string() = 0;
 
       /** Draw random target values from this covariance function for input X. */
-      Eigen::VectorXd draw_random_sample(Eigen::MatrixXd &X);
+      virtual Eigen::VectorXd draw_random_sample(Eigen::MatrixXd &X);
 
       bool loghyper_changed;
 

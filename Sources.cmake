@@ -15,6 +15,9 @@ SET(LIBGP_SRC
   src/cov_prod.cc
   src/abstract_gp.cc
   src/gp.cc
+  src/basis_functions/bf_multi_scale.cc
+  src/basis_functions/basisf_factory.cc
+  src/fic_gp.cc
   src/gp_utils.cc
   src/sampleset.cc
   src/rprop.cc
@@ -39,6 +42,10 @@ SET(LIBGP_INTERFACES
   include/cov_prod.h
   include/abstract_gp.h
   include/gp.h
+  include/basis_functions/IBasisFunction.h
+  include/basis_functions/bf_multi_scale.h
+  include/basis_functions/basisf_factory.h
+  include/fic_gp.h
   include/gp_utils.h
   include/sampleset.h
   include/rprop.h

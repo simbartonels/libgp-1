@@ -4,3 +4,5 @@
 
 ADD_EXECUTABLE(gpdense gp_example_dense.cc)
 TARGET_LINK_LIBRARIES(gpdense gp)
+ADD_EXECUTABLE(gpapproximate gp_example_approximate.cc)
+TARGET_LINK_LIBRARIES(gpapproximate gp)
