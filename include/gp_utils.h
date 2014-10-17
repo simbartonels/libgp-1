@@ -48,7 +48,7 @@ namespace libgp {
 
     // drand48() is not aviable under win
 #if defined(WIN32) || defined(WIN64)
-    inline double drand48()
+    inline static double drand48()
     {
       return (rand() / (RAND_MAX + 1.0));
     }
