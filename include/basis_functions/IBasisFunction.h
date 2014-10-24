@@ -16,6 +16,7 @@ public:
 
 	bool init(int input_dim){
 		//TODO: give a signal that this is not the way to initialize basis functions
+		std::cout << "IBasisFunction: Wrong initialization method for basis functions!" << std::endl;
 		return false;
 	}
 
@@ -26,9 +27,10 @@ public:
      */
 	bool init(size_t M, CovarianceFunction * wrappedCovFunc)
 	{
-		this->input_dim = wrappedCovFunc->get_input_dim();
+		input_dim = wrappedCovFunc->get_input_dim();
+
 		this->M = M;
-		this->cov = wrappedCovFunc;
+		cov = wrappedCovFunc;
 		return real_init();
 	};
 

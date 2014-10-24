@@ -27,7 +27,7 @@ namespace libgp {
      *  and covariance function. */
 	  FICGaussianProcess (size_t input_dim, std::string covf_def, size_t num_basisf, std::string basisf_def);// : AbstractGaussianProcess(input_dim, covf_def){};
     /** Create and instance of GaussianProcess from file. */
-//    GaussianProcess (const char * filename);
+//    FICGaussianProcess (const char * filename) : AbstractGaussianProcess(filename) {};
 
 	  virtual ~FICGaussianProcess();
 

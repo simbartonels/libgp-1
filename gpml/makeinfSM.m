@@ -1,3 +1,2 @@
-eval('mex -O infSMmex.cc -I../include -I../eigen3 ../src/basis_functions/*.cc ../src/*.cc');
-%../src/fic_gp.cc ../src/abstract_gp.cc ../src/basis_functions/basisf_factory.cc ../src/cov.cc ../src/sampleset.cc ../src/cov_factory.cc ../src/cov_noise.cc ../src/cov_se_ard.cc ../src/basis_functions/bf_multi_scale.cc ../src/gp_utils.cc');
-%-L../src');
+eval('mex -O infSMmex.cc -I../include -I../eigen3 ../src/fic_gp.cc ../src/abstract_gp.cc ../src/basis_functions/basisf_factory.cc ../src/basis_functions/bf_multi_scale.cc ../src/gp_utils.cc ../src/sampleset.cc ../src/cov.cc ../src/cov_factory.cc ../src/cov_linear_ard.cc ../src/cov_linear_one.cc ../src/cov_matern3_iso.cc ../src/cov_matern5_iso.cc ../src/cov_noise.cc ../src/cov_periodic_matern3_iso.cc ../src/cov_rq_iso.cc ../src/cov_se_ard.cc ../src/cov_se_iso.cc ../src/cov_prod.cc ../src/cov_sum.cc ../src/cov_periodic.cc ../src/input_dim_filter.cc');
+% ../src/basis_functions/*.cc ../src/*.cc');
