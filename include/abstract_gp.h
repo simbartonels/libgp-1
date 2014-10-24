@@ -27,9 +27,17 @@ namespace libgp {
   class AbstractGaussianProcess
   {
   public:
+	/** Create and instance of GaussianProcess with given input dimensionality
+	 *  and covariance function. */
 	AbstractGaussianProcess (size_t input_dim, std::string covf_def);
 
+    /** Create and instance of GaussianProcess from file. */
+	AbstractGaussianProcess (const char * filename);
+
     virtual ~AbstractGaussianProcess();
+
+    /** Write current gp model to file. */
+    void write(const char * filename);
 
     /** Predict target value for given input.
      *  @param x input vector
