@@ -18,7 +18,7 @@ namespace libgp
     param_dim = 2;
     loghyper.resize(param_dim);
     loghyper.setZero();
-    sqrt5 = sqrt(5);
+    sqrt5 = sqrt((double)5);
     return true;
   }
   
