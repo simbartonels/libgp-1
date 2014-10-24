@@ -29,14 +29,14 @@ int main (int argc, char const *argv[])
 
   // add training patterns
   for(int i = 0; i < n; ++i) {
-    double x[] = {Utils::linux_drand48()*4-2, Utils::linux_drand48()*4-2};
+    double x[] = {drand48()*4-2, drand48()*4-2};
     y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
     gp.add_pattern(x, y);
   }
 
   // total squared error
   for(int i = 0; i < m; ++i) {
-    double x[] = {Utils::linux_drand48()*4-2, Utils::linux_drand48()*4-2};
+    double x[] = {drand48()*4-2, drand48()*4-2};
     f = gp.f(x);
     y = Utils::hill(x[0], x[1]);
     error = f - y;

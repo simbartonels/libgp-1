@@ -52,13 +52,15 @@ public:
 	 */
 	static double linux_drand48();
 
-	// drand48() is not aviable under win
-#if defined(WIN32) || defined(WIN64)
+	// drand48() is not available under win
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
 	inline static double drand48() {
 		return (rand() / (RAND_MAX + 1.0));
 	}
 #endif
-
+#if !defined(M_PI)
+	#define M_PI 3.14159265358979323846
+#endif
 };
 }
 
