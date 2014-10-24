@@ -151,6 +151,15 @@ void AbstractGaussianProcess::add_pattern(const double x[], double y)
   updateCholesky(x, y);
 }
 
+void AbstractGaussianProcess::add_pattern(const Eigen::VectorXd & x, double y)
+{
+  //std::cout<< L.rows() << std::endl;
+  sampleset->add(x, y);
+  alpha_needs_update = true;
+  //TODO: call update Cholesky
+  //updateCholesky(x.array(), y);
+}
+
 bool AbstractGaussianProcess::set_y(size_t i, double y)
 {
   if(sampleset->set_y(i,y)) {
@@ -179,6 +188,16 @@ CovarianceFunction & AbstractGaussianProcess::covf()
 size_t AbstractGaussianProcess::get_input_dim()
 {
   return input_dim;
+}
+
+Eigen::VectorXd AbstractGaussianProcess::getAlpha(){
+	compute();
+	return alpha;
+}
+
+Eigen::MatrixXd AbstractGaussianProcess::getL(){
+	compute();
+	return L;
 }
 
 

@@ -59,6 +59,7 @@ namespace libgp {
      *  @param y output value
      */
     void add_pattern(const double x[], double y);
+    void add_pattern(const Eigen::VectorXd & x, double y);
 
 
     bool set_y(size_t i, double y);
@@ -74,6 +75,16 @@ namespace libgp {
 
     /** Get input vector dimensionality. */
     size_t get_input_dim();
+
+    /**
+     * Returns the matrix L.
+     */
+    Eigen::MatrixXd getL();
+
+    /**
+     * Returns the vector alpha.
+     */
+    Eigen::VectorXd getAlpha();
 
   protected:
     virtual double var_impl(const Eigen::VectorXd x_star) = 0;
