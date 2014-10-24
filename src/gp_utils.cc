@@ -82,4 +82,8 @@ namespace libgp {
     if (x<0) return -1.0;
     return 0.0;
   }
+
+  double Utils::linux_drand48(){
+	  return drand48();
+  }
 }
