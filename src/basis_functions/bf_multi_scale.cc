@@ -15,6 +15,7 @@
 namespace libgp {
 
 bool MultiScale::real_init() {
+	//TODO: signal that Multiscale ignores the covariance function!
 	CovFactory f;
 	CovarianceFunction * expectedCov;
 	expectedCov = f.create(input_dim, "CovSum ( CovSEiso, CovNoise)");
@@ -22,6 +23,7 @@ bool MultiScale::real_init() {
 		//TODO: signal reason for error!
 		return false;
 	}
+
 	loghyper.resize(get_param_dim());
 	LUpsi.resize(M, M);
 	iUpsi.resize(M, M);
@@ -33,7 +35,7 @@ bool MultiScale::real_init() {
 
 Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
-	//TODO: implement
+	//FIXME: something's wrong here. U or Uell?
 	Eigen::VectorXd uvx(M);
 	for(size_t i = 0; i < M; i++){
 		uvx(i) = g(x, U.row(i), Uell.row(i));
@@ -61,10 +63,10 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 
 void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
 	CovarianceFunction::set_loghyper(p);
+
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(loghyper(i));
 	size_t idx = input_dim;
-
 	for (size_t d = 0; d < input_dim; d++) {
 		for (size_t m = 0; m < M; m++) {
 			/*
@@ -72,14 +74,17 @@ void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
 			 * inducing length scales.
 			 */
 			Uell(m, d) = exp(loghyper(idx)) + ell(d) / 2;
-			U(m, d) = exp(loghyper(idx + M * input_dim));
+			U(m, d) = loghyper(idx + M * input_dim);
 			idx++;
 		}
 	}
+
+//	std::cout << "bf_multi_scale: U" << std::endl << U << std::endl;
+//	std::cout << "bf_multi_scale: Uell" << std::endl << Uell << std::endl;
+
 	c = exp(loghyper(2 * M * input_dim + input_dim));
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
-
 	initializeMatrices();
 }
 
@@ -91,10 +96,12 @@ void MultiScale::initializeMatrices(){
 		Eigen::VectorXd vi = U.row(i);
 		Eigen::VectorXd s = Uell.row(i) - ell.transpose();
 
+
 		for(size_t j = 0; j <= i; j++){
 			LUpsi(i, j) = g(vi, U.row(j), s.transpose()+Uell.row(j));
 		}
 	}
+	LUpsi = LUpsi/c;
 
 	LUpsi.topLeftCorner(M, M) = LUpsi.topLeftCorner(M, M).selfadjointView<Eigen::Lower>().llt().matrixL();
 
