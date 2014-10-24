@@ -72,16 +72,19 @@ namespace libgp {
     } 
     covf = registry.find(func)->second();
     if (left == right) {
-      assert(covf->init(input_dim));
+      bool initialized = covf->init(input_dim);
+      assert(initialized);
     } else if (sep == 0) {
       size_t sep = arg.find_first_of('/');
       int filter = atoi(arg.substr(1,sep-1).c_str());
       std::string second = arg.substr(sep+1, arg.length() - sep - 2);
-      assert(covf->init(input_dim, filter, create(1, second)));
+      bool initialized = covf->init(input_dim, filter, create(1, second));
+      assert(initialized);
     } else {
-      assert(covf->init(input_dim, 
+      bool initialized = covf->init(input_dim,
             create(input_dim, arg.substr(1,sep-1)), 
-            create(input_dim, arg.substr(sep+1, arg.length()-sep-2))));
+            create(input_dim, arg.substr(sep+1, arg.length()-sep-2)));
+      assert(initialized);
     }
     return covf;
   }

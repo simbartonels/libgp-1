@@ -25,7 +25,8 @@ BasisFFactory::BasisFFactory () {
       exit(0);
     } 
     bf = registry.find(key)->second();
-    assert(bf->init(num_basisf, wrapped_cov_func));
+    bool initialized = bf->init(num_basisf, wrapped_cov_func);
+    assert(initialized);
     return bf;
   }
 
