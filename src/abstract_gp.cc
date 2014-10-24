@@ -81,7 +81,7 @@ AbstractGaussianProcess::~AbstractGaussianProcess ()
   delete cf;
 }
 
-void GaussianProcess::write(const char * filename)
+void AbstractGaussianProcess::write(const char * filename)
 {
   // output
   std::ofstream outfile;
