@@ -17,8 +17,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t D;
 	size_t n;
 	size_t p;
-	if (nrhs != 4 || nlhs != 2) /* check the input */
-		mexErrMsgTxt("Usage: [alpha, L] = infSMmex(M, unwrap(hyp), x, y)");
+	if (nrhs != 4 || nlhs < 2) /* check the input */
+		mexErrMsgTxt("Usage: [alpha, L, nlZ, dnlZ] = infSMmex(M, unwrap(hyp), x, y)");
 	M = (size_t) mxGetScalar(prhs[0]);
 	n = mxGetM(prhs[2]);
 	D = mxGetN(prhs[2]);
@@ -46,5 +46,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), M) = gp.getAlpha();
 	plhs[1] = mxCreateDoubleMatrix(M, M, mxREAL);
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[1]), M, M) = gp.getL();
+	if(nlhs >= 3){
+		double nlZ = gp.log_likelihood();
+		plhs[2] = mxCreateDoubleScalar(nlZ);
+		if(nlhs >= 4){
+			Eigen::VectorXd grads = gp.log_likelihood_gradient();
+			size_t params = grads.size();
+			plhs[3] = mxCreateDoubleMatrix(params, 1, mxREAL); /* allocate space for output */
+			Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), params) = grads;
+		}
+	}
 }
 
