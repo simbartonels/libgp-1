@@ -54,8 +54,17 @@ namespace libgp {
     Eigen::MatrixXd V;
     Eigen::MatrixXd Luu;
 
+	Eigen::VectorXd r;
+	Eigen::VectorXd beta;
+
+
     //convenience pointer that just points to cf.
     IBasisFunction * bf;
+
+    /**
+     * Number of basis functions.
+     */
+    size_t M;
   };
 }
 

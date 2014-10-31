@@ -35,7 +35,6 @@ bool MultiScale::real_init() {
 
 Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
-	//FIXME: something's wrong here. U or Uell?
 	Eigen::VectorXd uvx(M);
 	for(size_t i = 0; i < M; i++){
 		uvx(i) = g(x, U.row(i), Uell.row(i));
@@ -53,7 +52,11 @@ Eigen::MatrixXd MultiScale::getWeightPrior() {
 
 double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
 		const Eigen::VectorXd &x2) {
-	return c * g(x1, x2, ell);
+	//adding noise has to be incorporated here
+	double noise = 0;
+	if(x1 == x2)
+		noise = sn2;
+	return c * g(x1, x2, ell) + noise;
 }
 
 void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
@@ -85,6 +88,7 @@ void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
 	c = exp(loghyper(2 * M * input_dim + input_dim));
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
+	snu2 = 1e-6 * sn2;
 	initializeMatrices();
 }
 
@@ -97,14 +101,15 @@ void MultiScale::initializeMatrices(){
 		Eigen::VectorXd s = Uell.row(i) - ell.transpose();
 
 
-		for(size_t j = 0; j <= i; j++){
-			LUpsi(i, j) = g(vi, U.row(j), s.transpose()+Uell.row(j));
+		for(size_t j = 0; j < i; j++){
+			LUpsi(i, j) = g(vi, U.row(j), s.transpose()+Uell.row(j))/c;
 		}
+		LUpsi(i, i) = g(vi, U.row(i), s.transpose()+Uell.row(i))/c + snu2;
 	}
-	LUpsi = LUpsi/c;
+//	LUpsi = LUpsi / c;
 
+	//TODO: refactor: Is it possible to remove the topLeftCorner-calls?
 	LUpsi.topLeftCorner(M, M) = LUpsi.topLeftCorner(M, M).selfadjointView<Eigen::Lower>().llt().matrixL();
-
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(LUpsi.Identity(M, M));
 	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().adjoint().solveInPlace(iUpsi);
 }
@@ -132,6 +137,14 @@ std::string MultiScale::to_string() {
 
 double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
 	//TODO: can we make this numerically more stable?
+	/*
+	 * idea:
+	 * - compute s1+s2-s in advance (make matrix)
+	 * - compute log of that matrix
+	 * - then the division becomes a sum in the exp call below
+	 * - however: need to call exp() on sigma!
+	 * -> safe this implementation as naive?
+	 */
 	Eigen::VectorXd delta = x1 - x2;
 	double z = delta.cwiseQuotient(sigma).transpose() * delta;
 	z = exp(-0.5 * z);

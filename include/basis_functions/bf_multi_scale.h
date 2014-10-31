@@ -67,6 +67,11 @@ public:
 	    double sn2;
 
 	    /**
+	     * Squared inducing input noise.
+	     */
+	    double snu2;
+
+	    /**
 	     * Cholesky of Upsi.
 	     */
 	    Eigen::MatrixXd LUpsi;
