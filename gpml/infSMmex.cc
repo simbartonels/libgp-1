@@ -35,16 +35,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	gp.covf().set_loghyper(params);
 
 	Eigen::VectorXd y = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[3]), n);
-	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[1]), n,
+	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[2]), n,
 			D);
-//	std::cout << "infSMmex: X:" << std::endl << X << std::endl;
 
 	for (size_t i=0; i < n; i++) {
 		gp.add_pattern(X.row(i), y(i));
 	}
 
-	plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
-	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, n) = gp.getAlpha();
+	plhs[0] = mxCreateDoubleMatrix(M, 1, mxREAL); /* allocate space for output */
+	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), M) = gp.getAlpha();
 	plhs[1] = mxCreateDoubleMatrix(M, M, mxREAL);
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[1]), M, M) = gp.getL();
 }
