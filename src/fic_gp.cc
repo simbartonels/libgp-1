@@ -58,6 +58,7 @@ void FICGaussianProcess::computeCholesky() {
 
 	if (n > isqrtgamma.rows()) {
 		isqrtgamma.resize(n);
+		dg.resize(n);
 		V.resize(M, n);
 	}
 	//corresponds to Ku in infFITC
@@ -83,9 +84,9 @@ void FICGaussianProcess::computeCholesky() {
 	 */
 	V = Luu.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(Phi);
 	//noise is already added in k
-	isqrtgamma = k - (V.transpose() * V).diagonal();
+	dg = k - (V.transpose() * V).diagonal();
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
-	isqrtgamma.array() = 1/isqrtgamma.array().sqrt();
+	isqrtgamma.array() = 1 / dg.array().sqrt();
 	V = V * isqrtgamma.asDiagonal();
 	// TODO: is it possible to use the self adjoint view here?
 	Lu = V * V.transpose() + Eigen::MatrixXd::Identity(M, M);
@@ -101,7 +102,8 @@ void FICGaussianProcess::computeCholesky() {
 	Eigen::MatrixXd temp = Luu * Lu;
 	//the line below does not work. why?
 //	L = L.triangularView<Eigen::Lower>().solve(Eigen::MatrixXd::Identity(M, M));
-	L = temp.triangularView<Eigen::Lower>().solve(Eigen::MatrixXd::Identity(M, M));
+	L = temp.triangularView<Eigen::Lower>().solve(
+			Eigen::MatrixXd::Identity(M, M));
 	temp.transpose().triangularView<Eigen::Upper>().solveInPlace(L);
 	L = L - iUpsi;
 }
@@ -117,9 +119,9 @@ void FICGaussianProcess::update_k_star(const Eigen::VectorXd &x_star) {
 	k_star = bf->computeBasisFunctionVector(x_star);
 }
 
-void FICGaussianProcess::update_alpha(){
+void FICGaussianProcess::update_alpha() {
 	size_t n = sampleset->size();
-	if(n > r.size()){
+	if (n > r.size()) {
 		r.resize(n);
 	}
 	// Map target values to VectorXd
@@ -131,17 +133,25 @@ void FICGaussianProcess::update_alpha(){
 	 * In the Matlab implementation Luu and Lu are upper matrices and that's
 	 * why we need to transpose here.
 	 */
-	Lu.triangularView<Eigen::Lower>().solveInPlace(
-			beta);
+	Lu.triangularView<Eigen::Lower>().solveInPlace(beta);
 	//alpha = Luu\(Lu\be)
 	alpha = Lu.transpose().triangularView<Eigen::Upper>().solve(beta);
 	Luu.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
 }
 
 double FICGaussianProcess::log_likelihood_impl() {
-//    nlZ = sum(log(diag(Lu))) + (sum(log(dg)) + n*log(2*pi) + r'*r - be'*be)/2;
-
-	return 0;
+	double t = 0;
+	for (size_t i = 0; i < M; i++) {
+		t += log(Lu(i, i));
+	}
+	size_t n = sampleset->size();
+	double t2 = 0;
+	for(size_t i = 0; i < n; i++){
+		t2 += log(dg(i)) + r(i)*r(i) - beta(i)*beta(i);
+	}
+	//TODO: is this better? or should it be moved to the loop?
+	t2=t2+n*log2pi;
+	return t + t2/2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
