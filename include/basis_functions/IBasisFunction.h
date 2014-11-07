@@ -47,6 +47,12 @@ public:
 	 * Returns the inverse correlation matrix of the Gaussian weight prior
 	 * for the basis functions.
 	 */
+	virtual Eigen::MatrixXd getInverseWeightPrior() = 0;
+
+	/**
+	 * Returns the Cholesky of the inverse correlation matrix of the Gaussian weight prior
+	 * for the basis functions.
+	 */
 	virtual Eigen::MatrixXd getCholeskyOfInverseWeightPrior() = 0;
 
 	/**

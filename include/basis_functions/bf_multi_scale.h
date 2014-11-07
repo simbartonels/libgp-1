@@ -12,6 +12,8 @@ class MultiScale : public IBasisFunction{
 public:
 		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
+		Eigen::MatrixXd getInverseWeightPrior();
+
 		Eigen::MatrixXd getCholeskyOfInverseWeightPrior();
 
 		Eigen::MatrixXd getWeightPrior();
@@ -70,6 +72,11 @@ public:
 	     * Squared inducing input noise.
 	     */
 	    double snu2;
+
+	    /**
+	     * The matrix Upsi.
+	     */
+	    Eigen::MatrixXd Upsi;
 
 	    /**
 	     * Cholesky of Upsi.

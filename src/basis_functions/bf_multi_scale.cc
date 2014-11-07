@@ -14,6 +14,10 @@
 
 namespace libgp {
 
+/*
+ * TODO: This class can be made more memory efficient when iUpsi and LUpsi are stored in the same matrix.
+ */
+
 bool MultiScale::real_init() {
 	//TODO: signal that Multiscale ignores the covariance function!
 	CovFactory f;
@@ -25,6 +29,7 @@ bool MultiScale::real_init() {
 	}
 
 	loghyper.resize(get_param_dim());
+	Upsi.resize(M, M);
 	LUpsi.resize(M, M);
 	iUpsi.resize(M, M);
 	U.resize(M, input_dim);
@@ -36,10 +41,15 @@ bool MultiScale::real_init() {
 Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
 	Eigen::VectorXd uvx(M);
-	for(size_t i = 0; i < M; i++){
+	for (size_t i = 0; i < M; i++) {
 		uvx(i) = g(x, U.row(i), Uell.row(i));
 	}
 	return uvx;
+}
+
+Eigen::MatrixXd MultiScale::getInverseWeightPrior(){
+	//TODO: check that upper part of Upsi is same as lower part
+	return Upsi;
 }
 
 Eigen::MatrixXd MultiScale::getCholeskyOfInverseWeightPrior() {
@@ -54,7 +64,7 @@ double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
 		const Eigen::VectorXd &x2) {
 	//adding noise has to be incorporated here
 	double noise = 0;
-	if(x1 == x2)
+	if (x1 == x2)
 		noise = sn2;
 	return c * g(x1, x2, ell) + noise;
 }
@@ -82,9 +92,6 @@ void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
 		}
 	}
 
-//	std::cout << "bf_multi_scale: U" << std::endl << U << std::endl;
-//	std::cout << "bf_multi_scale: Uell" << std::endl << Uell << std::endl;
-
 	c = exp(loghyper(2 * M * input_dim + input_dim));
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
@@ -92,26 +99,31 @@ void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
 	initializeMatrices();
 }
 
-void MultiScale::initializeMatrices(){
+void MultiScale::initializeMatrices() {
 	/**
 	 * Initializes the matrices LUpsi and iUpsi.
 	 */
-	for(size_t i = 0; i < M; i++){
+	for (size_t i = 0; i < M; i++) {
 		Eigen::VectorXd vi = U.row(i);
 		Eigen::VectorXd s = Uell.row(i) - ell.transpose();
 
-
-		for(size_t j = 0; j < i; j++){
-			LUpsi(i, j) = g(vi, U.row(j), s.transpose()+Uell.row(j))/c;
+		for (size_t j = 0; j < i; j++) {
+			Upsi(i, j) = g(vi, U.row(j), s.transpose() + Uell.row(j)) / c;
 		}
-		LUpsi(i, i) = g(vi, U.row(i), s.transpose()+Uell.row(i))/c + snu2;
+		Upsi(i, i) = g(vi, U.row(i), s.transpose() + Uell.row(i)) / c + snu2;
 	}
-//	LUpsi = LUpsi / c;
+	//this division has been moved into the for loop above
+	//LUpsi = LUpsi / c;
+	Upsi = Upsi.selfadjointView<Eigen::Lower>();
 
 	//TODO: refactor: Is it possible to remove the topLeftCorner-calls?
-	LUpsi.topLeftCorner(M, M) = LUpsi.topLeftCorner(M, M).selfadjointView<Eigen::Lower>().llt().matrixL();
-	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(LUpsi.Identity(M, M));
-	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().adjoint().solveInPlace(iUpsi);
+	LUpsi.topLeftCorner(M, M) = Upsi.topLeftCorner(M, M).selfadjointView<
+			Eigen::Lower>().llt().matrixL();
+	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
+			LUpsi.Identity(M, M));
+	//TODO: it should be sufficient to transpose here
+	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().adjoint().solveInPlace(
+			iUpsi);
 }
 
 void MultiScale::set_loghyper(const double p[]) {
@@ -135,7 +147,8 @@ std::string MultiScale::to_string() {
 	return "MultiScale";
 }
 
-double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
+double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
+		const Eigen::VectorXd& sigma) {
 	//TODO: can we make this numerically more stable?
 	/*
 	 * idea:
@@ -149,11 +162,11 @@ double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2, const
 	double z = delta.cwiseQuotient(sigma).transpose() * delta;
 	z = exp(-0.5 * z);
 	double p = 1;
-	for(size_t i = 0; i < input_dim; i++){
+	for (size_t i = 0; i < input_dim; i++) {
 		p = 2 * M_PI * p * sigma(i);
 	}
 	p = sqrt(p);
-	return z/p;
+	return z / p;
 }
 
 }

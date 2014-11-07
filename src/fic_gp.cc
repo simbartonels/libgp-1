@@ -60,10 +60,8 @@ void FICGaussianProcess::computeCholesky() {
 		isqrtgamma.resize(n);
 		dg.resize(n);
 		V.resize(M, n);
+		Phi.resize(M, n);
 	}
-	//corresponds to Ku in infFITC
-	//TODO: it might be necessary to create this matrix on the heap!
-	Eigen::MatrixXd Phi(M, n);
 	//corresponds to diagK in infFITC
 	Eigen::VectorXd k(n);
 	for (size_t i = 0; i < n; i++) {
@@ -73,8 +71,6 @@ void FICGaussianProcess::computeCholesky() {
 		for (size_t j = 0; j < M; j++) {
 			Phi(j, i) = phi(j);
 		}
-		//TODO: rethink the design here
-		//it might be better to seperate basis functions and kernels
 		k(i) = bf->getWrappedKernelValue(xi, xi);
 	}
 	Luu = bf->getCholeskyOfInverseWeightPrior();
@@ -155,6 +151,53 @@ double FICGaussianProcess::log_likelihood_impl() {
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
-	return Eigen::VectorXd::Zero(bf->get_param_dim());
+	size_t num_params = bf->get_param_dim();
+	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
+//    W = Ku./repmat(sqrt(dg)',nu,1);
+	Eigen::MatrixXd W = Phi * isqrtgamma.asDiagonal();
+	W = W * W.transpose();
+//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku; % inv(K) = inv(G) - inv(G)*W'*W*inv(G);
+	W = W + bf->getInverseWeightPrior();
+	W = W.selfadjointView<Eigen::Lower>().llt().solve(Phi);
+//    % = (Avv/sn2)^(-1/2)*Uvx
+//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
+	const std::vector<double>& targets = sampleset->y();
+	size_t n = sampleset->size();
+	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
+	Eigen::VectorXd al(n);
+	al.array() = (y - W.transpose() * (W * (y.array() * isqrtgamma.array()).matrix())).array() * isqrtgamma.array();
+//    % = (y - Uvx'*(Avv/sn2)^(-1)*Uvx*Gamma^(-1)*y)*Gamma^(-1)
+//    B = iKuu*Ku;
+	Eigen::MatrixXd B = bf->getWeightPrior() * Phi;
+//    % = Upsi^(-1)*Uvx
+//    clear Ku Kuu iKuu; %KRZ - also the line below moved from above.
+//    Wdg = W./repmat(dg',nu,1); w = B*al;
+	Eigen::MatrixXd Wdg = W * isqrtgamma.asDiagonal();
+	Eigen::VectorXd w = B * al;
+//
+//    % w = Upsi^(-1)*Uvx*Gamma^(-1/2)*y - Upsi^(-1)*Uvx*Uvx'*v
+//    %KRZ - free more memory.
+	for(size_t i = 0; i < num_params; i++){
+//      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);  % eval cov deriv
+		Eigen::VectorXd ddiagKi = bf->gradDiag(i);
+		Eigen::MatrixXd dKuui = bf->gradInverseWeightPrior(i);
+		Eigen::MatrixXd dKui = bf->gradBasisFunctionVector(i);
+		//TODO: first implement gradients of multi_scale to see how that works!
+//      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
+//      % R = 2*dUvx-dUpsi*Upsi^(-1)*Uvx
+//      % v = dGamma?
+//      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
+//                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
+//      % = tr(dGAmma*Gamma^(-1)) + ...
+//    end
+//    clear dKui; %KRZ
+//    dnlZ.lik = sn2*(sum(1./dg) -sum(sum(W.*W,1)'./(dg.*dg)) -al'*al);
+//    % since snu2 is a fixed fraction of sn2, there is a covariance-like term in
+//    % the derivative as well
+//    dKuui = 2*snu2; R = -dKuui*B; v = -sum(R.*B,1)';   % diag part of cov deriv
+//    dnlZ.lik = dnlZ.lik + (w'*dKuui*w -al'*(v.*al)...
+//                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
+	}
+	return gradient;
 }
 }
