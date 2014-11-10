@@ -49,9 +49,9 @@ namespace libgp {
     void updateCholesky(const double x[], double y);
 
   private:
-
+	//corresponds to diagK in infFITC
+	Eigen::VectorXd k;
 	//corresponds to Ku in infFITC
-	//TODO: it might be necessary to create these matrices on the heap!
 	Eigen::MatrixXd Phi;
     Eigen::MatrixXd Lu;
     Eigen::VectorXd dg;

@@ -59,6 +59,15 @@ namespace libgp
        *  @param grad covariance gradient */
       virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad) = 0;
 
+      /** Covariance gradient of two input vectors with respect to the hyperparameters.
+       *  @param x1 first input vector
+       *  @param x2 second input vector
+       *  @param kernel_value the value of k(x1,x2)
+       *  @param grad covariance gradient */
+      virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad){
+    	  grad(x1, x2, grad);
+      };
+
       /** Update parameter vector.
        *  @param p new parameter vector */
       virtual void set_loghyper(const Eigen::VectorXd &p);

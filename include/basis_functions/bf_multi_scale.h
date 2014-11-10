@@ -25,6 +25,12 @@ public:
 
 	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
 
+	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad);
+
+		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
+
+		void gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
+
 	    void set_loghyper(const Eigen::VectorXd &p);
 
 	    void set_loghyper(const double p[]);

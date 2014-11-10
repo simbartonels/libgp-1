@@ -44,6 +44,15 @@ public:
 	virtual Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x) = 0;
 
 	/**
+	 * Computes the derivative of a basis function vector phi(x) with respect to parameter i.
+	 * @param x the input to phi
+	 * @param phi phi(x)
+	 * @param p the number of the parameter
+	 * @param grad where to put the result
+	 */
+	virtual void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) = 0;
+
+	/**
 	 * Returns the inverse correlation matrix of the Gaussian weight prior
 	 * for the basis functions.
 	 */
@@ -59,6 +68,13 @@ public:
 	 * Returns the weight prior.
 	 */
 	virtual Eigen::MatrixXd getWeightPrior() = 0;
+
+	/**
+	 * Computes the derivative of the weight prior with respect to parameter number param.
+	 * @param p the number of the parameter
+	 * @param diSigmadp where to put the derivative
+	 */
+	virtual void gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) = 0;
 
 	/**
 	 * Returns the actual number of basis functions in use.
@@ -87,19 +103,6 @@ public:
     	r = r.transpose() * L * phiz;
     	return r(0, 0);
     }
-
-//    virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad) = 0;
-//
-//    virtual void set_loghyper(const Eigen::VectorXd &p);
-//
-//    virtual void set_loghyper(const double p[]);
-//
-//    virtual size_t get_param_dim();
-//
-//    virtual Eigen::VectorXd get_loghyper();
-//
-//    virtual std::string to_string();
-
 
 protected:
     /**

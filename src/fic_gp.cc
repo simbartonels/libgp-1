@@ -57,20 +57,15 @@ void FICGaussianProcess::computeCholesky() {
 	size_t n = sampleset->size();
 
 	if (n > isqrtgamma.rows()) {
+		k.resize(n);
 		isqrtgamma.resize(n);
 		dg.resize(n);
 		V.resize(M, n);
 		Phi.resize(M, n);
 	}
-	//corresponds to diagK in infFITC
-	Eigen::VectorXd k(n);
 	for (size_t i = 0; i < n; i++) {
 		Eigen::VectorXd xi = sampleset->x(i);
-		Eigen::VectorXd phi = bf->computeBasisFunctionVector(xi);
-		//TODO: is there a faster operation?
-		for (size_t j = 0; j < M; j++) {
-			Phi(j, i) = phi(j);
-		}
+		Phi.col(i) = bf->computeBasisFunctionVector(xi);
 		k(i) = bf->getWrappedKernelValue(xi, xi);
 	}
 	Luu = bf->getCholeskyOfInverseWeightPrior();
@@ -177,11 +172,19 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //
 //    % w = Upsi^(-1)*Uvx*Gamma^(-1/2)*y - Upsi^(-1)*Uvx*Uvx'*v
 //    %KRZ - free more memory.
+	Eigen::MatrixXd ddiagK(n, num_params);
+	for(size_t j = 0; j < n; j++)
+		 bf->grad(sampleset->x(j), sampleset->x(j), ddiagK.row(j), k(j));
+
+	Eigen::MatrixXd dKuui(M, M);
+	Eigen::MatrixXd dKui(M, n);
+
 	for(size_t i = 0; i < num_params; i++){
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);  % eval cov deriv
-		Eigen::VectorXd ddiagKi = bf->gradDiag(i);
-		Eigen::MatrixXd dKuui = bf->gradInverseWeightPrior(i);
-		Eigen::MatrixXd dKui = bf->gradBasisFunctionVector(i);
+		bf->gradInverseWeightPrior(i, dKuui);
+		for(size_t j = 0; j < n; j++){
+			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, dKui.col(j));
+		}
 		//TODO: first implement gradients of multi_scale to see how that works!
 //      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
 //      % R = 2*dUvx-dUpsi*Upsi^(-1)*Uvx
@@ -189,7 +192,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
 //      % = tr(dGAmma*Gamma^(-1)) + ...
-//    end
+	}
 //    clear dKui; %KRZ
 //    dnlZ.lik = sn2*(sum(1./dg) -sum(sum(W.*W,1)'./(dg.*dg)) -al'*al);
 //    % since snu2 is a fixed fraction of sn2, there is a covariance-like term in
@@ -197,7 +200,6 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //    dKuui = 2*snu2; R = -dKuui*B; v = -sum(R.*B,1)';   % diag part of cov deriv
 //    dnlZ.lik = dnlZ.lik + (w'*dKuui*w -al'*(v.*al)...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
-	}
 	return gradient;
 }
 }
