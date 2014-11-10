@@ -49,6 +49,7 @@ Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 
 void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 		const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) {
+	assert(grad.size() == phi.size());
 //	dAdl(Uvx, sigma(k, d), d, x, V, k)
 //	dAdl(A, p, d, x, z, i)
 	//	dA(i, :) = ((((z(i, d) - x(:, d))./p).^2-1./p))'.*A(i, :)/2
@@ -61,44 +62,45 @@ void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 		 * respect to the length scales is not trivially zero.
 		 */
 		size_t d = p;
-		grad = (U.col(d) - x(d)).cwiseQuotient(Uell.col(d));
-		grad.array() = grad.array().square() - Uell.col(d).array().cwiseInverse();
+		grad.array() = (U.col(d).array() - x(d)) / Uell.col(d).array();
+		grad.array() = grad.array().square()
+				- Uell.col(d).array().cwiseInverse();
 		grad = ell(d) * grad.cwiseProduct(phi) / 2;
 //		for (size_t i = 0; i < M; i++) {
 //			double t = (U(i, d) - x(d)) / Uell(i, d);
 //			t = t * t - 1 / Uell(i, d);
 //			grad(i) = t * phi(i) / 2;
 //		}
-	} else if(p >= input_dim && p < M*input_dim+input_dim){
+	} else if (p >= input_dim && p < M * input_dim + input_dim) {
 //        [d, j] = getDimensionAndIndex(di, D, M);
 //        p2 = sigma(j, d);
 //        Uvx = dAdl(Uvx, p2, d, x, V, j);
-//
-//        p = p2+sigma(:, d)-ell(d);
-//        dUpsi = dAdl(Upsi, p, d, V, V, j);
-//
-//        % chain rule
-//        p2 = p2 - ell(d)/2; % that half has no influence on the gradient
-//        Uvx = p2 * Uvx;
-//        dUpsi(j, :) = p2 * dUpsi(j, :);
-//        dUpsi(:, j) = dUpsi(j, :);
-//        dUpsi(j, j) = 2 * dUpsi(j, j);
-//        Upsi = dUpsi;
-	}
-	else {
+		//	dAdl(A, p, d, x, z, i)
+		//	dA(i, :) = ((((z(i, d) - x(:, d))./p).^2-1./p))'.*A(i, :)/2
+		grad = Eigen::VectorXd::Zero(M);
+		size_t m = (p - input_dim) % M;
+		size_t d = (p - input_dim - m) / M;
+		double t = (U(m, d) - x(d)) / Uell(m, d);
+		grad(m) = (t * t - 1 / Uell(m, d)) * phi(m) / 2;
+		//        % chain rule
+		//        p2 = p2 - ell(d)/2; % that half has no influence on the gradient
+		//        Uvx = p2 * Uvx;
+		grad(m) *= (Uell(m, d) - ell(d) / 2);
+	} else if (p >= M * input_dim + input_dim
+			&& p < 2 * M * input_dim + input_dim) {
 //        %inducing point derivatives
 //        [d, j] = getDimensionAndIndex(di, D, M);
 //        dUvx = zeros(size(Uvx));
 //        sig = sigma(j, d);
 //        dUvx(j, :) = (-V(j, d) + x(:, d))/sig .* Uvx(j, :)';
 //        Uvx = dUvx;
-//
-//        dUpsi = zeros(size(Upsi));
-//        p2 = sigma(j, d);
-//        p = p2+sigma(:, d)-ell(d);
-//        dUpsi(j, :) = (-V(j, d) + V(:, d)) .* Upsi(j, :)' ./p;
-//        dUpsi(:, j) = dUpsi(j, :);
-//        Upsi = dUpsi;
+		grad = Eigen::VectorXd::Zero(M);
+		size_t m = (p - input_dim) % M;
+		size_t d = (p - input_dim - m) / M;
+		grad(m) = (-U(m, d) + x(d)) / Uell(m, d) * phi(m);
+	} else {
+		//length scale derivative
+		grad = Eigen::VectorXd::Zero(M);
 	}
 }
 
@@ -108,7 +110,35 @@ Eigen::MatrixXd MultiScale::getInverseWeightPrior() {
 }
 
 void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
-
+	diSigmadp = Eigen::MatrixXd::Zero(M, M);
+	if (p < input_dim) {
+		// length scale derivatives
+		// zero
+	} else if (p == 2 * M * input_dim + input_dim) {
+		//amplitude derivatives
+		diSigmadp = -Upsi;
+	} else {
+		//derivatives with respect to inducing inputs or inducing length scales
+		//TODO: unnecessary memory allocation on the heap!
+		Eigen::VectorXd temp(M);
+		size_t m = (p - input_dim) % M;
+		size_t d = (p - input_dim - m) / M;
+		temp.array() = Uell.col(d).array() + (Uell(m, d) - ell(d));
+		if (p < M * input_dim + input_dim) {
+			//derivatives for inducing length scales
+			//	dAdl(A, p, d, x, z, i)
+			//	dA(i, :) = ((((z(i, d) - x(:, d))./p).^2-1./p))'.*A(i, :)/2
+			diSigmadp.row(m).array() = ((U(m, d) - U.col(d).array())
+					/ temp.array()).square() - 1 / temp.array();
+			diSigmadp.row(m).array() *= (Uell(m, d) - ell(d) / 2)
+					* Upsi.row(m).array() / 2;
+			diSigmadp.col(m) = diSigmadp.row(m);
+			diSigmadp(m, m) = 2 * diSigmadp(m, m);
+		} else {
+			diSigmadp.row(m).array() = (-U(m, d) + U.col(d).array()) * Upsi.col(m).array() / temp.array();
+			diSigmadp.col(m) = diSigmadp.row(m);
+		}
+	}
 }
 
 Eigen::MatrixXd MultiScale::getCholeskyOfInverseWeightPrior() {
@@ -129,13 +159,16 @@ double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
 }
 
 void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
-		Eigen::VectorXd& grad) {
-	grad(x1, x2, getWrappedKernelValue(x1, x2), grad);
+		Eigen::VectorXd& g) {
+	grad(x1, x2, getWrappedKernelValue(x1, x2), g);
 }
 
 void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		double kernel_value, Eigen::VectorXd& grad) {
-	//TODO: implement
+	grad.head(input_dim).fill(-kernel_value/2);
+	grad.segment(input_dim, 2*M*input_dim).setZero();
+	grad(2*M*input_dim+input_dim) = kernel_value;
+	//TODO: gradient with respect to noise!
 }
 
 void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
@@ -176,7 +209,7 @@ void MultiScale::initializeMatrices() {
 		}
 		Upsi(i, i) = g(vi, U.row(i), s.transpose() + Uell.row(i)) / c + snu2;
 	}
-	//this division has been moved into the for loop above
+	//this division has been moved into the for-loop above
 	//LUpsi = LUpsi / c;
 	Upsi = Upsi.selfadjointView<Eigen::Lower>();
 

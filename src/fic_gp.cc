@@ -137,12 +137,12 @@ double FICGaussianProcess::log_likelihood_impl() {
 	}
 	size_t n = sampleset->size();
 	double t2 = 0;
-	for(size_t i = 0; i < n; i++){
-		t2 += log(dg(i)) + r(i)*r(i) - beta(i)*beta(i);
+	for (size_t i = 0; i < n; i++) {
+		t2 += log(dg(i)) + r(i) * r(i) - beta(i) * beta(i);
 	}
 	//TODO: is this better? or should it be moved to the loop?
-	t2=t2+n*log2pi;
-	return t + t2/2;
+	t2 = t2 + n * log2pi;
+	return t + t2 / 2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
@@ -160,7 +160,9 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	size_t n = sampleset->size();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
 	Eigen::VectorXd al(n);
-	al.array() = (y - W.transpose() * (W * (y.array() * isqrtgamma.array()).matrix())).array() * isqrtgamma.array();
+	al.array() =
+			(y - W.transpose() * (W * (y.array() * isqrtgamma.array()).matrix())).array()
+					* isqrtgamma.array();
 //    % = (y - Uvx'*(Avv/sn2)^(-1)*Uvx*Gamma^(-1)*y)*Gamma^(-1)
 //    B = iKuu*Ku;
 	Eigen::MatrixXd B = bf->getWeightPrior() * Phi;
@@ -173,17 +175,21 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //    % w = Upsi^(-1)*Uvx*Gamma^(-1/2)*y - Upsi^(-1)*Uvx*Uvx'*v
 //    %KRZ - free more memory.
 	Eigen::MatrixXd ddiagK(n, num_params);
-	for(size_t j = 0; j < n; j++)
-		 bf->grad(sampleset->x(j), sampleset->x(j), ddiagK.row(j), k(j));
-
+	Eigen::VectorXd t;
+	for (size_t j = 0; j < n; j++) {
+		double temp = k(j);
+		t = ddiagK.row(j);
+		bf->grad(sampleset->x(j), sampleset->x(j), temp, t);
+	}
 	Eigen::MatrixXd dKuui(M, M);
 	Eigen::MatrixXd dKui(M, n);
 
-	for(size_t i = 0; i < num_params; i++){
+	for (size_t i = 0; i < num_params; i++) {
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);  % eval cov deriv
 		bf->gradInverseWeightPrior(i, dKuui);
-		for(size_t j = 0; j < n; j++){
-			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, dKui.col(j));
+		for (size_t j = 0; j < n; j++) {
+			t = dKui.col(j);
+			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
 		}
 		//TODO: first implement gradients of multi_scale to see how that works!
 //      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv

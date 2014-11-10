@@ -64,8 +64,8 @@ namespace libgp
        *  @param x2 second input vector
        *  @param kernel_value the value of k(x1,x2)
        *  @param grad covariance gradient */
-      virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad){
-    	  grad(x1, x2, grad);
+      virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &g){
+    	  grad(x1, x2, g);
       };
 
       /** Update parameter vector.
