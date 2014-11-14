@@ -31,7 +31,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 
 	  Eigen::VectorXd grad = gp->log_likelihood_gradient();
 
-	  for (int i=0; i<param_dim; ++i) {
+	  for (int i=0; i<param_dim; i++) {
 	    double theta = params(i);
 	    params(i) = theta - e;
 	    gp->covf().set_loghyper(params);
@@ -53,9 +53,9 @@ TEST(LogLikelihoodTest, CheckGradientsFullGP)
   genericGradientTest(gp, input_dim);
 }
 
-//TEST(LogLikelihoodTest, CheckGradientsFICGP)
-//{
-//  int input_dim = 3;
-//  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEiso, CovNoise)", 20, "SparseMultiScaleGP");
-//  genericGradientTest(gp, input_dim);
-//}
+TEST(LogLikelihoodTest, CheckGradientsFICGP)
+{
+  int input_dim = 3;
+  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEiso, CovNoise)", 20, "SparseMultiScaleGP");
+  genericGradientTest(gp, input_dim);
+}

@@ -132,17 +132,19 @@ void FICGaussianProcess::update_alpha() {
 
 double FICGaussianProcess::log_likelihood_impl() {
 	double t = 0;
+	double t3 = 0;
 	for (size_t i = 0; i < M; i++) {
 		t += log(Lu(i, i));
+		t3 += r(i) * r(i) - beta(i) * beta(i);
 	}
 	size_t n = sampleset->size();
 	double t2 = 0;
 	for (size_t i = 0; i < n; i++) {
-		t2 += log(dg(i)) + r(i) * r(i) - beta(i) * beta(i);
+		t2 += log(dg(i));
 	}
 	//TODO: is this better? or should it be moved to the loop?
 	t2 = t2 + n * log2pi;
-	return t + t2 / 2;
+	return t + t2 / 2 + t3 / 2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
@@ -161,8 +163,8 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
 	Eigen::VectorXd al(n);
 	al.array() =
-			(y - W.transpose() * (W * (y.array() * isqrtgamma.array()).matrix())).array()
-					* isqrtgamma.array();
+			(y - W.transpose() * (W * (y.array() / dg.array()).matrix())).array()
+					/ dg.array();
 //    % = (y - Uvx'*(Avv/sn2)^(-1)*Uvx*Gamma^(-1)*y)*Gamma^(-1)
 //    B = iKuu*Ku;
 	Eigen::MatrixXd B = bf->getWeightPrior() * Phi;
@@ -175,30 +177,41 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //    % w = Upsi^(-1)*Uvx*Gamma^(-1/2)*y - Upsi^(-1)*Uvx*Uvx'*v
 //    %KRZ - free more memory.
 	Eigen::MatrixXd ddiagK(n, num_params);
-	Eigen::VectorXd t;
+	Eigen::VectorXd t(num_params);
 	for (size_t j = 0; j < n; j++) {
 		double temp = k(j);
-		t = ddiagK.row(j);
 		bf->grad(sampleset->x(j), sampleset->x(j), temp, t);
+		//TODO: does this work as expected?
+		ddiagK.row(j) = t;
 	}
+//	std::cout << "fic_gp: ddiagK" << std::endl << ddiagK << std::endl;
 	Eigen::MatrixXd dKuui(M, M);
 	Eigen::MatrixXd dKui(M, n);
-
+	t.resize(M);
 	for (size_t i = 0; i < num_params; i++) {
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);  % eval cov deriv
 		bf->gradInverseWeightPrior(i, dKuui);
 		for (size_t j = 0; j < n; j++) {
-			t = dKui.col(j);
 			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
+			//TODO: does this work as expected?
+			dKui.col(j) = t;
 		}
-		//TODO: first implement gradients of multi_scale to see how that works!
-//      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
-//      % R = 2*dUvx-dUpsi*Upsi^(-1)*Uvx
-//      % v = dGamma?
+		//      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
+		//TODO: check if these allocations are necessary and if move them to the constructor
+		Eigen::VectorXd doublevec(1);
+		Eigen::MatrixXd R = 2 * dKui - dKuui * B;
+		Eigen::VectorXd v = ddiagK.col(i).transpose() - R.cwiseProduct(B).colwise().sum();
 //      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
-//      % = tr(dGAmma*Gamma^(-1)) + ...
+		doublevec = dg.cwiseInverse().transpose()*ddiagK.col(i) + w.transpose()*(dKuui*w-2*(dKui*al))
+				-al.transpose()*(v.cwiseProduct(al))
+//				- (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum()
+				-Wdg.array().square().matrix().colwise().sum()*v
+				;
+		doublevec(0) += -(R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum();
+		gradient(i) = doublevec(0);
 	}
+	gradient/=2;
 //    clear dKui; %KRZ
 //    dnlZ.lik = sn2*(sum(1./dg) -sum(sum(W.*W,1)'./(dg.*dg)) -al'*al);
 //    % since snu2 is a fixed fraction of sn2, there is a covariance-like term in
