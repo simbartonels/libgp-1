@@ -133,18 +133,19 @@ void FICGaussianProcess::update_alpha() {
 double FICGaussianProcess::log_likelihood_impl() {
 	double t = 0;
 	double t3 = 0;
+	//TODO: is this method numerically stable? what are typical values?
 	for (size_t i = 0; i < M; i++) {
 		t += log(Lu(i, i));
-		t3 += r(i) * r(i) - beta(i) * beta(i);
+		t3 -= beta(i) * beta(i);
 	}
 	size_t n = sampleset->size();
 	double t2 = 0;
 	for (size_t i = 0; i < n; i++) {
-		t2 += log(dg(i));
+		t2 += log(dg(i)) + r(i)*r(i);
 	}
 	//TODO: is this better? or should it be moved to the loop?
 	t2 = t2 + n * log2pi;
-	return t + t2 / 2 + t3 / 2;
+	return t + (t2  + t3) / 2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
@@ -178,13 +179,15 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //    %KRZ - free more memory.
 	Eigen::MatrixXd ddiagK(n, num_params);
 	Eigen::VectorXd t(num_params);
+	//TODO: in an SMGPR specific implementation this can be a lot more efficient!
+	// 1) ignore all the zero entries
+	// 2) use that temp is always the same
+	// 3) the gradients for the length scales are all the same
 	for (size_t j = 0; j < n; j++) {
 		double temp = k(j);
 		bf->grad(sampleset->x(j), sampleset->x(j), temp, t);
-		//TODO: does this work as expected?
 		ddiagK.row(j) = t;
 	}
-//	std::cout << "fic_gp: ddiagK" << std::endl << ddiagK << std::endl;
 	Eigen::MatrixXd dKuui(M, M);
 	Eigen::MatrixXd dKui(M, n);
 	t.resize(M);
@@ -195,7 +198,9 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
 			//TODO: does this work as expected?
 			dKui.col(j) = t;
+//			std::cout << "t: " << t.transpose() << std::endl;
 		}
+//		std::cout << "dKui.col(0)" << dKui.col(0) << std::endl;
 		//      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
 		//TODO: check if these allocations are necessary and if move them to the constructor
 		Eigen::VectorXd doublevec(1);

@@ -40,7 +40,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    gp->covf().set_loghyper(params);
 	    double j2 = gp->log_likelihood();
 	    params(i) = theta;
-	    ASSERT_NEAR((j2-j1)/(2*e), grad(i), 1e-5);
+	    ASSERT_NEAR((j2-j1)/(2*e), grad(i), 1e-5) << "parameter number: " << i;
 	  }
 
 	  delete gp;
