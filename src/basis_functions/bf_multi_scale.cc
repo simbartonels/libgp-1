@@ -136,6 +136,7 @@ void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
 			diSigmadp.row(m) = temp;
 			diSigmadp(m, m) = 2 * diSigmadp(m, m);
 		} else {
+			//derivaties for inducing inputs
 			diSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
 					* Upsi.col(m).array() / temp.array();
 			temp = diSigmadp.col(m);
@@ -170,14 +171,15 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		double kernel_value, Eigen::VectorXd& grad) {
 	//TODO: there is actually no need for a general gradient
 	//think about adding a method gradDiag
-
 	grad.segment(input_dim, 2 * M * input_dim).setZero();
-	grad(2 * M * input_dim + input_dim) = kernel_value;
 	if (x1 == x2) {
+		kernel_value = kernel_value - sn2;
+		grad(2 * M * input_dim + input_dim) = kernel_value;
 		grad.head(input_dim).fill(-kernel_value / 2);
 		//noise gradient
-		grad(2 * M * input_dim + input_dim + 1) = 2 * kernel_value;
+		grad(2 * M * input_dim + input_dim + 1) = 2 * sn2;
 	} else {
+		grad(2 * M * input_dim + input_dim) = kernel_value;
 		//chain rule already applied
 		grad.head(input_dim).array() = ((x1.array() - x2.array()).square()
 				/ ell.array() - 1) * kernel_value / 2;

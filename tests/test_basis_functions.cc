@@ -61,6 +61,18 @@ protected:
 		return (j2 - j1) / (2 * e);
 	}
 
+	double numerical_gradient_diag(int i) {
+		double theta = params(i);
+		params(i) = theta - e;
+		covf->set_loghyper(params);
+		double j1 = covf->getWrappedKernelValue(x1, x1);
+		params(i) = theta + e;
+		covf->set_loghyper(params);
+		double j2 = covf->getWrappedKernelValue(x1, x1);
+		params(i) = theta;
+		return (j2 - j1) / (2 * e);
+	}
+
     Eigen::MatrixXd numerical_weight_prior_gradient(size_t i){
         double theta = params(i);
         params(i) = theta - e;
@@ -89,6 +101,7 @@ protected:
 TEST_P(BFGradientTest, EqualToNumerical) {
 	Eigen::VectorXd grad = gradient();
 	for (int i = 0; i < param_dim; ++i) {
+		//TODO: refactor. copy&paste code!
 		double num_grad = numerical_gradient(i);
 		if (grad(i) == 0.0) {
 			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
@@ -98,6 +111,16 @@ TEST_P(BFGradientTest, EqualToNumerical) {
 			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
+		num_grad = numerical_gradient_diag(i);
+		if (grad(i) == 0.0) {
+			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad;
+		}
+		else {
+			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad;
+		}
+
 	}
 }
 

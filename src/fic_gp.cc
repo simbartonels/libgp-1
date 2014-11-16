@@ -153,30 +153,23 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
 //    W = Ku./repmat(sqrt(dg)',nu,1);
 	Eigen::MatrixXd W = Phi * isqrtgamma.asDiagonal();
-	W = W * W.transpose();
-//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku; % inv(K) = inv(G) - inv(G)*W'*W*inv(G);
-	W = W + bf->getInverseWeightPrior();
-	W = W.selfadjointView<Eigen::Lower>().llt().solve(Phi);
-//    % = (Avv/sn2)^(-1/2)*Uvx
-//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
+	//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku; % inv(K) = inv(G) - inv(G)*W'*W*inv(G);
+	W = (W * W.transpose() + bf->getInverseWeightPrior()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
+
 	const std::vector<double>& targets = sampleset->y();
 	size_t n = sampleset->size();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
 	Eigen::VectorXd al(n);
-	al.array() =
-			(y - W.transpose() * (W * (y.array() / dg.array()).matrix())).array()
-					/ dg.array();
-//    % = (y - Uvx'*(Avv/sn2)^(-1)*Uvx*Gamma^(-1)*y)*Gamma^(-1)
+	//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
+	al = (y - W.transpose() * (W * (y.cwiseQuotient(dg)))).cwiseQuotient(dg);
 //    B = iKuu*Ku;
 	Eigen::MatrixXd B = bf->getWeightPrior() * Phi;
 //    % = Upsi^(-1)*Uvx
 //    clear Ku Kuu iKuu; %KRZ - also the line below moved from above.
 //    Wdg = W./repmat(dg',nu,1); w = B*al;
-	Eigen::MatrixXd Wdg = W * isqrtgamma.asDiagonal();
+	Eigen::MatrixXd Wdg = W * dg.transpose().cwiseInverse().asDiagonal();
 	Eigen::VectorXd w = B * al;
-//
-//    % w = Upsi^(-1)*Uvx*Gamma^(-1/2)*y - Upsi^(-1)*Uvx*Uvx'*v
-//    %KRZ - free more memory.
+
 	Eigen::MatrixXd ddiagK(n, num_params);
 	Eigen::VectorXd t(num_params);
 	//TODO: in an SMGPR specific implementation this can be a lot more efficient!
@@ -196,18 +189,21 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 		bf->gradInverseWeightPrior(i, dKuui);
 		for (size_t j = 0; j < n; j++) {
 			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
-			//TODO: does this work as expected?
 			dKui.col(j) = t;
-//			std::cout << "t: " << t.transpose() << std::endl;
 		}
-//		std::cout << "dKui.col(0)" << dKui.col(0) << std::endl;
 		//      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
 		//TODO: check if these allocations are necessary and if move them to the constructor
 		Eigen::VectorXd doublevec(1);
 		Eigen::MatrixXd R = 2 * dKui - dKuui * B;
 		Eigen::VectorXd v = ddiagK.col(i).transpose() - R.cwiseProduct(B).colwise().sum();
+		if(i == 0){
+			Eigen::VectorXd foo = Wdg.array().square().matrix().colwise().sum();
+			std::cout << "fic_gp: foo" << std::endl << foo << std::endl;
+		}
 //      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
+		//TODO: some expressions do not depend on i!
+		//eg: Wdg.array().square().matrix().colwise().sum()
 		doublevec = dg.cwiseInverse().transpose()*ddiagK.col(i) + w.transpose()*(dKuui*w-2*(dKui*al))
 				-al.transpose()*(v.cwiseProduct(al))
 //				- (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum()
