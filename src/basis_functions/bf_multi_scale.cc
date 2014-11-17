@@ -110,13 +110,20 @@ Eigen::MatrixXd MultiScale::getInverseWeightPrior() {
 }
 
 void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
+	//TODO: Does the = trigger a copy?
 	diSigmadp = Eigen::MatrixXd::Zero(M, M);
-	if (p < input_dim || p == 2 * M * input_dim + input_dim + 1) {
-		// length scale derivatives and noise derivative
+	if (p < input_dim) {
+		// length scale derivatives
 		// zero
+	} else if (p == 2 * M * input_dim + input_dim + 1){
+		//noise derivative
+		//little contribution due to the inducing noise
+		diSigmadp = 2 * snu2 * Eigen::MatrixXd::Identity(M, M);
 	} else if (p == 2 * M * input_dim + input_dim) {
 		//amplitude derivatives
-		diSigmadp = -Upsi;
+		//we need to subtract the inducing input noise since it is not affected by the amplitude
+		//TODO: is there a faster way to add to the diagonal?
+		diSigmadp = -Upsi+snu2*Eigen::MatrixXd::Identity(M, M);
 	} else {
 		//derivatives with respect to inducing inputs or inducing length scales
 		//TODO: unnecessary memory allocation on the heap!
@@ -124,6 +131,9 @@ void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
 		size_t m = (p - input_dim) % M;
 		size_t d = ((p - input_dim - m) / M) % input_dim;
 		temp.array() = Uell.col(d).array() + (Uell(m, d) - ell(d));
+		Eigen::VectorXd UpsiCol = Upsi.col(m);
+		//for the gradients we have to remove the inducing input noise (from the diagonal)
+		UpsiCol(m) -= snu2;
 		if (p < M * input_dim + input_dim) {
 			//derivatives for inducing length scales
 			//	dAdl(A, p, d, x, z, i)
@@ -131,14 +141,15 @@ void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
 			diSigmadp.col(m).array() = ((U(m, d) - U.col(d).array())
 					/ temp.array()).square() - 1 / temp.array();
 			diSigmadp.col(m).array() *= (Uell(m, d) - ell(d) / 2)
-					* Upsi.col(m).array() / 2;
+					* UpsiCol.array() / 2;
 			temp = diSigmadp.col(m);
 			diSigmadp.row(m) = temp;
 			diSigmadp(m, m) = 2 * diSigmadp(m, m);
 		} else {
-			//derivaties for inducing inputs
+			//derivatives for inducing inputs
 			diSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
-					* Upsi.col(m).array() / temp.array();
+					* UpsiCol.array() / temp.array();
+			//TODO: can this be more efficient?
 			temp = diSigmadp.col(m);
 			diSigmadp.row(m) = temp;
 		}
@@ -174,7 +185,9 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	grad.segment(input_dim, 2 * M * input_dim).setZero();
 	if (x1 == x2) {
 		kernel_value = kernel_value - sn2;
+		//amplitude gradient
 		grad(2 * M * input_dim + input_dim) = kernel_value;
+		//length scale gradients
 		grad.head(input_dim).fill(-kernel_value / 2);
 		//noise gradient
 		grad(2 * M * input_dim + input_dim + 1) = 2 * sn2;

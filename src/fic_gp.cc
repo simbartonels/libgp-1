@@ -196,20 +196,16 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 		Eigen::VectorXd doublevec(1);
 		Eigen::MatrixXd R = 2 * dKui - dKuui * B;
 		Eigen::VectorXd v = ddiagK.col(i).transpose() - R.cwiseProduct(B).colwise().sum();
-		if(i == 0){
-			Eigen::VectorXd foo = Wdg.array().square().matrix().colwise().sum();
-			std::cout << "fic_gp: foo" << std::endl << foo << std::endl;
-		}
 //      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
 		//TODO: some expressions do not depend on i!
 		//eg: Wdg.array().square().matrix().colwise().sum()
 		doublevec = dg.cwiseInverse().transpose()*ddiagK.col(i) + w.transpose()*(dKuui*w-2*(dKui*al))
-				-al.transpose()*(v.cwiseProduct(al))
+				-al.transpose()*(al.cwiseProduct(v))
 //				- (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum()
 				-Wdg.array().square().matrix().colwise().sum()*v
 				;
-		doublevec(0) += -(R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum();
+		doublevec(0) -= (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum();
 		gradient(i) = doublevec(0);
 	}
 	gradient/=2;
