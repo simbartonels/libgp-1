@@ -34,6 +34,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	Lu.resize(M, M);
 	Luu.resize(M, M);
 	beta.resize(M);
+	k_star.resize(M);
 }
 
 FICGaussianProcess::~FICGaussianProcess() {
@@ -106,7 +107,6 @@ void FICGaussianProcess::updateCholesky(const double x[], double y) {
 }
 
 void FICGaussianProcess::update_k_star(const Eigen::VectorXd &x_star) {
-	k_star.resize(bf->getNumberOfBasisFunctions());
 	k_star = bf->computeBasisFunctionVector(x_star);
 }
 

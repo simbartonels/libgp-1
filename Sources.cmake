@@ -52,3 +52,11 @@ SET(LIBGP_INTERFACES
   include/input_dim_filter.h
   include/cg.h
 )
+
+SET(FAST_FOOD_SRC
+  src/basis_functions/bf_fast_food.cc
+)
+
+SET(FAST_FOOD_INTERFACES
+  include/basis_functions/bf_fast_food.h
+)

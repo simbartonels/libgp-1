@@ -253,6 +253,7 @@ void MultiScale::initializeMatrices() {
 }
 
 void MultiScale::set_loghyper(const double p[]) {
+	//TODO: couldn't we call our method directly?
 	CovarianceFunction::set_loghyper(p);
 }
 
@@ -266,6 +267,7 @@ size_t MultiScale::get_param_dim() {
 }
 
 Eigen::VectorXd MultiScale::get_loghyper() {
+	//TODO: is it really necessary to overwrite this method?!
 	return loghyper;
 }
 
