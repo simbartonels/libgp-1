@@ -44,11 +44,19 @@ protected:
 	Eigen::VectorXd params;
 	Eigen::VectorXd x1;
 	Eigen::VectorXd x2;
+
 	Eigen::VectorXd gradient() {
 		Eigen::VectorXd grad(param_dim);
 		covf->grad(x1, x2, grad);
 		return grad;
 	}
+
+	Eigen::VectorXd gradient_diag() {
+		Eigen::VectorXd grad(param_dim);
+		covf->grad(x1, x1, grad);
+		return grad;
+	}
+
 	double numerical_gradient(int i) {
 		double theta = params(i);
 		params(i) = theta - e;
@@ -99,9 +107,8 @@ protected:
 };
 
 TEST_P(BFGradientTest, EqualToNumerical) {
-	Eigen::VectorXd grad = gradient();
+	Eigen::VectorXd grad = gradient_diag();
 	for (int i = 0; i < param_dim; ++i) {
-		//TODO: refactor. copy&paste code!
 		double num_grad = numerical_gradient(i);
 		if (grad(i) == 0.0) {
 			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
@@ -111,7 +118,15 @@ TEST_P(BFGradientTest, EqualToNumerical) {
 			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
-		num_grad = numerical_gradient_diag(i);
+	}
+}
+
+
+//TODO: refactor. copy&paste code!
+TEST_P(BFGradientTest, DiagEqualToNumerical) {
+	Eigen::VectorXd grad = gradient();
+	for (int i = 0; i < param_dim; ++i) {
+		double num_grad = numerical_gradient_diag(i);
 		if (grad(i) == 0.0) {
 			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
