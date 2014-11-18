@@ -26,10 +26,6 @@ public:
 
 		void gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
 
-	    void set_loghyper(const Eigen::VectorXd &p);
-
-	    void set_loghyper(const double p[]);
-
 	    std::string to_string();
 
 

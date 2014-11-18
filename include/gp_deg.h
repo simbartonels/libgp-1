@@ -49,16 +49,14 @@ namespace libgp {
     void updateCholesky(const double x[], double y);
 
   private:
-	Eigen::VectorXd k;
+    double log_noise;
+    double squared_noise;
+
+	Eigen::VectorXd temp;
 	Eigen::MatrixXd Phi;
     Eigen::MatrixXd Lu;
-    Eigen::VectorXd dg;
-    Eigen::VectorXd isqrtgamma;
-    Eigen::MatrixXd V;
-    Eigen::MatrixXd Luu;
 
-	Eigen::VectorXd r;
-	Eigen::VectorXd beta;
+	Eigen::VectorXd Phiy;
 
 
     //convenience pointer that just points to cf.

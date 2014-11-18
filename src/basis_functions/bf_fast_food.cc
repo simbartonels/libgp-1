@@ -62,6 +62,9 @@ std::string libgp::FastFood::to_string() {
 }
 
 bool libgp::FastFood::real_init() {
+	//length scales + amplitude + noise
+	param_dim = input_dim + 1 + 1;
+	loghyper.resize(get_param_dim());
 	return false;
 }
 }

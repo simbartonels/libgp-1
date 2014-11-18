@@ -18,6 +18,8 @@ public:
 
 		Eigen::MatrixXd getWeightPrior();
 
+		double getLogDeterminantOfWeightPrior();
+
 		/**
 		 * Parent is overwritten since this kernel does not exactly wrap the ARDse.
 		 */
@@ -34,10 +36,6 @@ public:
 	    void set_loghyper(const Eigen::VectorXd &p);
 
 	    void set_loghyper(const double p[]);
-
-	    size_t get_param_dim();
-
-	    Eigen::VectorXd get_loghyper();
 
 	    std::string to_string();
 
@@ -93,6 +91,11 @@ public:
 	     * Inverse of Upsi.
 	     */
 	    Eigen::MatrixXd iUpsi;
+
+	    /**
+	     * log(|iUpsi|)/2
+	     */
+	    double halfLogDetiUpsi;
 };
 }
 

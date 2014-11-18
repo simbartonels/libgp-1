@@ -28,6 +28,12 @@ bool MultiScale::real_init() {
 		return false;
 	}
 
+	//1 for length scale
+	//1 for noise
+	//input_dim length scales
+	//M*input_dim inducing inputs
+	//M*input_dim corresponding length scales
+	param_dim = 2 * M * input_dim + input_dim + 1 + 1;
 	loghyper.resize(get_param_dim());
 	Upsi.resize(M, M);
 	LUpsi.resize(M, M);
@@ -164,6 +170,10 @@ Eigen::MatrixXd MultiScale::getWeightPrior() {
 	return iUpsi;
 }
 
+Eigen::MatrixXd MultiScale::getLogDeterminantOfWeightPrior() {
+	return halfLogDetiUpsi;
+}
+
 double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
 		const Eigen::VectorXd &x2) {
 	//adding noise has to be incorporated here
@@ -245,6 +255,9 @@ void MultiScale::initializeMatrices() {
 	//TODO: refactor: Is it possible to remove the topLeftCorner-calls?
 	LUpsi.topLeftCorner(M, M) = Upsi.topLeftCorner(M, M).selfadjointView<
 			Eigen::Lower>().llt().matrixL();
+	//TODO: is this numerically stable? Probably it's better to make a sum over the logs!
+	//Note that in that case one needs to sum the inverse!
+	halfLogDetiUpsi = -log(LUpsi.diagonal().prod());
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
 			LUpsi.Identity(M, M));
 	//TODO: it should be sufficient to transpose here
@@ -257,19 +270,6 @@ void MultiScale::set_loghyper(const double p[]) {
 	CovarianceFunction::set_loghyper(p);
 }
 
-size_t MultiScale::get_param_dim() {
-	//1 for length scale
-	//1 for noise
-	//input_dim length scales
-	//M*input_dim inducing inputs
-	//M*input_dim corresponding length scales
-	return 2 * M * input_dim + input_dim + 1 + 1;
-}
-
-Eigen::VectorXd MultiScale::get_loghyper() {
-	//TODO: is it really necessary to overwrite this method?!
-	return loghyper;
-}
 
 std::string MultiScale::to_string() {
 	return "MultiScale";

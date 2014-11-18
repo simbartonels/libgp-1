@@ -9,6 +9,11 @@
 
 namespace libgp {
 class IBasisFunction: public CovarianceFunction {
+	/**
+	 * Interface for basis functions for degenerate kernels.
+	 *
+	 * ATTENTION: The last hyper-parameter MUST be noise!
+	 */
 public:
 
 	/**
@@ -100,6 +105,11 @@ public:
 	virtual Eigen::MatrixXd getWeightPrior() = 0;
 
 	/**
+	 * Returns log(|Sigma|)/2. Note: MUST return HALF of the log determinant.
+	 */
+	virtual double getLogDeterminantOfWeightPrior() = 0;
+
+	/**
 	 * Computes the derivative of the weight prior with respect to parameter number param.
 	 * @param p the number of the parameter
 	 * @param diSigmadp where to put the derivative
@@ -144,6 +154,16 @@ public:
 		r = L * phix;
 		r = r.transpose() * L * phiz;
 		return r(0, 0);
+	}
+
+	/**
+	 * Returns the noise on a log scale.
+	 * ATTENTION: The noise MUST be the last parameter!
+	 * This is necessary for hyper-parameter optimization for degenerate kernels.
+	 * Unfortunately, there seems to be no easy way to hide this parameter.
+	 */
+	double getLogNoise(){
+		return loghyper(get_param_dim() - 1);
 	}
 
 protected:

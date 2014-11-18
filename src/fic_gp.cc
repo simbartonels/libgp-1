@@ -80,7 +80,8 @@ void FICGaussianProcess::computeCholesky() {
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
 	isqrtgamma.array() = 1 / dg.array().sqrt();
 	V = V * isqrtgamma.asDiagonal();
-	// TODO: is it possible to use the self adjoint view here?
+	// TODO: V*V^T is symmetric and it should be possible to reduce the costs.
+	//Especially since V is an Mxn matrix!
 	Lu = V * V.transpose() + Eigen::MatrixXd::Identity(M, M);
 	Lu.topLeftCorner(M, M) = Lu.llt().matrixL();
 
