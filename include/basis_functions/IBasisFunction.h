@@ -20,17 +20,17 @@ public:
 	 * Constant used by functions of the form grad***info(). States that there is no additional
 	 * information about the matrix.
 	 */
-	int IBF_MATRIX_INFO_NONE = 0;
+	static const int IBF_MATRIX_INFO_NONE = 0;
 
 	/**
 	 * Constant used by functions of the form grad***info(). States that the matrix is diagonal.
 	 */
-	int IBF_MATRIX_INFO_DIAG = 1;
+	static const int IBF_MATRIX_INFO_DIAG = 1;
 
 	/**
 	 * Constant used by functions of the form grad***info(). States that the matrix is all zero.
 	 */
-	int IBF_MATRIX_INFO_NULL = 2;
+	static const int IBF_MATRIX_INFO_NULL = 2;
 
 	//constructor conversions
 	//IBasisFunction(const CovarianceFunction & cf){};

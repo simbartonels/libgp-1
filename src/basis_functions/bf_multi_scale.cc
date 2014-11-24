@@ -170,7 +170,7 @@ Eigen::MatrixXd MultiScale::getWeightPrior() {
 	return iUpsi;
 }
 
-Eigen::MatrixXd MultiScale::getLogDeterminantOfWeightPrior() {
+double MultiScale::getLogDeterminantOfWeightPrior() {
 	return halfLogDetiUpsi;
 }
 
