@@ -61,36 +61,44 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
 	const std::vector<double>& targets = sampleset->y();
+	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	size_t n = sampleset->size();
 	Eigen::MatrixXd dSigma(M, M);
 	Eigen::MatrixXd dPhidi(M, n);
 	Eigen::VectorXd t(M);
-	Eigen::VectorXd phi_alpha_plus_y = Phi.transpose() * alpha+y;
-	Eigen::MatrixXd alphaSigma = alpha.transpose() * bf->getInverseWeightPrior();
+	Eigen::VectorXd phi_alpha_plus_y = Phi.transpose() * alpha + y;
+	Eigen::MatrixXd alphaSigma = alpha.transpose()
+			* bf->getInverseWeightPrior();
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
+	Eigen::MatrixXd Gamma = L.triangularView<Eigen::Lower>().solve(
+			bf->getInverseWeightPrior());
+	Gamma = Gamma.transpose() * Gamma;
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
 		int dPhiInfo = bf->gradBasisFunctionInfo(i);
-		if (dPhiInfo != bf->IBF_MATRIX_INFO_NULL){
+		if (dPhiInfo != bf->IBF_MATRIX_INFO_NULL) {
 			for (size_t j = 0; j < n; j++) {
 				//TODO: this has a lot of optimization potential especially for fast food
 				//when vectorizing this
 				bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
 				dPhidi.col(j) = t;
 			}
-			gradient(i) = 2*alpha.transpose()*dPhidi*phi_alpha_plus_y;
+			gradient(i) = 2 * (alpha.transpose() * dPhidi * phi_alpha_plus_y
 			//now d|A|
-			gradient(i)+= 2 * iAPhi.cwiseProduct(dPhidi.transpose()).sum();
+					+ 2 * iAPhi.cwiseProduct(dPhidi.transpose()).sum());
 		}
 
 		//now the dSigma parts
 		int dSigmaInfo = bf->gradInverseWeightPriorInfo(i);
-		if(dSigmaInfo != bf->IBF_MATRIX_INFO_NULL){
+		if (dSigmaInfo != bf->IBF_MATRIX_INFO_NULL) {
 			bf->gradInverseWeightPrior(i, dSigma);
-			gradient(i) -= squared_noise * (alphaSigma * dSigma * alphaSigma.transpose());
-
+			//these are from Sigma and |Sigma| from the derivation of A
+			gradient(i) -= squared_noise
+					* (alphaSigma * dSigma * alphaSigma.transpose()
+							+ Gamma.cwiseProduct(dSigma).sum())
 			//and last but not least d|Sigma|
+					+ dSigma.cwiseProduct(bf->getInverseWeightPrior()).sum();
 		}
 
 	}
@@ -103,17 +111,17 @@ void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
 }
 
 void libgp::DegGaussianProcess::update_alpha() {
-	//TODO: this step can be simplified for Solin!
+//TODO: this step can be simplified for Solin!
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
 	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
-	//TODO: correct?!
+//TODO: correct?!
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
 }
 
 void libgp::DegGaussianProcess::computeCholesky() {
-	//TODO: this step can be simplified for Solin!
+//TODO: this step can be simplified for Solin!
 	size_t n = sampleset->size();
 	if (n > Phi.rows())
 		Phi.resize(M, n);
@@ -125,8 +133,8 @@ void libgp::DegGaussianProcess::computeCholesky() {
 }
 
 void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {
-	//Do nothing and just recompute everything.
-	//TODO: might be a slow down in applications!
+//Do nothing and just recompute everything.
+//TODO: might be a slow down in applications!
 	cf->loghyper_changed = true;
 }
 
