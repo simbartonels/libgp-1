@@ -92,6 +92,21 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		//now the dSigma parts
 		int dSigmaInfo = bf->gradInverseWeightPriorInfo(i);
 		if (dSigmaInfo != bf->IBF_MATRIX_INFO_NULL) {
+			/**
+			 * TODO: If the inverse weight prior is known to be diagonal the trace computations can
+			 * be sped up using the relation between trace and eigenvalues.
+			 * Maybe use macros instead of functions to keep this function readable.
+			 * I.e.:
+			 * if(weight_prior is diagonal){
+			 * 		for(i=0; i < num_params)
+			 * 			dPhiMacro
+			 * 			...
+			 * 	else {
+			 * 		for(i=0; i < num_params)
+			 * 			dPhiMacro
+			 * 			...
+			 * 	}
+			 */
 			bf->gradInverseWeightPrior(i, dSigma);
 			//these are from Sigma and |Sigma| from the derivation of A
 			gradient(i) -= squared_noise

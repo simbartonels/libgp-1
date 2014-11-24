@@ -3,36 +3,57 @@
 // All rights reserved.
 
 #include "basis_functions/bf_fast_food.h"
-#include "spiral_wht.h"
 
 #include "cov_factory.h"
 
 #include "cov_se_ard.h"
 #include "cov_sum.h"
 #include "cov_noise.h"
+#include "gp_utils.h"
 
 #include <cmath>
 
 namespace libgp {
+
+FastFood::~FastFood() {
+	while (!PIs.empty()) {
+		delete PIs.back();
+		PIs.pop_back();
+	}
+}
+
 Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		const Eigen::VectorXd& x) {
-	Eigen::VectorXd retval(1);
-	return retval;
+	return multiplyW(x);
+}
+
+Eigen::VectorXd FastFood::multiplyW(const Eigen::VectorXd& x_unpadded){
+	Eigen::VectorXd phi(M*input_dim);
+	x.head(input_dim) = x_unpadded.cwiseQuotient(ell);
+	x.tail(input_dim).fill(0);
+
+	for(size_t m = 0; m < M; m++){
+		temp = x.cwiseProduct(b.col(m));
+		//TODO: wht and eigen bite each other here... -.-
+		wht_apply(wht_tree, 1, temp);
+		wht_apply(wht_tree, 1, g.col(m).cwiseProduct((*PIs.at(m))*temp));
+		s.col(m).cwiseProduct(temp);
+		phi.segment(m*input_dim, m*input_dim+input_dim) = temp.head(input_dim);
+	}
+	return phi;
 }
 
 Eigen::MatrixXd libgp::FastFood::getInverseWeightPrior() {
-	Eigen::MatrixXd retval(1, 1);
-	return retval;
+	return iSigma;
 }
 
 Eigen::MatrixXd libgp::FastFood::getCholeskyOfInverseWeightPrior() {
 	Eigen::MatrixXd retval(1, 1);
-	return retval;
+	return choliSigma;
 }
 
 Eigen::MatrixXd libgp::FastFood::getWeightPrior() {
-	Eigen::MatrixXd retval(1, 1);
-	return retval;
+	return Sigma;
 }
 
 void libgp::FastFood::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
@@ -49,12 +70,17 @@ void libgp::FastFood::gradBasisFunction(const Eigen::VectorXd& x,
 
 void libgp::FastFood::gradInverseWeightPrior(size_t p,
 		Eigen::MatrixXd & diSigmadp) {
+
 }
 
 void libgp::FastFood::set_loghyper(const Eigen::VectorXd& p) {
-}
-
-void libgp::FastFood::set_loghyper(const double p[]) {
+	CovarianceFunction::set_loghyper(p);
+	sf2 = exp(2 * p(input_dim));
+	for(size_t i = 0; i < input_dim; i++)
+		ell(i) = exp(p(i));
+	Sigma.diagonal().fill(sf2 / M / input_dim);
+	iSigma.diagonal().fill(M * input_dim / sf2);
+	choliSigma.diagonal().fill(sqrt(M) * sqrt(input_dim) * exp(-p(input_dim)));
 }
 
 std::string libgp::FastFood::to_string() {
@@ -64,7 +90,47 @@ std::string libgp::FastFood::to_string() {
 bool libgp::FastFood::real_init() {
 	//length scales + amplitude + noise
 	param_dim = input_dim + 1 + 1;
+	next_pow = ilogb(input_dim);
+	assert(pow(2, next_pow) >= input_dim);
+	assert(pow(2, next_pow - 1) < input_dim);
+	next_input_dim = pow(2, next_pow);
 	loghyper.resize(get_param_dim());
-	return false;
+	ell.resize(input_dim);
+	Sigma.resize(2 * M * input_dim);
+	iSigma.resize(2 * M * input_dim);
+	choliSigma.resize(2 * M * input_dim);
+	wht_tree = wht_get_tree(next_pow);
+	s.resize(M, next_input_dim);
+	g.resize(M, next_input_dim);
+	b.resize(M, next_input_dim);
+	PIs.resize(M);
+	x.resize(next_input_dim);
+	temp.resize(next_input_dim);
+
+	for (size_t i = 0; i < M; i++) {
+		//TODO: does this need to be a call to new? (see sampleset implementation)
+		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
+				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
+						next_input_dim);
+		pi->setIdentity();
+		//make a random permutation
+		std::random_shuffle(pi->indices().data(),
+				pi->indices().data() + pi->indices().size());
+		PIs.push_back(pi);
+		for (size_t d1 = 0; d1 < next_input_dim; d1++) {
+			double r = 0;
+			for (size_t d2 = 0; d2 < next_input_dim; d1++) {
+				double stdn = Utils::randn();
+				r += stdn * stdn;
+			}
+			s.col(i)(d1) = sqrt(r);
+			g.col(i)(d1) = Utils::randn();
+			b.col(i)(d1) = 2 * Utils::randi(2) - 1;
+		}
+		s.col(i)/=g.col(i).norm();
+	}
+	//TODO: maybe this can be skipped, depending on the implementation of wht
+	s/=sqrt(next_input_dim);
+	return true;
 }
 }
