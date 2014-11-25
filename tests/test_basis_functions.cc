@@ -21,7 +21,7 @@ protected:
 		M = 20;
 		e = 1e-8;
 		wrappedCovarianceFunction = covFactory.create(n,
-				"CovSum ( CovSEiso, CovNoise)");
+				"CovSum ( CovSEard, CovNoise)");
 		covf = factory.createBasisFunction(GetParam(), M,
 				wrappedCovarianceFunction);
 		param_dim = covf->get_param_dim();
@@ -174,8 +174,9 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 	}
 }
 
+//TODO: if the user does not want to build fast food this would fail!
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
-		Values("SparseMultiScaleGP", "SparseMultiScaleGP"));
+		Values("SparseMultiScaleGP", "FastFood"));
 
 #else
 

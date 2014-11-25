@@ -22,7 +22,7 @@ bool MultiScale::real_init() {
 	//TODO: signal that Multiscale ignores the covariance function!
 	CovFactory f;
 	CovarianceFunction * expectedCov;
-	expectedCov = f.create(input_dim, "CovSum ( CovSEiso, CovNoise)");
+	expectedCov = f.create(input_dim, "CovSum ( CovSEard, CovNoise)");
 	if (cov->to_string() != expectedCov->to_string()) {
 		//TODO: signal reason for error!
 		return false;

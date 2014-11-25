@@ -6,7 +6,9 @@
 #define INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_
 
 #include "IBasisFunction.h"
-#include "spiral_wht.h"
+extern "C" {
+	#include "spiral_wht.h"
+}
 #include <vector>
 
 
@@ -23,6 +25,8 @@ public:
 
 		Eigen::MatrixXd getWeightPrior();
 
+		double getLogDeterminantOfWeightPrior();
+
 	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
 
 	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad);
@@ -35,6 +39,25 @@ public:
 
 	    std::string to_string();
 
+	    /**
+	     * Returns the sampled scaling matrices.
+	     */
+		Eigen::MatrixXd getS();
+
+		/**
+		 * Returns the sampled Gaussian matrices.
+		 */
+		Eigen::MatrixXd getG();
+
+		/**
+		 * Returns the sampled binary matrices.
+		 */
+		Eigen::MatrixXd getB();
+
+		/**
+		 * Returns the sampled permutation matrices.
+		 */
+		Eigen::MatrixXd getPI();
 
 	protected:
 	    virtual bool real_init();
@@ -94,8 +117,9 @@ public:
 
 	    /**
 	     * Concatenated diagonal random binary matrices.
+	     * NOTE: Double matrix because Eigen refuses to mix types... -.-
 	     */
-	    Eigen::MatrixXi b;
+	    Eigen::MatrixXd b;
 
 	    /**
 	     * Concatenated diagonal Gaussian random matrices.
@@ -121,6 +145,11 @@ public:
 	     * Temporary structure used in multiplyW().
 	     */
 		Eigen::VectorXd temp;
+
+		/**
+		 * Contains log(|Sigma|)/2.
+		 */
+		double log_determinant_sigma;
 };
 }
 

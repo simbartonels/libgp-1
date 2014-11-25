@@ -4,7 +4,7 @@
 
 #include "gp_deg.h"
 
-#include "cov_factory.h"
+#include "basis_functions/basisf_factory.h"
 
 #include "cov_se_ard.h"
 #include "cov_sum.h"
@@ -17,7 +17,7 @@ namespace libgp {
 const double log2pi = log(2 * M_PI);
 
 libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
-		std::string covf_def, size_t num_basisf, std::string basisf_def) {
+		std::string covf_def, size_t num_basisf, std::string basisf_def):AbstractGaussianProcess(input_dim, covf_def) {
 	BasisFFactory factory;
 	//wrap initialized covariance function with basis function
 	cf = factory.createBasisFunction(basisf_def, num_basisf, cf);
@@ -38,7 +38,7 @@ libgp::DegGaussianProcess::~DegGaussianProcess() {
 
 double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd x_star) {
 	temp = L.triangularView<Eigen::Lower>().solve(k_star);
-	return squared_noise * (temp.transpose() * temp);
+	return squared_noise * temp.squaredNorm();
 }
 
 double libgp::DegGaussianProcess::log_likelihood_impl() {
@@ -67,8 +67,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	Eigen::MatrixXd dPhidi(M, n);
 	Eigen::VectorXd t(M);
 	Eigen::VectorXd phi_alpha_plus_y = Phi.transpose() * alpha + y;
-	Eigen::MatrixXd alphaSigma = alpha.transpose()
-			* bf->getInverseWeightPrior();
+	Eigen::VectorXd sigma_alpha = bf->getInverseWeightPrior().transpose() * alpha;
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
 	Eigen::MatrixXd Gamma = L.triangularView<Eigen::Lower>().solve(
 			bf->getInverseWeightPrior());
@@ -110,7 +109,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 			bf->gradInverseWeightPrior(i, dSigma);
 			//these are from Sigma and |Sigma| from the derivation of A
 			gradient(i) -= squared_noise
-					* (alphaSigma * dSigma * alphaSigma.transpose()
+					* (sigma_alpha.transpose() * dSigma * sigma_alpha
 							+ Gamma.cwiseProduct(dSigma).sum())
 			//and last but not least d|Sigma|
 					+ dSigma.cwiseProduct(bf->getInverseWeightPrior()).sum();
@@ -118,7 +117,6 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 
 	}
 	return gradient;
-}
 }
 
 void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
@@ -142,9 +140,8 @@ void libgp::DegGaussianProcess::computeCholesky() {
 		Phi.resize(M, n);
 	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
-	L =
-			(Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior()).selfAdjointView<
-					Eigen::Lower>().llt().matrixL();
+	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
+	L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior()).selfadjointView<Eigen::Lower>().llt().matrixL();
 }
 
 void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {

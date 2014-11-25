@@ -7,11 +7,17 @@
 
 #include "basis_functions/basisf_factory.h"
 #include "basis_functions/bf_multi_scale.h"
+#ifdef INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_
+#include "basis_functions/bf_fast_food.h"
+#endif
 
 namespace libgp {
   
 BasisFFactory::BasisFFactory () {
 	registry["SparseMultiScaleGP"] = & create_func<MultiScale>;
+	#ifdef INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_
+	registry["FastFood"] = & create_func<FastFood>;
+	#endif
   }
   
   BasisFFactory::~BasisFFactory () {};

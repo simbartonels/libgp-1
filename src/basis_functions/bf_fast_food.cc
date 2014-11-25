@@ -13,6 +13,8 @@
 
 #include <cmath>
 
+extern "C" Wht * wht_get_tree(int);
+
 namespace libgp {
 
 FastFood::~FastFood() {
@@ -33,11 +35,11 @@ Eigen::VectorXd FastFood::multiplyW(const Eigen::VectorXd& x_unpadded){
 	x.tail(input_dim).fill(0);
 
 	for(size_t m = 0; m < M; m++){
-		temp = x.cwiseProduct(b.col(m));
-		//TODO: wht and eigen bite each other here... -.-
-		wht_apply(wht_tree, 1, temp);
-		wht_apply(wht_tree, 1, g.col(m).cwiseProduct((*PIs.at(m))*temp));
-		s.col(m).cwiseProduct(temp);
+		temp.array() = b.row(m).array() * x.array();
+		wht_apply(wht_tree, 1, temp.data());
+		temp = g.row(m).cwiseProduct((*PIs.at(m))*temp);
+		wht_apply(wht_tree, 1, temp.data());
+		temp = s.row(m).cwiseProduct(temp);
 		phi.segment(m*input_dim, m*input_dim+input_dim) = temp.head(input_dim);
 	}
 	return phi;
@@ -54,6 +56,10 @@ Eigen::MatrixXd libgp::FastFood::getCholeskyOfInverseWeightPrior() {
 
 Eigen::MatrixXd libgp::FastFood::getWeightPrior() {
 	return Sigma;
+}
+
+double FastFood::getLogDeterminantOfWeightPrior(){
+	return log_determinant_sigma;
 }
 
 void libgp::FastFood::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
@@ -79,6 +85,8 @@ void libgp::FastFood::set_loghyper(const Eigen::VectorXd& p) {
 	for(size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(p(i));
 	Sigma.diagonal().fill(sf2 / M / input_dim);
+	//contains log(|Sigma|)/2
+	log_determinant_sigma = M * input_dim * (2 * p(input_dim) - log(M*input_dim));
 	iSigma.diagonal().fill(M * input_dim / sf2);
 	choliSigma.diagonal().fill(sqrt(M) * sqrt(input_dim) * exp(-p(input_dim)));
 }
@@ -88,6 +96,8 @@ std::string libgp::FastFood::to_string() {
 }
 
 bool libgp::FastFood::real_init() {
+	//TODO: check covariance function!
+
 	//length scales + amplitude + noise
 	param_dim = input_dim + 1 + 1;
 	next_pow = ilogb(input_dim);
@@ -123,14 +133,38 @@ bool libgp::FastFood::real_init() {
 				double stdn = Utils::randn();
 				r += stdn * stdn;
 			}
-			s.col(i)(d1) = sqrt(r);
-			g.col(i)(d1) = Utils::randn();
-			b.col(i)(d1) = 2 * Utils::randi(2) - 1;
+			s.row(i)(d1) = sqrt(r);
+			g.row(i)(d1) = Utils::randn();
+			b.row(i)(d1) = 2 * Utils::randi(2) - 1;
 		}
-		s.col(i)/=g.col(i).norm();
+		s.row(i)/=g.row(i).norm();
 	}
 	//TODO: maybe this can be skipped, depending on the implementation of wht
 	s/=sqrt(next_input_dim);
 	return true;
 }
+
+	Eigen::MatrixXd FastFood::getS(){
+		return s;
+	}
+
+	Eigen::MatrixXd FastFood::getG(){
+		return g;
+	}
+
+	Eigen::MatrixXd FastFood::getB(){
+		return b;
+	}
+
+	Eigen::MatrixXd FastFood::getPI(){
+		Eigen::MatrixXd pi_matrix(M, next_input_dim);
+		Eigen::VectorXi temp_vector(next_input_dim);
+		for(size_t m = 0; m < M; m++){
+			temp_vector = (*PIs.at(m)).indices();
+			for(size_t j = 0; j < next_input_dim; j++){
+				pi_matrix(m, j) = (double) temp_vector(j);
+			}
+		}
+		return pi_matrix;
+	}
 }
