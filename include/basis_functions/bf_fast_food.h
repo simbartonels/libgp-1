@@ -150,6 +150,11 @@ public:
 		 * Contains log(|Sigma|)/2.
 		 */
 		double log_determinant_sigma;
+
+		/**
+		 * The number of different matrices V.
+		 */
+		size_t M_intern;
 };
 }
 

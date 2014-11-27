@@ -20,9 +20,9 @@ macro(_spiral_check_installed)
       PATH_SUFFIXES spiral spiral_wht
   )
   if(NOT SpiralWHT_INSTALLED_DIR)
-
     message(STATUS "Spiral WHT found in ${SpiralWHT_INCLUDE_DIR}, "
-                   "but it appears it was not properly installed. Did you run ./configure and make in that folder?")
+                   "but it appears it was not properly installed. Did you run ./configure, make and make install in that folder?")
+    message(STATUS "If you want mex support you should make sure wht is comiled with -fPIC option!")
   endif(NOT SpiralWHT_INSTALLED_DIR)
 endmacro(_spiral_check_installed)
 

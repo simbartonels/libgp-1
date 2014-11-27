@@ -43,7 +43,8 @@ double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd x_star) {
 
 double libgp::DegGaussianProcess::log_likelihood_impl() {
 	const std::vector<double>& targets = sampleset->y();
-	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
+	size_t n = sampleset->size();
+	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
 	//TODO: this needs to be evaluated only once!
 	double yy = y.squaredNorm();
 	assert(yy == y.transpose() * y);
@@ -54,7 +55,7 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 		halfLogDetA += log(L(j, j));
 	}
 	return (yy + PhiyAlpha) / squared_noise / 2 + halfLogDetA + halfLogDetSigma
-			+ (y.size() - M) * log_noise + y.size() * log2pi;
+			+ (n - M) * log_noise + n * log2pi;
 }
 
 Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
@@ -124,24 +125,29 @@ void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
 }
 
 void libgp::DegGaussianProcess::update_alpha() {
-//TODO: this step can be simplified for Solin!
+	std::cout << "deg_gp: computing alpha" << std::endl;
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
 	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
 //TODO: correct?!
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
+	std::cout << "deg_gp: done" << std::endl;
 }
 
 void libgp::DegGaussianProcess::computeCholesky() {
-//TODO: this step can be simplified for Solin!
+//TODO: this step can be simplified for Solin! (Phi is constant)
+	std::cout << "deg_gp: computing Phi ... " << std::endl;
 	size_t n = sampleset->size();
 	if (n > Phi.rows())
 		Phi.resize(M, n);
 	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
+	std::cout << "deg_gp: done" << std::endl;
+	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
 	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
 	L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior()).selfadjointView<Eigen::Lower>().llt().matrixL();
+	std::cout << "deg_gp: done" << std::endl;
 }
 
 void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {

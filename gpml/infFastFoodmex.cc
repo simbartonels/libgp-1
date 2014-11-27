@@ -6,8 +6,8 @@
 #include "mex.h"
 #include <math.h>
 #include <string.h>
-#include "gp_deg.h"
 #include "basis_functions/bf_fast_food.h"
+#include "gp_deg.h"
 #include <Eigen/Dense>
 #include <iostream>
 
@@ -53,24 +53,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		double nlZ = gp.log_likelihood();
 		plhs[2] = mxCreateDoubleScalar(nlZ);
 		if (nlhs == 4) {
+			std::cout << "infFastFood: computing gradients" << std::endl;
 			Eigen::VectorXd grads = gp.log_likelihood_gradient();
 			size_t params = grads.size();
 			plhs[3] = mxCreateDoubleMatrix(params, 1, mxREAL); /* allocate space for output */
 			Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), params) = grads;
 		} else if (nlhs >= 5) {
+			std::cout << "infFastFood: gathering data" << std::endl;
+			M = floor(M/2/D);
+			D = pow(2, ilogb(D) + 1);
 			libgp::FastFood * bf = (libgp::FastFood *) &gp.covf();
-			size_t next_pow = pow(2, ilogb(D));
-			plhs[3] = mxCreateDoubleMatrix(M, next_pow, mxREAL);
-			plhs[4] = mxCreateDoubleMatrix(M, next_pow, mxREAL);
-			plhs[5] = mxCreateDoubleMatrix(M, next_pow, mxREAL);
-			plhs[6] = mxCreateDoubleMatrix(M, next_pow, mxREAL);
-			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[3]), next_pow, M) =
+			plhs[3] = mxCreateDoubleMatrix(M, D, mxREAL);
+			plhs[4] = mxCreateDoubleMatrix(M, D, mxREAL);
+			plhs[5] = mxCreateDoubleMatrix(M, D, mxREAL);
+			plhs[6] = mxCreateDoubleMatrix(M, D, mxREAL);
+			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[3]), D, M) =
 					bf->getS();
-			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[4]), next_pow, M) =
+			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[4]), D, M) =
 					bf->getG();
-			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[5]), next_pow, M) =
+			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[5]), D, M) =
 					bf->getPI();
-			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[6]), next_pow, M) =
+			Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[6]), D, M) =
 					bf->getB();
 		}
 	}
