@@ -61,7 +61,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		} else if (nlhs >= 5) {
 			std::cout << "infFastFood: gathering data..." << std::endl;
 			M = floor(M/2/D);
-			D = pow(2, ilogb(D) + 1);
+			int out;
+			std::frexp(D - 1, &out);
+			D = pow(2, out);
 			libgp::FastFood * bf = (libgp::FastFood *) &gp.covf();
 			plhs[3] = mxCreateDoubleMatrix(M, D, mxREAL);
 			plhs[4] = mxCreateDoubleMatrix(M, D, mxREAL);

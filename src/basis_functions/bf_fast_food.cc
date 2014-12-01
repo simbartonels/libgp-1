@@ -51,8 +51,8 @@ Eigen::VectorXd FastFood::multiplyW(const Eigen::VectorXd& x_unpadded) {
 //		phi.segment(m * input_dim, m * input_dim + input_dim).array() = temp.head(
 //				input_dim).array().sin();
 		for(size_t j = 0; j < input_dim; j++){
-			phi(m * input_dim + j) = sin(temp(j));
 			phi(m * input_dim + j) = cos(temp(j));
+			phi((M_intern + m) * input_dim + j) = sin(temp(j));
 		}
 	}
 	return phi;
@@ -96,12 +96,12 @@ void libgp::FastFood::set_loghyper(const Eigen::VectorXd& p) {
 	sf2 = exp(2 * p(input_dim));
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(p(i));
-	Sigma.diagonal().fill(sf2 / M / input_dim);
+	Sigma.diagonal().fill(sf2 / M_intern / next_input_dim);
 	//contains log(|Sigma|)/2
-	log_determinant_sigma = M * input_dim
-			* (2 * p(input_dim) - log(M * input_dim));
-	iSigma.diagonal().fill(M * input_dim / sf2);
-	choliSigma.diagonal().fill(sqrt(M) * sqrt(input_dim) * exp(-p(input_dim)));
+	log_determinant_sigma = M_intern * next_input_dim
+			* (2 * p(input_dim) - log(M_intern * next_input_dim));
+	iSigma.diagonal().fill(M_intern * next_input_dim / sf2);
+	choliSigma.diagonal().fill(sqrt(M_intern) * sqrt(next_input_dim) * exp(-p(input_dim)));
 	std::cout
 			<< "bf_fast_food: internal data structures updated for new hyper-parameters"
 			<< std::endl;
@@ -116,15 +116,18 @@ bool libgp::FastFood::real_init() {
 
 	//length scales + amplitude + noise
 	param_dim = input_dim + 1 + 1;
-	next_pow = ilogb(input_dim) + 1;
+	//next_pow = ilog2(input_dim) + 1;
+	int out;
+	std::frexp(input_dim - 1, &out);
+	next_pow = out;
 	next_input_dim = pow(2, next_pow);
 	std::cout << "bf_fast_food: internal dimension " << next_input_dim
 			<< std::endl;
 	assert(next_input_dim >= input_dim);
 	assert(pow(2, next_pow - 1) < input_dim);
+	assert(M >= 2 * input_dim);
 	M_intern = floor(M / 2 / input_dim);
-	if (M_intern == 0)
-		M_intern = 1;
+	std::cout << "bf_fast_food: number of V matrices " << M_intern << std::endl;
 	assert(2 * M_intern * input_dim <= M);
 	loghyper.resize(get_param_dim());
 	ell.resize(input_dim);
