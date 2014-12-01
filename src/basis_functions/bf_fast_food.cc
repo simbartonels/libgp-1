@@ -34,37 +34,26 @@ Eigen::VectorXd FastFood::multiplyW(const Eigen::VectorXd& x_unpadded) {
 
 	x.head(input_dim) = x_unpadded.cwiseQuotient(ell);
 
-	//already done in real_init()
+	//already done in real_init():
 	//x.tail(next_input_dim - input_dim).fill(0);
 
-	//	std::cout << "bf_fast_food: x_padded " << std::endl << x << std::endl;
-
 	for (size_t m = 0; m < M_intern; m++) {
-//		std::cout << "bf_fast_food: b " << std::endl << b.row(m).array() << std::endl;
-//			std::cout << "bf_fast_food: x_padded " << std::endl << x.array() << std::endl;
 		//TODO: it could be efficient to transpose B in general!
 		temp.array() = b.row(m).transpose().array() * x.array();
-//		std::cout << "bf_fast_food: temp before " << std::endl << temp << std::endl;
-//		wht_value t2[next_input_dim];
-//		for(size_t d = 0; d < next_input_dim; d++)
-//			t2[d] = temp(d);
 		wht_apply(wht_tree, 1, temp.data());
-//		for(size_t d = 0; d < next_input_dim; d++)
-//			temp(d) = t2[d];
-//		std::cout << "bf_fast_food: temp after " << std::endl << temp
-//				<< std::endl;
 		temp = g.row(m).transpose().cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
 		temp = s.row(m).transpose().cwiseProduct(temp);
-		std::cout << "bf_fast_food: input to phi " << temp.head(
-				input_dim).array().sin() << std::endl;
-		phi.segment(m * input_dim, m * input_dim + input_dim).array() = temp.head(
-				input_dim).array().sin();
-		std::cout << "bf_fast_food: phi' " << std::endl << phi.transpose().array() << std::endl;
-		//TODO: uncomment and fix
+		//TODO: is the part below faster than the for loop? if so fix it
 //		phi.segment((M_intern + m) * input_dim,
 //				(M_intern + m) * input_dim + input_dim).array() = temp.head(
 //				input_dim).array().cos();
+//		phi.segment(m * input_dim, m * input_dim + input_dim).array() = temp.head(
+//				input_dim).array().sin();
+		for(size_t j = 0; j < input_dim; j++){
+			phi(m * input_dim + j) = sin(temp(j));
+			phi(m * input_dim + j) = cos(temp(j));
+		}
 	}
 	return phi;
 }
