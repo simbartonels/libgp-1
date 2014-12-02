@@ -56,6 +56,6 @@ TEST(LogLikelihoodTest, CheckGradientsFullGP)
 TEST(LogLikelihoodTest, CheckGradientsFICGP)
 {
   int input_dim = 3;
-  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEiso, CovNoise)", 20, "SparseMultiScaleGP");
+  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
   genericGradientTest(gp, input_dim);
 }

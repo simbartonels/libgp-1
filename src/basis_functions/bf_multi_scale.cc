@@ -24,7 +24,7 @@ bool MultiScale::real_init() {
 	CovarianceFunction * expectedCov;
 	expectedCov = f.create(input_dim, "CovSum ( CovSEard, CovNoise)");
 	if (cov->to_string() != expectedCov->to_string()) {
-		//TODO: signal reason for error!
+		std::cerr << "MultiScale GPR is only applicable for covariance function: " << expectedCov->to_string() << std::endl;
 		return false;
 	}
 

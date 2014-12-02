@@ -54,6 +54,8 @@ namespace libgp
       virtual double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2) = 0;
 
       /** Covariance gradient of two input vectors with respect to the hyperparameters.
+       *  The other function is more efficient if implemented but since that is not always the case
+       *  this funcion is kept for consistency.
        *  @param x1 first input vector
        *  @param x2 second input vector
        *  @param grad covariance gradient */
