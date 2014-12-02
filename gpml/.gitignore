@@ -1,2 +1,4 @@
 /libgp.a
 /infSMmex.mexw64
+*.mexa64
+*.a
