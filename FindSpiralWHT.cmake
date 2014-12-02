@@ -17,7 +17,7 @@ macro(_spiral_check_installed)
       ${KDE4_INCLUDE_DIR}
       $ENV{HOME}/local/include
       ${PROJECT_SOURCE_DIR}
-      PATH_SUFFIXES spiral spiral_wht
+      PATH_SUFFIXES spiral spiral_wht spiral_Wht
   )
   if(NOT SpiralWHT_INSTALLED_DIR)
     message(STATUS "Spiral WHT found in ${SpiralWHT_INCLUDE_DIR}, "
