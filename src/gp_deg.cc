@@ -64,9 +64,11 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	size_t n = sampleset->size();
+	//TODO: move these allocations outside the function?
 	Eigen::MatrixXd dSigma(M, M);
 	Eigen::MatrixXd dPhidi(M, n);
 	Eigen::VectorXd t(M);
+	//TODO: here we have a few steps that aren't necessary for Fast Foo.
 	Eigen::VectorXd phi_alpha_plus_y = Phi.transpose() * alpha + y;
 	Eigen::VectorXd sigma_alpha = bf->getInverseWeightPrior().transpose() * alpha;
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
@@ -130,7 +132,6 @@ void libgp::DegGaussianProcess::update_alpha() {
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
 	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
-//TODO: correct?!
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
 	std::cout << "deg_gp: done" << std::endl;
 }

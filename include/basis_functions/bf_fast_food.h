@@ -33,7 +33,11 @@ public:
 
 		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
 
+		int gradBasisFunctionInfo(size_t p);
+
 		void gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
+
+		int gradInverseWeightPriorInfo(size_t p);
 
 		void set_loghyper(const Eigen::VectorXd& p);
 
@@ -63,12 +67,13 @@ public:
 	    virtual bool real_init();
 
 	private:
+
 	    /**
-	     * Applies the multiplication with W.
-	     * @param x an input vector
-	     * @return [W1*x, ..., Wm*x]
+	     * Executes the multiplication W*e_k.
+	     * @param k the number of the standard basis vector
+	     * @return a vector of length M_intern * input_dim that contains the result.
 	     */
-	    Eigen::VectorXd multiplyW(const Eigen::VectorXd & x);
+	    Eigen::VectorXd multiplyW_withStandardBasisVector(size_t p);
 
 	    /**
 	     * Signal amplitude.
