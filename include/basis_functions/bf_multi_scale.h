@@ -14,7 +14,7 @@ public:
 
 		Eigen::MatrixXd getInverseWeightPrior();
 
-		Eigen::MatrixXd getCholeskyOfInverseWeightPrior();
+		Eigen::MatrixXd getCholeskyOfWeightPrior();
 
 		Eigen::MatrixXd getWeightPrior();
 
@@ -31,7 +31,7 @@ public:
 
 		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
 
-		void gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
+		void gradWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
 
 	    void set_loghyper(const Eigen::VectorXd &p);
 
@@ -93,9 +93,9 @@ public:
 	    Eigen::MatrixXd iUpsi;
 
 	    /**
-	     * log(|iUpsi|)/2
+	     * log(|Upsi|)/2
 	     */
-	    double halfLogDetiUpsi;
+	    double halfLogDetUpsi;
 };
 }
 

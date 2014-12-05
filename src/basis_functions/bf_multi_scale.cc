@@ -111,25 +111,26 @@ void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 }
 
 Eigen::MatrixXd MultiScale::getInverseWeightPrior() {
-	//TODO: check that upper part of Upsi is same as lower part
-	return Upsi;
+	//TODO: check that upper part of iUpsi is same as lower part
+	return iUpsi;
 }
 
-void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
+void MultiScale::gradWeightPrior(size_t p, Eigen::MatrixXd & dSigmadp) {
+	//TODO: this function can be more efficient
 	//TODO: Does the = trigger a copy?
-	diSigmadp = Eigen::MatrixXd::Zero(M, M);
+	dSigmadp = Eigen::MatrixXd::Zero(M, M);
 	if (p < input_dim) {
 		// length scale derivatives
 		// zero
 	} else if (p == 2 * M * input_dim + input_dim + 1){
 		//noise derivative
 		//little contribution due to the inducing noise
-		diSigmadp = 2 * snu2 * Eigen::MatrixXd::Identity(M, M);
+		dSigmadp = 2 * snu2 * Eigen::MatrixXd::Identity(M, M);
 	} else if (p == 2 * M * input_dim + input_dim) {
 		//amplitude derivatives
 		//we need to subtract the inducing input noise since it is not affected by the amplitude
 		//TODO: is there a faster way to add to the diagonal?
-		diSigmadp = -Upsi+snu2*Eigen::MatrixXd::Identity(M, M);
+		dSigmadp = -Upsi+snu2*Eigen::MatrixXd::Identity(M, M);
 	} else {
 		//derivatives with respect to inducing inputs or inducing length scales
 		//TODO: unnecessary memory allocation on the heap!
@@ -144,34 +145,34 @@ void MultiScale::gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp) {
 			//derivatives for inducing length scales
 			//	dAdl(A, p, d, x, z, i)
 			//	dA(i, :) = ((((z(i, d) - x(:, d))./p).^2-1./p))'.*A(i, :)/2
-			diSigmadp.col(m).array() = ((U(m, d) - U.col(d).array())
+			dSigmadp.col(m).array() = ((U(m, d) - U.col(d).array())
 					/ temp.array()).square() - 1 / temp.array();
-			diSigmadp.col(m).array() *= (Uell(m, d) - ell(d) / 2)
+			dSigmadp.col(m).array() *= (Uell(m, d) - ell(d) / 2)
 					* UpsiCol.array() / 2;
-			temp = diSigmadp.col(m);
-			diSigmadp.row(m) = temp;
-			diSigmadp(m, m) = 2 * diSigmadp(m, m);
+			temp = dSigmadp.col(m);
+			dSigmadp.row(m) = temp;
+			dSigmadp(m, m) = 2 * dSigmadp(m, m);
 		} else {
 			//derivatives for inducing inputs
-			diSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
+			dSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
 					* UpsiCol.array() / temp.array();
 			//TODO: can this be more efficient?
-			temp = diSigmadp.col(m);
-			diSigmadp.row(m) = temp;
+			temp = dSigmadp.col(m);
+			dSigmadp.row(m) = temp;
 		}
 	}
 }
 
-Eigen::MatrixXd MultiScale::getCholeskyOfInverseWeightPrior() {
+Eigen::MatrixXd MultiScale::getCholeskyOfWeightPrior() {
 	return LUpsi;
 }
 
 Eigen::MatrixXd MultiScale::getWeightPrior() {
-	return iUpsi;
+	return Upsi;
 }
 
 double MultiScale::getLogDeterminantOfWeightPrior() {
-	return halfLogDetiUpsi;
+	return halfLogDetUpsi;
 }
 
 double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
@@ -256,8 +257,7 @@ void MultiScale::initializeMatrices() {
 	LUpsi.topLeftCorner(M, M) = Upsi.topLeftCorner(M, M).selfadjointView<
 			Eigen::Lower>().llt().matrixL();
 	//TODO: is this numerically stable? Probably it's better to make a sum over the logs!
-	//Note that in that case one needs to sum the inverse!
-	halfLogDetiUpsi = -log(LUpsi.diagonal().prod());
+	halfLogDetUpsi = log(LUpsi.diagonal().prod());
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
 			LUpsi.Identity(M, M));
 	//TODO: it should be sufficient to transpose here

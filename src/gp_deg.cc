@@ -17,7 +17,8 @@ namespace libgp {
 const double log2pi = log(2 * M_PI);
 
 libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
-		std::string covf_def, size_t num_basisf, std::string basisf_def):AbstractGaussianProcess(input_dim, covf_def) {
+		std::string covf_def, size_t num_basisf, std::string basisf_def) :
+		AbstractGaussianProcess(input_dim, covf_def) {
 	BasisFFactory factory;
 	//wrap initialized covariance function with basis function
 	cf = factory.createBasisFunction(basisf_def, num_basisf, cf);
@@ -68,9 +69,10 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	Eigen::MatrixXd dSigma(M, M);
 	Eigen::MatrixXd dPhidi(M, n);
 	Eigen::VectorXd t(M);
-	//TODO: here we have a few steps that aren't necessary for Fast Foo.
+	//TODO: here we have a few steps that aren't necessary for Solin!
 	Eigen::VectorXd phi_alpha_plus_y = Phi.transpose() * alpha + y;
-	Eigen::VectorXd sigma_alpha = bf->getInverseWeightPrior().transpose() * alpha;
+	Eigen::VectorXd sigma_alpha = bf->getInverseWeightPrior().transpose()
+			* alpha;
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
 	Eigen::MatrixXd Gamma = L.triangularView<Eigen::Lower>().solve(
 			bf->getInverseWeightPrior());
@@ -84,15 +86,17 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 				//TODO: this has a lot of optimization potential especially for fast food
 				//when vectorizing this
 				bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
+				//TODO: it is actually quite bad that we need to copy here
+				//could it be faster using .data()?
 				dPhidi.col(j) = t;
 			}
-			gradient(i) = 2 * (alpha.transpose() * dPhidi * phi_alpha_plus_y
+			//the first sum() call is a workaround for Eigen not recognizing the result to be a scalar
+			gradient(i) = ((alpha.transpose() * dPhidi * phi_alpha_plus_y).sum()/squared_noise
 			//now d|A|
-					+ 2 * iAPhi.cwiseProduct(dPhidi.transpose()).sum());
+					+ iAPhi.cwiseProduct(dPhidi).sum());
 		}
-
 		//now the dSigma parts
-		int dSigmaInfo = bf->gradInverseWeightPriorInfo(i);
+		int dSigmaInfo = bf->gradWeightPriorInfo(i);
 		if (dSigmaInfo != bf->IBF_MATRIX_INFO_NULL) {
 			/**
 			 * TODO: If the inverse weight prior is known to be diagonal the trace computations can
@@ -109,7 +113,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 			 * 			...
 			 * 	}
 			 */
-			bf->gradInverseWeightPrior(i, dSigma);
+			bf->gradWeightPrior(i, dSigma);
 			//these are from Sigma and |Sigma| from the derivation of A
 			gradient(i) -= squared_noise
 					* (sigma_alpha.transpose() * dSigma * sigma_alpha
@@ -128,6 +132,7 @@ void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
 
 void libgp::DegGaussianProcess::update_alpha() {
 	std::cout << "deg_gp: computing alpha" << std::endl;
+	squared_noise = exp(2*bf->getLogNoise());
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
@@ -147,7 +152,8 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	std::cout << "deg_gp: done" << std::endl;
 	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
 	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
-	L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior()).selfadjointView<Eigen::Lower>().llt().matrixL();
+	L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior()).selfadjointView<
+					Eigen::Lower>().llt().matrixL();
 	std::cout << "deg_gp: done" << std::endl;
 }
 

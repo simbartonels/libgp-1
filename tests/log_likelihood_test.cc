@@ -4,6 +4,7 @@
 
 #include "gp.h"
 #include "fic_gp.h"
+#include "gp_deg.h"
 #include "gp_utils.h"
 
 #include <cmath>
@@ -57,5 +58,13 @@ TEST(LogLikelihoodTest, CheckGradientsFICGP)
 {
   int input_dim = 3;
   libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
+  genericGradientTest(gp, input_dim);
+}
+
+TEST(LogLikelihoodTest, CheckGradientsDegGP)
+{
+  int input_dim = 3;
+  //TODO: replace with Solin's method so users are not forced to install spiral wht
+  libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FastFood");
   genericGradientTest(gp, input_dim);
 }

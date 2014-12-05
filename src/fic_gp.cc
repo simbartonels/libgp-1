@@ -69,7 +69,7 @@ void FICGaussianProcess::computeCholesky() {
 		Phi.col(i) = bf->computeBasisFunctionVector(xi);
 		k(i) = bf->getWrappedKernelValue(xi, xi);
 	}
-	Luu = bf->getCholeskyOfInverseWeightPrior();
+	Luu = bf->getCholeskyOfWeightPrior();
 	/*
 	 * TODO: could we just multiply Phi with sqrt(gamma) HERE instead of using
 	 * the inverse later? What's more stable?
@@ -85,7 +85,8 @@ void FICGaussianProcess::computeCholesky() {
 	Lu = V * V.transpose() + Eigen::MatrixXd::Identity(M, M);
 	Lu.topLeftCorner(M, M) = Lu.llt().matrixL();
 
-	Eigen::MatrixXd iUpsi = bf->getWeightPrior();
+	//TODO: avoid copy constructor
+	Eigen::MatrixXd iUpsi = bf->getInverseWeightPrior();
 
 	/*
 	 * Here we have to divert from the Matlab implementation. in Matlab all
@@ -150,12 +151,13 @@ double FICGaussianProcess::log_likelihood_impl() {
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
+	//TODO: move allocations to constructor
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
 //    W = Ku./repmat(sqrt(dg)',nu,1);
 	Eigen::MatrixXd W = Phi * isqrtgamma.asDiagonal();
 	//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku; % inv(K) = inv(G) - inv(G)*W'*W*inv(G);
-	W = (W * W.transpose() + bf->getInverseWeightPrior()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
+	W = (W * W.transpose() + bf->getWeightPrior()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
 
 	const std::vector<double>& targets = sampleset->y();
 	size_t n = sampleset->size();
@@ -164,7 +166,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
 	al = (y - W.transpose() * (W * (y.cwiseQuotient(dg)))).cwiseQuotient(dg);
 //    B = iKuu*Ku;
-	Eigen::MatrixXd B = bf->getWeightPrior() * Phi;
+	Eigen::MatrixXd B = bf->getInverseWeightPrior() * Phi;
 //    % = Upsi^(-1)*Uvx
 //    clear Ku Kuu iKuu; %KRZ - also the line below moved from above.
 //    Wdg = W./repmat(dg',nu,1); w = B*al;
@@ -187,7 +189,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	t.resize(M);
 	for (size_t i = 0; i < num_params; i++) {
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);  % eval cov deriv
-		bf->gradInverseWeightPrior(i, dKuui);
+		bf->gradWeightPrior(i, dKuui);
 		for (size_t j = 0; j < n; j++) {
 			bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
 			dKui.col(j) = t;

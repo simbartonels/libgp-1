@@ -26,6 +26,7 @@ FastFood::~FastFood() {
 Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		const Eigen::VectorXd& x_unpadded) {
 	Eigen::VectorXd phi = Eigen::VectorXd::Zero(M);
+
 	x.head(input_dim) = x_unpadded.cwiseQuotient(ell);
 
 	//already done in real_init():
@@ -50,7 +51,6 @@ Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 			phi((M_intern + m) * input_dim + j) = sin(temp(j));
 		}
 	}
-
 	return phi;
 }
 
@@ -66,8 +66,7 @@ Eigen::VectorXd FastFood::multiplyW_withStandardBasisVector(size_t dim) {
 		temp = g.row(m).transpose().cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
 		temp = s.row(m).transpose().cwiseProduct(temp);
-		result.segment(m * input_dim, input_dim) = temp.head(
-				input_dim);
+		result.segment(m * input_dim, input_dim) = temp.head(input_dim);
 	}
 	return result;
 }
@@ -76,8 +75,8 @@ Eigen::MatrixXd libgp::FastFood::getInverseWeightPrior() {
 	return iSigma;
 }
 
-Eigen::MatrixXd libgp::FastFood::getCholeskyOfInverseWeightPrior() {
-	return choliSigma;
+Eigen::MatrixXd libgp::FastFood::getCholeskyOfWeightPrior() {
+	return cholSigma;
 }
 
 Eigen::MatrixXd libgp::FastFood::getWeightPrior() {
@@ -103,12 +102,15 @@ void libgp::FastFood::gradBasisFunction(const Eigen::VectorXd& x,
 	assert(grad.size() == phi.size());
 	if (p < input_dim) {
 		Eigen::VectorXd z = multiplyW_withStandardBasisVector(p);
-		double c = x(p)/ell(p);
-		grad.head(M_intern * input_dim) = c * z.cwiseProduct(
-				phi.segment(M_intern * input_dim, M_intern * input_dim));
-		grad.segment(M_intern * input_dim, M_intern * input_dim) = c *
-				z.cwiseProduct(-phi.head(M_intern * input_dim));
-		//we assume here that the rest of the gradient is already set to zero!
+		double c = x(p) / ell(p);
+		grad.head(M_intern * input_dim) = c
+				* z.cwiseProduct(
+						phi.segment(M_intern * input_dim,
+								M_intern * input_dim));
+		grad.segment(M_intern * input_dim, M_intern * input_dim) = c
+				* z.cwiseProduct(-phi.head(M_intern * input_dim));
+		//TODO: can we assume here that the rest of the gradient is already set to zero?
+		grad.tail(M - 2 * M_intern * input_dim).setZero();
 	} else {
 		grad.setZero();
 	}
@@ -121,39 +123,40 @@ int FastFood::gradBasisFunctionInfo(size_t p) {
 	return IBF_MATRIX_INFO_NULL;
 }
 
-void libgp::FastFood::gradInverseWeightPrior(size_t p,
-		Eigen::MatrixXd & diSigmadp) {
-	if(p == input_dim){
-		//FIXME: this is the gradient of the weight prior! but that might still be what we need!
+void libgp::FastFood::gradWeightPrior(size_t p, Eigen::MatrixXd & dSigmadp) {
+	if (p == input_dim) {
 		//TODO: this could be more efficient
-		diSigmadp.setIdentity();
-		diSigmadp.diagonal().fill(2 * sf2 / M_intern / next_input_dim);
-	}
-	else{
+		dSigmadp.setIdentity();
+		dSigmadp.diagonal().fill(2 * sf2 / M_intern / input_dim);
+		dSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
+	} else {
 		//in an efficient implementation this function will not be called in this case
-		diSigmadp.setZero();
+		dSigmadp.setZero();
 	}
 }
 
-int FastFood::gradInverseWeightPriorInfo(size_t p){
+int FastFood::gradWeightPriorInfo(size_t p) {
 	//the weight prior depends only on the signal variance
-	if(p == input_dim)
+	if (p == input_dim)
 		return IBF_MATRIX_INFO_DIAG;
 	return IBF_MATRIX_INFO_NULL;
 }
 
-void libgp::FastFood::set_loghyper(const Eigen::VectorXd& p) {
+void FastFood::set_loghyper(const Eigen::VectorXd& p) {
 	CovarianceFunction::set_loghyper(p);
 	sf2 = exp(2 * p(input_dim));
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(p(i));
-	Sigma.diagonal().fill(sf2 / M_intern / next_input_dim);
+	Sigma.diagonal().fill(sf2 / M_intern / input_dim);
+	Sigma.diagonal().tail(M - 2 * M_intern * input_dim).fill(1);
 	//contains log(|Sigma|)/2
-	log_determinant_sigma = M_intern * next_input_dim
-			* (2 * p(input_dim) - log(M_intern * next_input_dim));
-	iSigma.diagonal().fill(M_intern * next_input_dim / sf2);
-	choliSigma.diagonal().fill(
-			sqrt(M_intern) * sqrt(next_input_dim) * exp(-p(input_dim)));
+	log_determinant_sigma = M_intern * input_dim
+			* (2 * p(input_dim) - log(M_intern * input_dim));
+	iSigma.diagonal().fill(M_intern * input_dim / sf2);
+	iSigma.diagonal().tail(M - 2 * M_intern * input_dim).fill(1);
+	cholSigma.diagonal().fill(
+			exp(p(input_dim)) / sqrt(M_intern) / sqrt(input_dim));
+	cholSigma.diagonal().tail(M - 2 * M_intern * input_dim).fill(1);
 //	std::cout
 //			<< "bf_fast_food: internal data structures updated for new hyper-parameters"
 //			<< std::endl;
@@ -185,7 +188,7 @@ bool libgp::FastFood::real_init() {
 	ell.resize(input_dim);
 	Sigma.resize(M);
 	iSigma.resize(M);
-	choliSigma.resize(M);
+	cholSigma.resize(M);
 	wht_tree = wht_get_tree(next_pow);
 	assert(wht_tree != NULL);
 

@@ -16,6 +16,8 @@ class IBasisFunction: public CovarianceFunction {
 	 */
 public:
 
+	//TODO: remove these constants
+
 	/**
 	 * Constant used by functions of the form grad***info(). States that there is no additional
 	 * information about the matrix.
@@ -97,7 +99,7 @@ public:
 	 * Returns the Cholesky of the inverse correlation matrix of the Gaussian weight prior
 	 * for the basis functions.
 	 */
-	virtual Eigen::MatrixXd getCholeskyOfInverseWeightPrior() = 0;
+	virtual Eigen::MatrixXd getCholeskyOfWeightPrior() = 0;
 
 	/**
 	 * Returns the weight prior.
@@ -112,21 +114,21 @@ public:
 	/**
 	 * Computes the derivative of the weight prior with respect to parameter number param.
 	 * @param p the number of the parameter
-	 * @param diSigmadp where to put the derivative
+	 * @param dSigmadp where to put the derivative
 	 */
-	virtual void gradInverseWeightPrior(size_t p,
-			Eigen::MatrixXd & diSigmadp) = 0;
+	virtual void gradWeightPrior(size_t p,
+			Eigen::MatrixXd & dSigmadp) = 0;
 
 	/**
-	 * Gives some extra information about the gradient of the inverse weight prior, e.g.
+	 * Gives some extra information about the gradient of the weight prior, e.g.
 	 * if it is diagonal, all zero or nothing special.
 	 * @param p the index of the parameter
 	 * @returns one of the constants IBF_MATRIX_INFO_*
 	 */
-	virtual int gradInverseWeightPriorInfo(size_t p) {
+	//TODO: replace function by two functions gradWeightPriorIsZero(p) and weightPriorIsDiag()
+	virtual int gradWeightPriorInfo(size_t p) {
 		return IBF_MATRIX_INFO_NONE;
-	}
-	;
+	};
 
 	/**
 	 * Returns the actual number of basis functions in use.
@@ -149,7 +151,7 @@ public:
 	double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2) {
 		Eigen::VectorXd phix = computeBasisFunctionVector(x1);
 		Eigen::VectorXd phiz = computeBasisFunctionVector(x2);
-		Eigen::MatrixXd L = getCholeskyOfInverseWeightPrior();
+		Eigen::MatrixXd L = getCholeskyOfWeightPrior();
 		Eigen::VectorXd r;
 		r = L * phix;
 		r = r.transpose() * L * phiz;

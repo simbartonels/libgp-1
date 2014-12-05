@@ -21,7 +21,7 @@ public:
 
 		Eigen::MatrixXd getInverseWeightPrior();
 
-		Eigen::MatrixXd getCholeskyOfInverseWeightPrior();
+		Eigen::MatrixXd getCholeskyOfWeightPrior();
 
 		Eigen::MatrixXd getWeightPrior();
 
@@ -35,9 +35,9 @@ public:
 
 		int gradBasisFunctionInfo(size_t p);
 
-		void gradInverseWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
+		void gradWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
 
-		int gradInverseWeightPriorInfo(size_t p);
+		int gradWeightPriorInfo(size_t p);
 
 		void set_loghyper(const Eigen::VectorXd& p);
 
@@ -96,9 +96,9 @@ public:
 	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> iSigma;
 
 	    /**
-	     * The Cholesky of the inverse weight prior.
+	     * The Cholesky of the weight prior.
 	     */
-	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> choliSigma;
+	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> cholSigma;
 
 	    /**
 	     * Log of half of the determinant of Sima.

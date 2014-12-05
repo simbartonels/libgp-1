@@ -18,7 +18,7 @@ class BFGradientTest: public TestWithParam<std::string> {
 protected:
 	virtual void SetUp() {
 		n = 3;
-		M = 20;
+		M = 13;
 		e = 1e-8;
 		wrappedCovarianceFunction = covFactory.create(n,
 				"CovSum ( CovSEard, CovNoise)");
@@ -85,10 +85,10 @@ protected:
         double theta = params(i);
         params(i) = theta - e;
         covf->set_loghyper(params);
-        Eigen::MatrixXd j1 = covf->getInverseWeightPrior();
+        Eigen::MatrixXd j1 = covf->getWeightPrior();
         params(i) = theta + e;
         covf->set_loghyper(params);
-        Eigen::MatrixXd j2 = covf->getInverseWeightPrior();
+        Eigen::MatrixXd j2 = covf->getWeightPrior();
         params(i) = theta;
         return ((j2.array()-j1.array())/(2*e)).matrix();
     }
@@ -100,9 +100,10 @@ protected:
 		Eigen::VectorXd j1 = covf->computeBasisFunctionVector(x1);
 		params(i) = theta + e;
 		covf->set_loghyper(params);
-		Eigen::MatrixXd j2 = covf->computeBasisFunctionVector(x1);
+		Eigen::VectorXd j2 = covf->computeBasisFunctionVector(x1);
+//		std::cout << "j1 - j2:" << ((j1-j2)/2/e).transpose().array() << std::endl;
 		params(i) = theta;
-		return ((j2.array() - j1.array()) / (2 * e)).matrix();
+		return (j2 - j1)/2/e;
 	}
 };
 
@@ -139,16 +140,17 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 	}
 }
 
-TEST_P(BFGradientTest, InverseWeightPriorEqualToNumerical) {
+TEST_P(BFGradientTest, WeightPriorEqualToNumerical) {
 	size_t M = covf->getNumberOfBasisFunctions();
   Eigen::MatrixXd grad(M, M);
   for (int i=0; i<param_dim; ++i) {
-	covf->gradInverseWeightPrior(i, grad);
+	covf->gradWeightPrior(i, grad);
 	Eigen::MatrixXd numeric_gradient = numerical_weight_prior_gradient(i);
 	for(size_t j=0; j < M; j++){
 		for(size_t k = 0; k < M; k++){
 			if (grad(j, k) == 0.0) ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2);
-			else ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2);
+			else ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2) << "Parameter number: " << i
+					<< std::endl << "numerical gradient: " << numeric_gradient(j, k);
 		}
 	}
   }
@@ -164,14 +166,35 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 		for (size_t j = 0; j < M; j++) {
 			if (grad(j) == 0.0) {
 				ASSERT_NEAR(numeric_gradient(j), 0.0, 1e-2)<< "parameter: " << i<< std::endl
-						<< "numerical gradient: " << numeric_gradient(j);
+						<< "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
 			}
 			else {
 				ASSERT_NEAR((numeric_gradient(j)-grad(j))/grad(j), 0.0, 1e-2)<< "parameter: "
-						<< i<< std::endl << "numerical gradient: " << numeric_gradient(j);
+						<< i<< std::endl << "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
 			}
 		}
 	}
+}
+
+TEST_P(BFGradientTest, LogDeterminantCorrect) {
+	//det = 0.5*log|Sigma|
+	double det = covf->getLogDeterminantOfWeightPrior();
+
+	if(covf->gradWeightPriorInfo(0) > covf->IBF_MATRIX_INFO_NONE){
+		double det_true = log(covf->getWeightPrior().diagonal().prod())/2;
+		ASSERT_NEAR(det, det_true, 1e-5);
+	}
+	Eigen::MatrixXd Sigma = covf->getWeightPrior();
+
+	double det2 = log(covf->getCholeskyOfWeightPrior().diagonal().prod());
+	ASSERT_NEAR(det, det2, 1e-5);
+}
+
+TEST_P(BFGradientTest, CholeskyCorrect) {
+	Eigen::MatrixXd Sigma = covf->getWeightPrior();
+	Eigen::MatrixXd L = covf->getCholeskyOfWeightPrior();
+	Sigma = Sigma - L*L.transpose();
+	ASSERT_NEAR(Sigma.maxCoeff(), 0, 1e-5);
 }
 
 //TODO: if the user does not want to build fast food this would fail!
