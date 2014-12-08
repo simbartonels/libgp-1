@@ -24,6 +24,7 @@ AbstractGaussianProcess::AbstractGaussianProcess (size_t input_dim, std::string 
   CovFactory factory;
   cf = factory.create(input_dim, covf_def);
   cf->loghyper_changed = 0;
+  alpha_needs_update = false;
   sampleset = new SampleSet(input_dim);
   L.resize(initial_L_size, initial_L_size);
 }

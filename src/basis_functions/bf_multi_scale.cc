@@ -164,6 +164,10 @@ void MultiScale::gradWeightPrior(size_t p, Eigen::MatrixXd & dSigmadp) {
 }
 
 Eigen::MatrixXd MultiScale::getCholeskyOfWeightPrior() {
+	/*
+	 * TODO: this is what we want to return in this function but it is actually the cholesky
+	 * of the INVERSE weight prior. => Rename the function and adapt FastFood.
+	 */
 	return LUpsi;
 }
 

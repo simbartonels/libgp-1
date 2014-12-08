@@ -102,7 +102,7 @@ public:
 	virtual Eigen::MatrixXd getCholeskyOfWeightPrior() = 0;
 
 	/**
-	 * Returns the weight prior.
+	 * Returns the weight prior. The matrix for which k(x,z)=phi(x)Sigma phi(z).
 	 */
 	virtual Eigen::MatrixXd getWeightPrior() = 0;
 

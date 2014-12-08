@@ -14,6 +14,8 @@
 #include <ctime>
 
 namespace libgp {
+//TODO: this class confuses weight prior and inverse weight prior.
+//TODO: bf_multi_scale returns the right things but under the wrong name.
 
 const double log2pi = log(2 * M_PI);
 
