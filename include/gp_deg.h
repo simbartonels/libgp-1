@@ -55,8 +55,19 @@ namespace libgp {
 
 	Eigen::VectorXd Phiy;
 
+	/**
+	 * (Phi*y)^T*alpha
+	 */
+	double PhiyAlpha;
 
-    //convenience pointer that just points to cf.
+	/**
+	 * y^T*y
+	 */
+	double yy;
+
+    /*
+     * Convenience pointer that just points to cf.
+     */
     IBasisFunction * bf;
 
     /**

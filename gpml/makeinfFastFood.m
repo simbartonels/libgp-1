@@ -8,6 +8,7 @@ files1 = [files, '../spiral_wht/spiral_wht.c ../spiral_wht/s_*.c ../spiral_wht/w
 %eval(['mex -O infFastFoodmex.cc -I../include -I../spiral_wht -I/usr/include/eigen3 ', files1, ' DBESTTREE = ', BESTTREE]);
 
 %eval(['mex -O infFastFoodmex.cc -Llibwht.a -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
-
 eval(['mex -O infFastFoodmex.cc libwht.a -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
+%files='../../build/libgp.a';
+%eval(['mex -O infFastFoodmex.cc -I../include -I/usr/include/eigen3 -I../spiral_wht ', files]);
 
