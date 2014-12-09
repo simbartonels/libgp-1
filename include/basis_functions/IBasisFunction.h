@@ -15,25 +15,6 @@ class IBasisFunction: public CovarianceFunction {
 	 * ATTENTION: The last hyper-parameter MUST be noise!
 	 */
 public:
-
-	//TODO: remove these constants
-
-	/**
-	 * Constant used by functions of the form grad***info(). States that there is no additional
-	 * information about the matrix.
-	 */
-	static const int IBF_MATRIX_INFO_NONE = 0;
-
-	/**
-	 * Constant used by functions of the form grad***info(). States that the matrix is diagonal.
-	 */
-	static const int IBF_MATRIX_INFO_DIAG = 1;
-
-	/**
-	 * Constant used by functions of the form grad***info(). States that the matrix is all zero.
-	 */
-	static const int IBF_MATRIX_INFO_NULL = 2;
-
 	//constructor conversions
 	//IBasisFunction(const CovarianceFunction & cf){};
 
@@ -81,54 +62,55 @@ public:
 
 	/**
 	 * Returns additional information about properties of the gradient of the basis function.
-	 * Note: IBF_MATRIX_INFO_DIAG is ignored.
 	 * @param p the index of the parameter
-	 * @returns one of the constants IBF_MATRIX_INFO_*
+	 * @returns True if the gradient is the zero matrix.
 	 */
-	virtual int gradBasisFunctionInfo(size_t p) {
-		return IBF_MATRIX_INFO_NONE;
-	}
+	virtual bool gradBasisFunctionIsNull(size_t p) = 0;
 
 	/**
-	 * Returns the inverse correlation matrix of the Gaussian weight prior
-	 * for the basis functions.
+	 * Returns the covariance matrix of the weight prior. I.e.
+	 * the matrix Sigma for which k(x,z)=phi(x) Sigma phi(z).
 	 */
-	virtual Eigen::MatrixXd getInverseWeightPrior() = 0;
+	virtual Eigen::MatrixXd getSigma() = 0;
+
 
 	/**
-	 * Returns the Cholesky of the inverse correlation matrix of the Gaussian weight prior
-	 * for the basis functions.
+	 * Returns true if the matrix Sigma is a diagonal matrix.
 	 */
-	virtual Eigen::MatrixXd getCholeskyOfWeightPrior() = 0;
-
-	/**
-	 * Returns the weight prior. The matrix for which k(x,z)=phi(x)Sigma phi(z).
-	 */
-	virtual Eigen::MatrixXd getWeightPrior() = 0;
+	virtual bool sigmaIsDiagonal() = 0;
 
 	/**
 	 * Returns log(|Sigma|)/2. Note: MUST return HALF of the log determinant.
+	 * TODO: implement and allow override
 	 */
-	virtual double getLogDeterminantOfWeightPrior() = 0;
+	virtual double getLogDeterminantOfSigma() = 0;
 
 	/**
-	 * Computes the derivative of the weight prior with respect to parameter number param.
+	 * Returns the inverse of Sigma.
+	 * TODO: implement and allow override
+	 */
+	virtual Eigen::MatrixXd getInverseOfSigma() = 0;
+
+	/**
+	 * Returns the Cholesky of Sigma.
+	 * TODO: implement and allow override
+	 */
+	virtual Eigen::MatrixXd getCholeskyOfInvertedSigma() = 0;
+
+	/**
+	 * Computes the derivative of Sigma^-1 with respect to parameter number param.
 	 * @param p the number of the parameter
-	 * @param dSigmadp where to put the derivative
+	 * @param diSigmadp where to put the derivative
 	 */
-	virtual void gradWeightPrior(size_t p,
-			Eigen::MatrixXd & dSigmadp) = 0;
+	virtual void gradiSigma(size_t p,
+			Eigen::MatrixXd & diSigmadp) = 0;
 
 	/**
-	 * Gives some extra information about the gradient of the weight prior, e.g.
-	 * if it is diagonal, all zero or nothing special.
+	 * Gives some extra information about the gradient Sigma^-1.
 	 * @param p the index of the parameter
-	 * @returns one of the constants IBF_MATRIX_INFO_*
+	 * @returns True if the gradient is the null matrix.
 	 */
-	//TODO: replace function by two functions gradWeightPriorIsZero(p) and weightPriorIsDiag()
-	virtual int gradWeightPriorInfo(size_t p) {
-		return IBF_MATRIX_INFO_NONE;
-	};
+	virtual bool gradiSigmaIsNull(size_t p) = 0;
 
 	/**
 	 * Returns the actual number of basis functions in use.
@@ -146,12 +128,13 @@ public:
 	}
 
 	/**
-	 * Returns the approximated kernel value.
+	 * Returns the approximated kernel value. I.e. k(x,z)=phi(x) Sigma phi(z).
 	 */
 	double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2) {
+		//TODO: refactor
 		Eigen::VectorXd phix = computeBasisFunctionVector(x1);
 		Eigen::VectorXd phiz = computeBasisFunctionVector(x2);
-		Eigen::MatrixXd L = getCholeskyOfWeightPrior();
+		Eigen::MatrixXd L = getCholeskyOfInvertedSigma();
 		Eigen::VectorXd r;
 		r = L * phix;
 		r = r.transpose() * L * phiz;
@@ -168,11 +151,22 @@ public:
 		return loghyper(get_param_dim() - 1);
 	}
 
+	void set_loghyper(const Eigen::VectorXd &p){
+		CovarianceFunction::set_loghyper(p);
+		//TODO: take about noise!
+		log_hyper_updated(p);
+	};
+
 protected:
 	/**
 	 * Performs the actual initialization.
 	 */
 	virtual bool real_init() = 0;
+
+	/**
+	 * Notifies the basis function that new hyper-parameters arrived.
+	 */
+	virtual void log_hyper_updated(const Eigen::VectorXd &p) = 0;
 
 	size_t M;
 

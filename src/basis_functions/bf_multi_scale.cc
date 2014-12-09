@@ -110,12 +110,12 @@ void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 	}
 }
 
-Eigen::MatrixXd MultiScale::getInverseWeightPrior() {
+Eigen::MatrixXd MultiScale::getInverseOfSigma() {
 	//TODO: check that upper part of iUpsi is same as lower part
-	return iUpsi;
+	return Upsi;
 }
 
-void MultiScale::gradWeightPrior(size_t p, Eigen::MatrixXd & dSigmadp) {
+void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 	//TODO: this function can be more efficient
 	//TODO: Does the = trigger a copy?
 	dSigmadp = Eigen::MatrixXd::Zero(M, M);
@@ -163,20 +163,16 @@ void MultiScale::gradWeightPrior(size_t p, Eigen::MatrixXd & dSigmadp) {
 	}
 }
 
-Eigen::MatrixXd MultiScale::getCholeskyOfWeightPrior() {
-	/*
-	 * TODO: this is what we want to return in this function but it is actually the cholesky
-	 * of the INVERSE weight prior. => Rename the function and adapt FastFood.
-	 */
+Eigen::MatrixXd MultiScale::getCholeskyOfInvertedSigma() {
 	return LUpsi;
 }
 
-Eigen::MatrixXd MultiScale::getWeightPrior() {
-	return Upsi;
+Eigen::MatrixXd MultiScale::getSigma() {
+	return iUpsi;
 }
 
-double MultiScale::getLogDeterminantOfWeightPrior() {
-	return halfLogDetUpsi;
+double MultiScale::getLogDeterminantOfSigma() {
+	return halfLogDetiUpsi;
 }
 
 double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
@@ -215,9 +211,7 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	}
 }
 
-void MultiScale::set_loghyper(const Eigen::VectorXd& p) {
-	CovarianceFunction::set_loghyper(p);
-
+void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(loghyper(i));
 	size_t idx = input_dim;
@@ -261,17 +255,12 @@ void MultiScale::initializeMatrices() {
 	LUpsi.topLeftCorner(M, M) = Upsi.topLeftCorner(M, M).selfadjointView<
 			Eigen::Lower>().llt().matrixL();
 	//TODO: is this numerically stable? Probably it's better to make a sum over the logs!
-	halfLogDetUpsi = log(LUpsi.diagonal().prod());
+	halfLogDetiUpsi = -log(LUpsi.diagonal().prod());
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
 			LUpsi.Identity(M, M));
 	//TODO: it should be sufficient to transpose here
 	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().adjoint().solveInPlace(
 			iUpsi);
-}
-
-void MultiScale::set_loghyper(const double p[]) {
-	//TODO: couldn't we call our method directly?
-	CovarianceFunction::set_loghyper(p);
 }
 
 

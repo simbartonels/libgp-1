@@ -19,13 +19,13 @@ public:
 
 		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-		Eigen::MatrixXd getInverseWeightPrior();
+		Eigen::MatrixXd getInverseOfSigma();
 
-		Eigen::MatrixXd getCholeskyOfWeightPrior();
+		Eigen::MatrixXd getCholeskyOfInvertedSigma();
 
-		Eigen::MatrixXd getWeightPrior();
+		Eigen::MatrixXd getSigma();
 
-		double getLogDeterminantOfWeightPrior();
+		double getLogDeterminantOfSigma();
 
 	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
 
@@ -33,13 +33,15 @@ public:
 
 		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
 
-		int gradBasisFunctionInfo(size_t p);
+		bool gradBasisFunctionIsNull(size_t p);
 
-		void gradWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
+		void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
 
-		int gradWeightPriorInfo(size_t p);
+		bool gradiSigmaIsNull(size_t p);
 
-		void set_loghyper(const Eigen::VectorXd& p);
+		bool sigmaIsDiagonal(){
+			return true;
+		};
 
 	    std::string to_string();
 
@@ -64,6 +66,8 @@ public:
 		Eigen::MatrixXd getPI();
 
 	protected:
+		void log_hyper_updated(const Eigen::VectorXd &p);
+
 	    virtual bool real_init();
 
 	private:
@@ -98,7 +102,7 @@ public:
 	    /**
 	     * The Cholesky of the weight prior.
 	     */
-	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> cholSigma;
+	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> choliSigma;
 
 	    /**
 	     * Log of half of the determinant of Sima.

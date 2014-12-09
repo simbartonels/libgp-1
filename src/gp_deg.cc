@@ -47,7 +47,7 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 	size_t n = sampleset->size();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
 	double halfLogDetA = 0;
-	double halfLogDetSigma = bf->getLogDeterminantOfWeightPrior();
+	double halfLogDetSigma = bf->getLogDeterminantOfSigma();
 	for (size_t j = 0; j < M; j++) {
 		halfLogDetA += log(L(j, j));
 	}
@@ -57,29 +57,35 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 }
 
 Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
+	//TODO: refactor, this method is too long.
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	size_t n = sampleset->size();
 	//TODO: move these allocations outside the function?
-	Eigen::MatrixXd dSigma(M, M);
+	Eigen::MatrixXd diSigma(M, M);
+	diSigma.setZero();
 	Eigen::MatrixXd dPhidi(M, n);
 	Eigen::VectorXd t(M);
 	//TODO: here we have a few steps that aren't necessary for Solin!
 	Eigen::VectorXd phi_alpha_minus_y = Phi.transpose() * alpha - y;
-	Eigen::VectorXd iSigma_alpha = bf->getInverseWeightPrior().transpose()
-			* alpha;
+	//TODO: remove
+	Eigen::VectorXd iSigma_alpha = bf->getInverseOfSigma().transpose() * alpha;
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
-	Eigen::MatrixXd Gamma = L.triangularView<Eigen::Lower>().solve(
-			bf->getInverseWeightPrior());
-	//TODO: can this be more efficient?
+	//TODO: can be moved to the constructor
+	bool sigmaIsDiagonal = bf->sigmaIsDiagonal();
+
+	//TODO: is it possible to speed this up if sigma is diagonal?
+	//Will be A^-1
+	Eigen::MatrixXd Gamma(M, M);
+	Gamma.setIdentity();
+	L.triangularView<Eigen::Lower>().solveInPlace(Gamma);
 	Gamma = Gamma.transpose() * Gamma;
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
-		int dPhiInfo = bf->gradBasisFunctionInfo(i);
-		if (dPhiInfo != bf->IBF_MATRIX_INFO_NULL) {
+		if (!bf->gradBasisFunctionIsNull(i)) {
 			for (size_t j = 0; j < n; j++) {
 				//TODO: this has a lot of optimization potential especially for fast food
 				//when vectorizing this
@@ -100,41 +106,50 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 							+ iAPhi.cwiseProduct(dPhidi).sum());
 		}
 		//now the dSigma parts
-		int dSigmaInfo = bf->gradWeightPriorInfo(i);
-		if (dSigmaInfo != bf->IBF_MATRIX_INFO_NULL) {
-			/**
-			 * TODO: If the inverse weight prior is known to be diagonal the trace computations can
-			 * be sped up using the relation between trace and eigenvalues.
-			 * Maybe use macros instead of functions to keep this function readable.
-			 * I.e.:
-			 * if(weight_prior is diagonal){
-			 * 		for(i=0; i < num_params)
-			 * 			dPhiMacro
-			 * 			...
-			 * 	else {
-			 * 		for(i=0; i < num_params)
-			 * 			dPhiMacro
-			 * 			...
-			 * 	}
+		if (!bf->gradiSigmaIsNull(i)) {
+			bf->gradiSigma(i, diSigma);
+			/*
+			 * Hopefully the compiler can optimize the following branch, i.e. use that
+			 * sigmaIsDiagonal does not change.
 			 */
-			bf->gradWeightPrior(i, dSigma);
-			//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
-			gradient(i) -= (
-			//no multiplication with sn2 since it cancels
-			(iSigma_alpha.transpose() * dSigma * iSigma_alpha
-					+ squared_noise * Gamma.cwiseProduct(dSigma).sum())
-			//and last but not least d log(|Sigma|)
-					- dSigma.cwiseProduct(bf->getInverseWeightPrior()).sum())
-					/ 2;
+			if (sigmaIsDiagonal) {
+				//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
+				//we divert from the thesis here since we have the gradient of Sigma^-1
+				gradient(i) +=
+						(
+						//no multiplication with sn2 since it cancels
+						(alpha.transpose()
+								* diSigma.diagonal().cwiseProduct(alpha)
+								+ squared_noise
+										* Gamma.diagonal().cwiseProduct(
+												diSigma.diagonal()).sum())
+						//and last but not least d log(|Sigma|)
+								- diSigma.diagonal().cwiseProduct(
+										bf->getSigma().diagonal()).sum()) / 2;
+			} else {
+				//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
+				//we divert from the thesis here since we have the gradient of Sigma^-1
+				gradient(i) += (
+				//no multiplication with sn2 since it cancels
+				(alpha.transpose() * diSigma * alpha
+						+ squared_noise * Gamma.cwiseProduct(diSigma).sum())
+				//and last but not least d log(|Sigma|)
+						- diSigma.cwiseProduct(bf->getSigma()).sum()) / 2;
+			}
 		}
 		//noise gradient
 		//TODO: implement (efficiently)
-		double triAiSigma = 0;
-		//TODO: can be more efficient if the weight prior is diagonal!
-		gradient(num_params - 1) = yy / squared_noise
+		double tr_iAiSigma;
+		if(sigmaIsDiagonal){
+			tr_iAiSigma = Gamma.diagonal().cwiseProduct(bf->getInverseOfSigma().diagonal()).sum();
+		}
+		else{
+			tr_iAiSigma = Gamma.cwiseProduct(bf->getInverseOfSigma()).sum();
+		}
+		gradient(num_params - 1) = (yy / squared_noise
 				- PhiyAlpha / squared_noise
-				- squared_noise * alpha.transpose() * iSigma_alpha
-				- squared_noise * triAiSigma - n + M;
+				- squared_noise * (alpha.transpose() * iSigma_alpha)
+				- squared_noise * tr_iAiSigma - n + M);
 	}
 	return gradient;
 }
@@ -175,7 +190,7 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
 	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
 	L =
-			(Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior()).selfadjointView<
+			(Phi * Phi.transpose() + squared_noise * bf->getInverseOfSigma()).selfadjointView<
 					Eigen::Lower>().llt().matrixL();
 	std::cout << "deg_gp: done" << std::endl;
 }

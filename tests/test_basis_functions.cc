@@ -85,10 +85,10 @@ protected:
         double theta = params(i);
         params(i) = theta - e;
         covf->set_loghyper(params);
-        Eigen::MatrixXd j1 = covf->getWeightPrior();
+        Eigen::MatrixXd j1 = covf->getInverseOfSigma();
         params(i) = theta + e;
         covf->set_loghyper(params);
-        Eigen::MatrixXd j2 = covf->getWeightPrior();
+        Eigen::MatrixXd j2 = covf->getInverseOfSigma();
         params(i) = theta;
         return ((j2.array()-j1.array())/(2*e)).matrix();
     }
@@ -144,13 +144,13 @@ TEST_P(BFGradientTest, WeightPriorEqualToNumerical) {
 	size_t M = covf->getNumberOfBasisFunctions();
   Eigen::MatrixXd grad(M, M);
   for (int i=0; i<param_dim; ++i) {
-	covf->gradWeightPrior(i, grad);
+	covf->gradiSigma(i, grad);
 	Eigen::MatrixXd numeric_gradient = numerical_weight_prior_gradient(i);
 	for(size_t j=0; j < M; j++){
 		for(size_t k = 0; k < M; k++){
 			if (grad(j, k) == 0.0) ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2);
 			else ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2) << "Parameter number: " << i
-					<< std::endl << "numerical gradient: " << numeric_gradient(j, k);
+					<< std::endl << "numerical gradient: " << numeric_gradient(j, k) << std::endl << "computed gradient: " << grad(j, k);
 		}
 	}
   }
@@ -178,23 +178,22 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 
 TEST_P(BFGradientTest, LogDeterminantCorrect) {
 	//det = 0.5*log|Sigma|
-	double det = covf->getLogDeterminantOfWeightPrior();
+	double det = covf->getLogDeterminantOfSigma();
 
-	if(covf->gradWeightPriorInfo(0) > covf->IBF_MATRIX_INFO_NONE){
-		double det_true = log(covf->getWeightPrior().diagonal().prod())/2;
+	if(covf->sigmaIsDiagonal()){
+		double det_true = log(covf->getSigma().diagonal().prod())/2;
 		ASSERT_NEAR(det, det_true, 1e-5);
 	}
-	Eigen::MatrixXd Sigma = covf->getWeightPrior();
 
-	double det2 = log(covf->getCholeskyOfWeightPrior().diagonal().prod());
+	double det2 = -log(covf->getCholeskyOfInvertedSigma().diagonal().prod());
 	ASSERT_NEAR(det, det2, 1e-5);
 }
 
 TEST_P(BFGradientTest, CholeskyCorrect) {
-	Eigen::MatrixXd Sigma = covf->getWeightPrior();
-	Eigen::MatrixXd L = covf->getCholeskyOfWeightPrior();
-	Sigma = Sigma - L*L.transpose();
-	ASSERT_NEAR(Sigma.maxCoeff(), 0, 1e-5);
+	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
+	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
+	iSigma = iSigma - L*L.transpose();
+	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-5);
 }
 
 //TODO: if the user does not want to build fast food this would fail!

@@ -12,13 +12,17 @@ class MultiScale : public IBasisFunction{
 public:
 		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-		Eigen::MatrixXd getInverseWeightPrior();
+		Eigen::MatrixXd getInverseOfSigma();
 
-		Eigen::MatrixXd getCholeskyOfWeightPrior();
+		Eigen::MatrixXd getCholeskyOfInvertedSigma();
 
-		Eigen::MatrixXd getWeightPrior();
+		Eigen::MatrixXd getSigma();
 
-		double getLogDeterminantOfWeightPrior();
+		bool sigmaIsDiagonal(){
+			return false;
+		};
+
+		double getLogDeterminantOfSigma();
 
 		/**
 		 * Parent is overwritten since this kernel does not exactly wrap the ARDse.
@@ -31,17 +35,25 @@ public:
 
 		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
 
-		void gradWeightPrior(size_t p, Eigen::MatrixXd & diSigmadp);
+		bool gradBasisFunctionIsNull(size_t p){
+			//TODO: implement in cc file
+			return false;
+		};
 
-	    void set_loghyper(const Eigen::VectorXd &p);
+		void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
 
-	    void set_loghyper(const double p[]);
+		bool gradiSigmaIsNull(size_t p){
+			//TODO: implement in cc file
+			return false;
+		};
 
 	    std::string to_string();
 
 
 	protected:
 	    virtual bool real_init();
+
+	    void log_hyper_updated(const Eigen::VectorXd & p);
 	private:
 	    double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2, const Eigen::VectorXd & sigma);
 
@@ -95,7 +107,7 @@ public:
 	    /**
 	     * log(|Upsi|)/2
 	     */
-	    double halfLogDetUpsi;
+	    double halfLogDetiUpsi;
 };
 }
 

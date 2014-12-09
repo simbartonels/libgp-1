@@ -71,19 +71,19 @@ Eigen::VectorXd FastFood::multiplyW_withStandardBasisVector(size_t dim) {
 	return result;
 }
 
-Eigen::MatrixXd libgp::FastFood::getInverseWeightPrior() {
+Eigen::MatrixXd libgp::FastFood::getInverseOfSigma() {
 	return iSigma;
 }
 
-Eigen::MatrixXd libgp::FastFood::getCholeskyOfWeightPrior() {
-	return cholSigma;
+Eigen::MatrixXd libgp::FastFood::getCholeskyOfInvertedSigma() {
+	return choliSigma;
 }
 
-Eigen::MatrixXd libgp::FastFood::getWeightPrior() {
+Eigen::MatrixXd libgp::FastFood::getSigma() {
 	return Sigma;
 }
 
-double FastFood::getLogDeterminantOfWeightPrior() {
+double FastFood::getLogDeterminantOfSigma() {
 	return log_determinant_sigma;
 }
 
@@ -116,34 +116,34 @@ void libgp::FastFood::gradBasisFunction(const Eigen::VectorXd& x,
 	}
 }
 
-int FastFood::gradBasisFunctionInfo(size_t p) {
+bool FastFood::gradBasisFunctionIsNull(size_t p) {
 	//Phi is independent of noise and length scale
 	if (p < input_dim)
-		return IBF_MATRIX_INFO_NONE;
-	return IBF_MATRIX_INFO_NULL;
+		return false;
+	return true;
 }
 
-void libgp::FastFood::gradWeightPrior(size_t p, Eigen::MatrixXd & dSigmadp) {
+void libgp::FastFood::gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp) {
 	if (p == input_dim) {
 		//TODO: this could be more efficient
-		dSigmadp.setIdentity();
-		dSigmadp.diagonal().fill(2 * sf2 / M_intern / input_dim);
-		dSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
+		diSigmadp.setIdentity();
+//		dSigmadp.diagonal().fill(2 * sf2 / M_intern / input_dim);
+		diSigmadp.diagonal().fill(-2. * M_intern * input_dim / sf2);
+		diSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
 	} else {
 		//in an efficient implementation this function will not be called in this case
-		dSigmadp.setZero();
+		diSigmadp.setZero();
 	}
 }
 
-int FastFood::gradWeightPriorInfo(size_t p) {
+bool FastFood::gradiSigmaIsNull(size_t p) {
 	//the weight prior depends only on the signal variance
 	if (p == input_dim)
-		return IBF_MATRIX_INFO_DIAG;
-	return IBF_MATRIX_INFO_NULL;
+		return false;
+	return true;
 }
 
-void FastFood::set_loghyper(const Eigen::VectorXd& p) {
-	CovarianceFunction::set_loghyper(p);
+void FastFood::log_hyper_updated(const Eigen::VectorXd &p) {
 	sf2 = exp(2 * p(input_dim));
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(p(i));
@@ -154,12 +154,9 @@ void FastFood::set_loghyper(const Eigen::VectorXd& p) {
 			* (2 * p(input_dim) - log(M_intern * input_dim));
 	iSigma.diagonal().fill(M_intern * input_dim / sf2);
 	iSigma.diagonal().tail(M - 2 * M_intern * input_dim).fill(1);
-	cholSigma.diagonal().fill(
-			exp(p(input_dim)) / sqrt(M_intern) / sqrt(input_dim));
-	cholSigma.diagonal().tail(M - 2 * M_intern * input_dim).fill(1);
-//	std::cout
-//			<< "bf_fast_food: internal data structures updated for new hyper-parameters"
-//			<< std::endl;
+	choliSigma.diagonal().fill(
+			exp(-p(input_dim)) * sqrt(M_intern) * sqrt(input_dim));
+	choliSigma.diagonal().tail(M - 2 * M_intern * input_dim).fill(1);
 }
 
 std::string libgp::FastFood::to_string() {
@@ -188,7 +185,7 @@ bool libgp::FastFood::real_init() {
 	ell.resize(input_dim);
 	Sigma.resize(M);
 	iSigma.resize(M);
-	cholSigma.resize(M);
+	choliSigma.resize(M);
 	wht_tree = wht_get_tree(next_pow);
 	assert(wht_tree != NULL);
 
