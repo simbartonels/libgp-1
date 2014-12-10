@@ -148,7 +148,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		}
 		gradient(num_params - 1) = (yy / squared_noise
 				- PhiyAlpha / squared_noise
-				- squared_noise * (alpha.transpose() * iSigma_alpha)
+				- squared_noise * (alpha.transpose() * iSigma_alpha).sum()
 				- squared_noise * tr_iAiSigma - n + M);
 	}
 	return gradient;
