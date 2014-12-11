@@ -48,6 +48,8 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
 	double halfLogDetA = 0;
 	double halfLogDetSigma = bf->getLogDeterminantOfSigma();
+	//TODO: does this call work?
+//	halfLogDetA = L.diagonal().log().sum();
 	for (size_t j = 0; j < M; j++) {
 		halfLogDetA += log(L(j, j));
 	}
@@ -180,6 +182,7 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	log_noise = bf->getLogNoise();
 	squared_noise = exp(2 * log_noise);
 //TODO: this step can be simplified for Solin! (Phi is constant)
+	//the best solution is probably to create gp_solin that inherits from gp_deg
 	std::cout << "deg_gp: computing Phi ... " << std::endl;
 	size_t n = sampleset->size();
 	if (n > Phi.rows())

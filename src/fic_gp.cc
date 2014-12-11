@@ -45,6 +45,9 @@ FICGaussianProcess::~FICGaussianProcess() {
 }
 
 double FICGaussianProcess::var_impl(const Eigen::VectorXd x_star) {
+	//TODO: as far a I can tell this is the only usage of L
+	//=> it's probably sufficient to really use only the Cholesky
+	//and not necessary to compute the inverse
 	return bf->getWrappedKernelValue(x_star, x_star)
 			+ k_star.transpose() * L * k_star;
 }
@@ -148,6 +151,9 @@ double FICGaussianProcess::log_likelihood_impl() {
 	}
 	//TODO: is this better? or should it be moved to the loop?
 	t2 = t2 + n * log2pi;
+
+	//TODO: the following call should be more efficient than the loops below. Does it compile?
+//	t = Lu.diagonal().log().sum()-beta.squaredNorm()+dg.log().sum()+r.squaredNorm()+n*log2pi;
 	return t + (t2  + t3) / 2;
 }
 
