@@ -6,3 +6,4 @@ archive
 /eigen3/
 /spiral_wht/
 *~
+*.ini
