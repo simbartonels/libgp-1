@@ -2,7 +2,7 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
-#include "fic_gp.h"
+#include "gp_fic.h"
 #include "cov_factory.h"
 #include "basis_functions/basisf_factory.h"
 
