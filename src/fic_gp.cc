@@ -14,9 +14,6 @@
 #include <ctime>
 
 namespace libgp {
-//TODO: this class confuses weight prior and inverse weight prior.
-//TODO: bf_multi_scale returns the right things but under the wrong name.
-
 const double log2pi = log(2 * M_PI);
 
 //TODO: find a way to get the value from the super class
@@ -40,8 +37,6 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 }
 
 FICGaussianProcess::~FICGaussianProcess() {
-//	  delete V;
-//	  delete isqrtgamma;
 }
 
 double FICGaussianProcess::var_impl(const Eigen::VectorXd x_star) {
@@ -58,7 +53,7 @@ void FICGaussianProcess::computeCholesky() {
 	 * This method does not compute the Cholesky in the same sense as
 	 * the GaussianProcess class does. Here the same thing happens as
 	 * in infFITC.m from the gpml toolbox by Rasmussen and Nikisch. The
-	 * method computeCholesky is kept for abstraction reasons.
+	 * method name computeCholesky is kept for abstraction reasons.
 	 */
 	size_t n = sampleset->size();
 
@@ -70,10 +65,8 @@ void FICGaussianProcess::computeCholesky() {
 		Phi.resize(M, n);
 	}
 	for (size_t i = 0; i < n; i++) {
-		//TODO: remove allocation!
-		Eigen::VectorXd xi = sampleset->x(i);
-		Phi.col(i) = bf->computeBasisFunctionVector(xi);
-		k(i) = bf->getWrappedKernelValue(xi, xi);
+		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
+		k(i) = bf->getWrappedKernelValue(sampleset->x(i), sampleset->x(i));
 	}
 	Luu = bf->getCholeskyOfInvertedSigma();
 	/*
@@ -194,6 +187,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	Eigen::MatrixXd dKuui(M, M);
 	Eigen::MatrixXd dKui(M, n);
 	t.resize(M);
+	Eigen::VectorXd WdgSum = Wdg.array().square().matrix().colwise().sum();
 	for (size_t i = 0; i < num_params; i++) {
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);  % eval cov deriv
 		bf->gradiSigma(i, dKuui);
@@ -203,29 +197,20 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 		}
 		//      R = 2*dKui-dKuui*B; v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
 		//TODO: check if these allocations are necessary and if move them to the constructor
-		Eigen::VectorXd doublevec(1);
 		Eigen::MatrixXd R = 2 * dKui - dKuui * B;
 		Eigen::VectorXd v = ddiagK.col(i).transpose() - R.cwiseProduct(B).colwise().sum();
 //      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
 		//TODO: some expressions do not depend on i!
 		//eg: Wdg.array().square().matrix().colwise().sum()
-		doublevec = dg.cwiseInverse().transpose()*ddiagK.col(i) + w.transpose()*(dKuui*w-2*(dKui*al))
-				-al.transpose()*(al.cwiseProduct(v))
-//				- (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum()
-				-Wdg.array().square().matrix().colwise().sum()*v
-				;
-		doublevec(0) -= (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum();
-		gradient(i) = doublevec(0);
+		gradient(i) = (dg.cwiseInverse().transpose()*ddiagK.col(i)).sum()
+				+ (w.transpose()*(dKuui*w-2*(dKui*al))).sum()
+				- (al.transpose()*(al.cwiseProduct(v))).sum()
+				- WdgSum.cwiseProduct(v).sum()
+				- (R*Wdg.transpose()).cwiseProduct(B*Wdg.transpose()).sum();
 	}
 	gradient/=2;
-//    clear dKui; %KRZ
-//    dnlZ.lik = sn2*(sum(1./dg) -sum(sum(W.*W,1)'./(dg.*dg)) -al'*al);
-//    % since snu2 is a fixed fraction of sn2, there is a covariance-like term in
-//    % the derivative as well
-//    dKuui = 2*snu2; R = -dKuui*B; v = -sum(R.*B,1)';   % diag part of cov deriv
-//    dnlZ.lik = dnlZ.lik + (w'*dKuui*w -al'*(v.*al)...
-//                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
+	//noise gradient included in the loop above
 	return gradient;
 }
 }

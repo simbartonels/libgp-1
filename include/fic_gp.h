@@ -15,10 +15,15 @@
 
 namespace libgp {
 
-  /** Approximate Gaussian process regression using FIC.
+  /**
+   * Approximate Gaussian process regression using FIC.
    * See "Approximation Methods for Gaussian Processes" by Quinonero-Candela,
-   * Rasmussen and Williams from 2007.
-   *  @author Manuel Blum, Simon Bartels */
+   * Rasmussen and Williams from 2007. The implementation follows the framework written
+   * by Chalupka. See "A Framework for Evaluating Approximation Methods for Gaussian Process
+   * Regression" by Chalupka, Williams and Murray from 2013.
+   *
+   *  @author Manuel Blum, Simon Bartels
+   */
   class FICGaussianProcess : public AbstractGaussianProcess
   {
   public:
@@ -49,9 +54,14 @@ namespace libgp {
     void updateCholesky(const double x[], double y);
 
   private:
-	//corresponds to diagK in infFITC
-	Eigen::VectorXd k;
-	//corresponds to Ku in infFITC
+	/**
+	 * Corresponds to diagK in infFITC.
+	 */
+    Eigen::VectorXd k;
+
+	/**
+	 * Corresponds to Ku in infFITC.
+	 */
 	Eigen::MatrixXd Phi;
     Eigen::MatrixXd Lu;
     Eigen::VectorXd dg;
@@ -63,7 +73,9 @@ namespace libgp {
 	Eigen::VectorXd beta;
 
 
-    //convenience pointer that just points to cf.
+    /**
+     * Convenience pointer that just points to the covariance function cf in the super class.
+     */
     IBasisFunction * bf;
 
     /**
