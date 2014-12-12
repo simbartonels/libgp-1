@@ -46,6 +46,9 @@ namespace libgp {
     void updateCholesky(const double x[], double y);
 
   private:
+    //TODO: think about a way to make this constant
+    bool sigmaIsDiagonal;
+
     double log_noise;
     double squared_noise;
 

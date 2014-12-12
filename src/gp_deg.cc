@@ -24,6 +24,7 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 	cf = factory.createBasisFunction(basisf_def, num_basisf, cf);
 	cf->loghyper_changed = 0;
 	bf = (IBasisFunction *) cf;
+	sigmaIsDiagonal = bf->sigmaIsDiagonal();
 	log_noise = bf->getLogNoise();
 	squared_noise = exp(2 * log_noise);
 	M = bf->getNumberOfBasisFunctions();
@@ -76,8 +77,6 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	Eigen::VectorXd iSigma_alpha = bf->getInverseOfSigma().transpose() * alpha;
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
-	//TODO: can be moved to the constructor
-	bool sigmaIsDiagonal = bf->sigmaIsDiagonal();
 
 	//TODO: is it possible to speed this up if sigma is diagonal?
 	//Will be A^-1
@@ -192,6 +191,10 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	std::cout << "deg_gp: done" << std::endl;
 	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
 	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
+	/*
+	 * TODO: Would it be more efficient not to create the whole matrix and instead compute it
+	 * in place?
+	 */
 	L =
 			(Phi * Phi.transpose() + squared_noise * bf->getInverseOfSigma()).selfadjointView<
 					Eigen::Lower>().llt().matrixL();
