@@ -196,9 +196,13 @@ TEST_P(BFGradientTest, CholeskyCorrect) {
 	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-5);
 }
 
-//TODO: if the user does not want to build fast food this would fail!
+#ifdef BUILD_FAST_FOOD
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
-		Values("SparseMultiScaleGP", "FastFood"));
+		Values("SparseMultiScaleGP", "Solin", "FastFood"));
+#else
+INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
+		Values("SparseMultiScaleGP", "Solin"));
+#endif
 
 #else
 

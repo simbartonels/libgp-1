@@ -7,7 +7,7 @@
 
 #include "basis_functions/basisf_factory.h"
 #include "basis_functions/bf_multi_scale.h"
-//TODO: find a way to let users choose if they want to compile fast food or not
+#include "basis_functions/bf_solin.h"
 //#ifdef INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_
 #ifdef BUILD_FAST_FOOD
 #	include "basis_functions/bf_fast_food.h"
@@ -16,7 +16,9 @@
 namespace libgp {
   
 BasisFFactory::BasisFFactory () {
+	//TODO: these hard coded names ain't nice. use getName for that
 	registry["SparseMultiScaleGP"] = & create_func<MultiScale>;
+	registry["Solin"] = & create_func<Solin>;
 	#ifdef BUILD_FAST_FOOD
 	registry["FastFood"] = & create_func<FastFood>;
 	#endif

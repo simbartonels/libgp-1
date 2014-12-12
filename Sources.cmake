@@ -16,6 +16,7 @@ SET(LIBGP_SRC
   src/abstract_gp.cc
   src/gp.cc
   src/basis_functions/bf_multi_scale.cc
+  src/basis_functions/bf_solin.cc
   src/basis_functions/basisf_factory.cc
   src/gp_fic.cc
   src/gp_deg.cc
@@ -45,6 +46,7 @@ SET(LIBGP_INTERFACES
   include/gp.h
   include/basis_functions/IBasisFunction.h
   include/basis_functions/bf_multi_scale.h
+  include/basis_functions/bf_solin.h
   include/basis_functions/basisf_factory.h
   include/gp_fic.h
   include/gp_deg.h
