@@ -2,8 +2,8 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
+#include <gp_fic.h>
 #include "abstract_gp.h"
-#include "fic_gp.h"
 #include "gp_utils.h"
 
 #include <Eigen/Dense>

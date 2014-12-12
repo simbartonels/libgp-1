@@ -3,10 +3,11 @@
 
  Copyright (c) by Carl Edward Rasmussen and Hannes Nickisch 2010-12-16. */
 
+#include <gp_fic.h>
+
 #include "mex.h"
 #include <math.h>
 #include <string.h>
-#include "fic_gp.h"
 #include <Eigen/Dense>
 #include <iostream>
 
