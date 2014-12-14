@@ -75,7 +75,20 @@ bool libgp::Solin::gradBasisFunctionIsNull(size_t p) {
 }
 
 void libgp::Solin::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
-
+	if(p < input_dim){
+		counter.fill(1);
+		double temp;
+		for(size_t i = 0; i < MToTheD; i++){
+			temp = ell(p)*c*counter(p) - 1;
+			temp *= temp;
+			diSigmadp(i, i) = iSigma.diagonal()(i)*iSigma.diagonal()(i)*temp;
+			incCounter(counter);
+		}
+	}
+	else if(p == input_dim)
+		diSigmadp.diagonal().array() = -iSigma.diagonal().array().square();
+	else
+		diSigmadp.setZero();
 }
 
 bool libgp::Solin::gradiSigmaIsNull(size_t p) {
@@ -90,18 +103,49 @@ std::string libgp::Solin::to_string() {
 }
 
 void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
+	//initialize hyper-parameters
+	double temp = 1;
 	for(size_t i = 0; i < input_dim; i++){
 		ell(i) = exp(2*p(i));
+		temp *= exp(p(i));
 	}
 	sf2 = exp(2*p(input_dim));
-	//create Sigma
-	for(size_t i=0; i < MToTheD; i++){
 
+	//initialize spectral density
+	c = sf2 * pow(2*M_PI, input_dim/2) * temp;
+
+	//create Sigma and associated fields
+	logDetSigma = 1;
+	counter.fill(1);
+	Eigen::VectorXd lambdaSquared(input_dim);
+	counter.setZero();
+	temp = M_PI/L/2;
+	temp *= temp;
+	for(size_t i=0; i < MToTheD; i++){
+		lambdaSquared.array() = temp*counter.array().square().cast<double>();
+		//TODO: does this work?
+		double value = spectralDensity(lambdaSquared);
+		Sigma.diagonal()(i) = value;
+		iSigma.diagonal()(i) = 1/value;
+		choliSigma.diagonal()(i) = 1/sqrt(value);
+		//TODO: overflow prone?
+		logDetSigma*=log(value);
+
+		incCounter(counter);
 	}
 }
 
-inline void incCounter(const Eigen::VectorXd & counter){
+inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared){
+	return c*exp(-lambdaSquared.cwiseProduct(ell).sum()/2);
+}
 
+inline void Solin::incCounter(Eigen::VectorXi & counter){
+	for(size_t idx = 0; idx < input_dim; idx++){
+		double fill = counter(idx) % (M_intern + 1) + 1;
+		counter(idx) = fill;
+		if(fill > 1)
+			break;
+	}
 }
 
 bool libgp::Solin::real_init() {
@@ -110,6 +154,10 @@ bool libgp::Solin::real_init() {
 	MToTheD = std::pow(M_intern, input_dim);
 	//length scales + amplitude + noise
 	param_dim = input_dim + 1 + 1;
+
+	//TODO: make this integer?
+	counter.resize(input_dim);
+
 	m.resize(M_intern);
 	phi_1D.resize(M_intern);
 	for(size_t i=1; i <= M_intern; i++)
@@ -121,7 +169,7 @@ bool libgp::Solin::real_init() {
 	iSigma.diagonal().tail(M-MToTheD).fill(1);
 	choliSigma.resize(M);
 	choliSigma.diagonal().tail(M-MToTheD).fill(1);
-	return false;
+	return true;
 }
 
 }

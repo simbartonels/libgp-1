@@ -52,6 +52,7 @@ public:
 
 	/**
 	 * Computes the derivative of a basis function vector phi(x) with respect to parameter i.
+	 * Implementing classes MAY assume for the first call that grad is 0 initialized.
 	 * @param x the input to phi
 	 * @param phi phi(x)
 	 * @param p the number of the parameter
@@ -99,6 +100,8 @@ public:
 
 	/**
 	 * Computes the derivative of Sigma^-1 with respect to parameter number param.
+	 * Implementing classes MAY assume for the first call that diSigmadp is 0 initialized.
+	 *
 	 * @param p the number of the parameter
 	 * @param diSigmadp where to put the derivative
 	 */
@@ -153,7 +156,7 @@ public:
 
 	void set_loghyper(const Eigen::VectorXd &p){
 		CovarianceFunction::set_loghyper(p);
-		//TODO: take about noise!
+		//TODO: think about noise!
 		log_hyper_updated(p);
 	};
 

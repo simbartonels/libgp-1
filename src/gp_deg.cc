@@ -33,6 +33,12 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 	L.resize(M, M);
 	k_star.resize(M);
 	temp.resize(M);
+
+	diSigma.resize(M, M);
+	diSigma.setZero();
+	dPhidi.resize(M, 1);
+	dPhidi.setZero();
+
 }
 
 libgp::DegGaussianProcess::~DegGaussianProcess() {
@@ -66,10 +72,10 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	size_t n = sampleset->size();
-	//TODO: move these allocations outside the function?
-	Eigen::MatrixXd diSigma(M, M);
-	diSigma.setZero();
-	Eigen::MatrixXd dPhidi(M, n);
+	if(n > dPhidi.cols()){
+		dPhidi.resize(M, n);
+		dPhidi.setZero();
+	}
 	Eigen::VectorXd t(M);
 	//TODO: here we have a few steps that aren't necessary for Solin!
 	Eigen::VectorXd phi_alpha_minus_y = Phi.transpose() * alpha - y;
@@ -79,6 +85,8 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
 
 	//TODO: is it possible to speed this up if sigma is diagonal?
+	//TODO: it is certainly faster to precompute this
+	//on the other hand: is there not going to be another hyper-parameter update after this call anyway?
 	//Will be A^-1
 	Eigen::MatrixXd Gamma(M, M);
 	Gamma.setIdentity();

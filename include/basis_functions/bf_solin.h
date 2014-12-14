@@ -58,6 +58,25 @@ protected:
 
 private:
 	/**
+	 * Function computing the spectral density of the ARD squared exponential kernel.
+	 *
+	 * @param lambdaSquared A vector of size input_dim. Should be lambda^2 (component-wise).
+	 * @returns The value of the spectral density.
+	 *
+	 * TODO: generalize by taking the spectral density from the covariance function where possible.
+	 */
+	inline double spectralDensity(const Eigen::VectorXd & lambdaSquared);
+
+	/**
+	 * Increases the counter 'counter'. 'counter' is supposed to be a vector of size input_dim.
+	 * The first dimension is always increased by one modulo M_intern. If after that the value is
+	 * zero the next dimension is increased and so on.
+	 *
+	 * @param counter The counter to be increased.
+	 */
+	inline void incCounter(Eigen::VectorXi & counter);
+
+	/**
 	 * Contains the borders of the input domain. We will assume the input domain is
 	 * standardized to length 1.
 	 */
@@ -72,6 +91,11 @@ private:
 	 * Contains the amplitude.
 	 */
 	double sf2;
+
+	/**
+	 * Factor for the spectral density. See log_hyper_updated for the definition.
+	 */
+	double c;
 
 	/**
 	 * This will be the matrix Gamma from the paper.
@@ -104,6 +128,10 @@ private:
 	 */
 	size_t MToTheD;
 
+	/**
+	 * Counter vector.
+	 */
+	Eigen::VectorXi counter;
 };
 }
 

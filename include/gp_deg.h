@@ -68,6 +68,10 @@ namespace libgp {
 	 */
 	double yy;
 
+	Eigen::MatrixXd diSigma;
+	Eigen::MatrixXd dPhidi;
+
+
     /*
      * Convenience pointer that just points to cf.
      */
