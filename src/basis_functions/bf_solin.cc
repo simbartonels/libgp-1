@@ -116,7 +116,7 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	sf2 = exp(2 * p(input_dim));
 
 	//initialize spectral density
-	c = sf2 * pow(2 * M_PI, input_dim / 2) * temp;
+	c = sf2 * pow(2 * M_PI, 0.5 * input_dim) * temp;
 	temp = M_PI / L / 2;
 	temp *= temp;
 	piOverLOver2Sqrd = temp;
@@ -165,10 +165,13 @@ size_t Solin::get_param_dim_without_noise(size_t input_dim,
 bool libgp::Solin::real_init() {
 	//TODO: make sure that we wrap the right covariance function!
 
+	L = 1.2;
+
 	ell.resize(input_dim);
 
 	M_intern = std::floor(std::pow(M, 1. / input_dim));
-	MToTheD = std::pow(M_intern, input_dim);
+	//casts for Visual Studio support
+	MToTheD = (size_t) std::pow((double) M_intern, (int) input_dim);
 
 	//TODO: make this integer?
 	counter.resize(input_dim);

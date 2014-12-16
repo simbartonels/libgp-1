@@ -83,7 +83,8 @@ private:
 	 * Contains the borders of the input domain. We will assume the input domain is
 	 * standardized to length 1.
 	 */
-	static const double L = 1.2;
+	//TODO: make this static const
+	double L;
 
 	/**
 	 * Contains the length scales.
