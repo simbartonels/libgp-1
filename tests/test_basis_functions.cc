@@ -196,6 +196,13 @@ TEST_P(BFGradientTest, CholeskyCorrect) {
 	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-5);
 }
 
+TEST_P(BFGradientTest, InverseCorrect) {
+	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
+	Eigen::MatrixXd Sigma = covf->getSigma();
+	Sigma = iSigma * Sigma;
+	ASSERT_TRUE(Sigma.isDiagonal(1e-10));
+}
+
 #ifdef BUILD_FAST_FOOD
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
 		Values("SparseMultiScaleGP", "Solin", "FastFood"));
