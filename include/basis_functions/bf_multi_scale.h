@@ -54,6 +54,8 @@ public:
 	    virtual bool real_init();
 
 	    void log_hyper_updated(const Eigen::VectorXd & p);
+
+	    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
 	private:
 	    double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2, const Eigen::VectorXd & sigma);
 

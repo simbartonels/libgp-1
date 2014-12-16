@@ -115,12 +115,11 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	c = sf2 * pow(2*M_PI, input_dim/2) * temp;
 
 	//create Sigma and associated fields
-	logDetSigma = 1;
-	counter.fill(1);
 	Eigen::VectorXd lambdaSquared(input_dim);
-	counter.setZero();
 	temp = M_PI/L/2;
 	temp *= temp;
+	logDetSigma = 1;
+	counter.fill(1);
 	for(size_t i=0; i < MToTheD; i++){
 		lambdaSquared.array() = temp*counter.array().square().cast<double>();
 		//TODO: does this work?
@@ -148,12 +147,20 @@ inline void Solin::incCounter(Eigen::VectorXi & counter){
 	}
 }
 
+
+size_t Solin::get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions){
+	//length scales + amplitude
+	//no need to take care of the noise
+	return input_dim + 1;
+}
+
 bool libgp::Solin::real_init() {
-	//TODO: make sure that we wrap the covariance function!
+	//TODO: make sure that we wrap the right covariance function!
+
+	ell.resize(input_dim);
+
 	M_intern = std::floor(std::pow(M, 1./input_dim));
 	MToTheD = std::pow(M_intern, input_dim);
-	//length scales + amplitude + noise
-	param_dim = input_dim + 1 + 1;
 
 	//TODO: make this integer?
 	counter.resize(input_dim);

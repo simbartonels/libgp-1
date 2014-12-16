@@ -18,6 +18,16 @@ namespace libgp {
  * TODO: This class can be made more memory efficient when iUpsi and LUpsi are stored in the same matrix.
  */
 
+size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M){
+	//1 for length scale
+	//input_dim length scales
+	//M*input_dim inducing inputs
+	//M*input_dim corresponding length scales
+	//no need to take care of the noise
+	return 2 * M * input_dim + input_dim + 1;
+}
+
+
 bool MultiScale::real_init() {
 	//TODO: signal that Multiscale ignores the covariance function!
 	CovFactory f;
@@ -28,13 +38,6 @@ bool MultiScale::real_init() {
 		return false;
 	}
 
-	//1 for length scale
-	//1 for noise
-	//input_dim length scales
-	//M*input_dim inducing inputs
-	//M*input_dim corresponding length scales
-	param_dim = 2 * M * input_dim + input_dim + 1 + 1;
-	loghyper.resize(get_param_dim());
 	Upsi.resize(M, M);
 	LUpsi.resize(M, M);
 	iUpsi.resize(M, M);

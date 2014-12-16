@@ -163,11 +163,16 @@ std::string libgp::FastFood::to_string() {
 	return "FastFood";
 }
 
+
+size_t FastFood::get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions){
+	//length scales + amplitude
+	//no need to take care of the noise
+	return input_dim + 1;
+}
+
 bool libgp::FastFood::real_init() {
 	//TODO: check covariance function!
 
-	//length scales + amplitude + noise
-	param_dim = input_dim + 1 + 1;
 	//next_pow = ilog2(input_dim) + 1;
 	int out;
 	std::frexp(input_dim - 1, &out);
@@ -181,7 +186,6 @@ bool libgp::FastFood::real_init() {
 	M_intern = floor(M / 2 / input_dim);
 //	std::cout << "bf_fast_food: number of V matrices " << M_intern << std::endl;
 	assert(2 * M_intern * input_dim <= M);
-	loghyper.resize(get_param_dim());
 	ell.resize(input_dim);
 	Sigma.resize(M);
 	iSigma.resize(M);

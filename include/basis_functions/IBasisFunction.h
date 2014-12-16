@@ -32,10 +32,14 @@ public:
 	 *  @return true if initialization was successful.
 	 */
 	bool init(size_t M, CovarianceFunction * wrappedCovFunc) {
+		//TODO (Simon): refactor. this is actually already a lot of functionality for a header file
 		input_dim = wrappedCovFunc->get_input_dim();
 
 		this->M = M;
 		cov = wrappedCovFunc;
+		//+1 for noise
+		param_dim = get_param_dim_without_noise(input_dim, M) + 1;
+		loghyper.resize(param_dim);
 		return real_init();
 	}
 	;
@@ -170,6 +174,17 @@ protected:
 	 * Notifies the basis function that new hyper-parameters arrived.
 	 */
 	virtual void log_hyper_updated(const Eigen::VectorXd &p) = 0;
+
+	/**
+	 * Returns the number of hyper-parameters WITHOUT noise given the input dimensionality
+	 * and the required number of basis functions.
+	 * The number of parameters should depend only on the two provided arguments. This function
+	 * is called before real_init.
+	 * @param input_dim The input dimensionality.
+	 * @param num_basis_functions The number of basis functions (M).
+	 * @return The number of hyper-parameters.
+	 */
+	virtual size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions) = 0;
 
 	size_t M;
 

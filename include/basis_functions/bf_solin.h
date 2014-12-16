@@ -56,6 +56,8 @@ protected:
 
 	virtual bool real_init();
 
+    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
+
 private:
 	/**
 	 * Function computing the spectral density of the ARD squared exponential kernel.
