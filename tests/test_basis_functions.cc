@@ -179,13 +179,16 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 TEST_P(BFGradientTest, LogDeterminantCorrect) {
 	//det = 0.5*log|Sigma|
 	double det = covf->getLogDeterminantOfSigma();
+	double det2 = -log(covf->getCholeskyOfInvertedSigma().diagonal().prod());
 
 	if(covf->sigmaIsDiagonal()){
 		double det_true = log(covf->getSigma().diagonal().prod())/2;
+		//make sure the test values agree
+		ASSERT_NEAR(det_true, det2, 1e-5);
+
 		ASSERT_NEAR(det, det_true, 1e-5);
 	}
 
-	double det2 = -log(covf->getCholeskyOfInvertedSigma().diagonal().prod());
 	ASSERT_NEAR(det, det2, 1e-5);
 }
 
