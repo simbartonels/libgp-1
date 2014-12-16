@@ -118,7 +118,8 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	Eigen::VectorXd lambdaSquared(input_dim);
 	temp = M_PI/L/2;
 	temp *= temp;
-	logDetSigma = 1;
+	logDetSigma = 0;
+
 	counter.fill(1);
 	for(size_t i=0; i < MToTheD; i++){
 		lambdaSquared.array() = temp*counter.array().square().cast<double>();
@@ -127,11 +128,12 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 		Sigma.diagonal()(i) = value;
 		iSigma.diagonal()(i) = 1/value;
 		choliSigma.diagonal()(i) = 1/sqrt(value);
-		//TODO: overflow prone?
-		logDetSigma*=log(value);
+		logDetSigma+=log(value);
 
 		incCounter(counter);
 	}
+
+	logDetSigma/=2;
 }
 
 inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared){
