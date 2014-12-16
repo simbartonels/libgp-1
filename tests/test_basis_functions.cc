@@ -81,7 +81,7 @@ protected:
 		return (j2 - j1) / (2 * e);
 	}
 
-    Eigen::MatrixXd numerical_weight_prior_gradient(size_t i){
+    Eigen::MatrixXd numerical_gradient_of_isigma(size_t i){
         double theta = params(i);
         params(i) = theta - e;
         covf->set_loghyper(params);
@@ -140,17 +140,21 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 	}
 }
 
-TEST_P(BFGradientTest, WeightPriorEqualToNumerical) {
+TEST_P(BFGradientTest, GradientOfiSigmaEqualToNumerical) {
 	size_t M = covf->getNumberOfBasisFunctions();
   Eigen::MatrixXd grad(M, M);
+  grad.setZero();
   for (int i=0; i<param_dim; ++i) {
 	covf->gradiSigma(i, grad);
-	Eigen::MatrixXd numeric_gradient = numerical_weight_prior_gradient(i);
+	Eigen::MatrixXd numeric_gradient = numerical_gradient_of_isigma(i);
 	for(size_t j=0; j < M; j++){
 		for(size_t k = 0; k < M; k++){
 			if (grad(j, k) == 0.0) ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2);
-			else ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2) << "Parameter number: " << i
-					<< std::endl << "numerical gradient: " << numeric_gradient(j, k) << std::endl << "computed gradient: " << grad(j, k);
+			else ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2)
+					<< "Parameter number: " << i
+					<< std::endl << "numerical gradient: " << numeric_gradient(j, k)
+					<< std::endl << "computed gradient: " << grad(j, k)
+					<< std::endl << "index: " << j << "," << k;
 		}
 	}
   }
@@ -160,6 +164,7 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 	size_t M = covf->getNumberOfBasisFunctions();
 	Eigen::VectorXd phi = covf->computeBasisFunctionVector(x1);
 	Eigen::VectorXd grad(M);
+	grad.setZero();
 	for (int i = 0; i < param_dim; i++) {
 		covf->gradBasisFunction(x1, phi, i, grad);
 		Eigen::VectorXd numeric_gradient = numerical_basis_function_gradient(i);
