@@ -5,7 +5,7 @@
 #include "basis_functions/bf_solin.h"
 #include <cmath>
 
-namespace libgp{
+namespace libgp {
 
 libgp::Solin::~Solin() {
 }
@@ -13,20 +13,20 @@ libgp::Solin::~Solin() {
 Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 		const Eigen::VectorXd& x) {
 	Eigen::VectorXd phi(M);
-	phi.tail(M-input_dim*M_intern).setZero();
+	phi.tail(M - input_dim * M_intern).setZero();
 	//    Md = M;
 	size_t Md = M_intern;
-	phi.head(M_intern).array() = ((x(0)*m.array()+L)/L).sin()/sqrt(L);
+	phi.head(M_intern).array() = ((x(0) * m.array() + L) / L).sin() / sqrt(L);
 	//    for d = 2:D
-	for(size_t d = 1; d < input_dim; d++){
-		phi_1D.array() = ((x(d)*m.array()+L)/L).sin()/sqrt(L);
+	for (size_t d = 1; d < input_dim; d++) {
+		phi_1D.array() = ((x(d) * m.array() + L) / L).sin() / sqrt(L);
 //        t2 = zeros(Md*M, sz);
 //        for m = 1:M
-		for(size_t j=1; j < M_intern; j++){
+		for (size_t j = 1; j < M_intern; j++) {
 //            idx = (m-1)*Md+(1:Md);
 //            t2(idx, :) = temp * diag(squeeze(Phi(d, m, :)));
 			//TODO: since we iterate over M_intern anyway: would it be faster to compute phi_1D(j) here?
-			phi.segment(j*Md, Md) = phi.head(Md) * phi_1D(j);
+			phi.segment(j * Md, Md) = phi.head(Md) * phi_1D(j);
 		}
 		phi.head(Md).array() *= phi_1D(0);
 //        end
@@ -38,7 +38,6 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 //    K = temp;
 	return phi;
 }
-
 
 Eigen::MatrixXd libgp::Solin::getInverseOfSigma() {
 	return iSigma;
@@ -75,25 +74,30 @@ bool libgp::Solin::gradBasisFunctionIsNull(size_t p) {
 }
 
 void libgp::Solin::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
-	if(p < input_dim){
+	if (p < input_dim) {
 		counter.fill(1);
 		double temp;
-		for(size_t i = 0; i < MToTheD; i++){
-			temp = ell(p)*c*counter(p) - 1;
-			temp *= temp;
-			diSigmadp(i, i) = iSigma.diagonal()(i)*iSigma.diagonal()(i)*temp;
+		for (size_t i = 0; i < MToTheD; i++) {
+			/*
+			 * df^-1/dx = -f^-2*df/dx
+			 * In our case df/dx=f*c and therefore we get
+			 * df^-1/dx=-f^-1*c
+			 */
+			diSigmadp(i, i) = (ell(p) * piOverLOver2Sqrd * counter(p)
+					* counter(p) - 1) * iSigma.diagonal()(i);
+
 			incCounter(counter);
 		}
+	} else if (p == input_dim){
+		diSigmadp.diagonal().head(MToTheD) = -2*iSigma.diagonal().head(MToTheD);
 	}
-	else if(p == input_dim)
-		diSigmadp.diagonal().array() = -iSigma.diagonal().array().square();
 	else
 		diSigmadp.setZero();
 }
 
 bool libgp::Solin::gradiSigmaIsNull(size_t p) {
 	//noise gradient?
-	if(p == param_dim - 1)
+	if (p == param_dim - 1)
 		return true;
 	return false;
 }
@@ -105,52 +109,54 @@ std::string libgp::Solin::to_string() {
 void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	//initialize hyper-parameters
 	double temp = 1;
-	for(size_t i = 0; i < input_dim; i++){
-		ell(i) = exp(2*p(i));
+	for (size_t i = 0; i < input_dim; i++) {
+		ell(i) = exp(2 * p(i));
 		temp *= exp(p(i));
 	}
-	sf2 = exp(2*p(input_dim));
+	sf2 = exp(2 * p(input_dim));
 
 	//initialize spectral density
-	c = sf2 * pow(2*M_PI, input_dim/2) * temp;
+	c = sf2 * pow(2 * M_PI, input_dim / 2) * temp;
+	temp = M_PI / L / 2;
+	temp *= temp;
+	piOverLOver2Sqrd = temp;
 
 	//create Sigma and associated fields
 	Eigen::VectorXd lambdaSquared(input_dim);
-	temp = M_PI/L/2;
-	temp *= temp;
 	logDetSigma = 0;
 
 	counter.fill(1);
-	for(size_t i=0; i < MToTheD; i++){
-		lambdaSquared.array() = temp*counter.array().square().cast<double>();
+	for (size_t i = 0; i < MToTheD; i++) {
+		lambdaSquared.array() = piOverLOver2Sqrd
+				* counter.array().square().cast<double>();
 		//TODO: does this work?
 		double value = spectralDensity(lambdaSquared);
 		Sigma.diagonal()(i) = value;
-		iSigma.diagonal()(i) = 1/value;
-		choliSigma.diagonal()(i) = 1/sqrt(value);
-		logDetSigma+=log(value);
+		iSigma.diagonal()(i) = 1 / value;
+		choliSigma.diagonal()(i) = 1 / sqrt(value);
+		logDetSigma += log(value);
 
 		incCounter(counter);
 	}
 
-	logDetSigma/=2;
+	logDetSigma /= 2;
 }
 
-inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared){
-	return c*exp(-lambdaSquared.cwiseProduct(ell).sum()/2);
+inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared) {
+	return c * exp(-lambdaSquared.cwiseProduct(ell).sum() / 2);
 }
 
-inline void Solin::incCounter(Eigen::VectorXi & counter){
-	for(size_t idx = 0; idx < input_dim; idx++){
+inline void Solin::incCounter(Eigen::VectorXi & counter) {
+	for (size_t idx = 0; idx < input_dim; idx++) {
 		double fill = counter(idx) % (M_intern + 1) + 1;
 		counter(idx) = fill;
-		if(fill > 1)
+		if (fill > 1)
 			break;
 	}
 }
 
-
-size_t Solin::get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions){
+size_t Solin::get_param_dim_without_noise(size_t input_dim,
+		size_t num_basis_functions) {
 	//length scales + amplitude
 	//no need to take care of the noise
 	return input_dim + 1;
@@ -161,7 +167,7 @@ bool libgp::Solin::real_init() {
 
 	ell.resize(input_dim);
 
-	M_intern = std::floor(std::pow(M, 1./input_dim));
+	M_intern = std::floor(std::pow(M, 1. / input_dim));
 	MToTheD = std::pow(M_intern, input_dim);
 
 	//TODO: make this integer?
@@ -169,15 +175,15 @@ bool libgp::Solin::real_init() {
 
 	m.resize(M_intern);
 	phi_1D.resize(M_intern);
-	for(size_t i=1; i <= M_intern; i++)
-		m(i-1) = M_PI*i/2;
+	for (size_t i = 1; i <= M_intern; i++)
+		m(i - 1) = M_PI * i / 2;
 	assert(MToTheD <= M);
 	Sigma.resize(M);
-	Sigma.diagonal().tail(M-MToTheD).fill(1);
+	Sigma.diagonal().tail(M - MToTheD).fill(1);
 	iSigma.resize(M);
-	iSigma.diagonal().tail(M-MToTheD).fill(1);
+	iSigma.diagonal().tail(M - MToTheD).fill(1);
 	choliSigma.resize(M);
-	choliSigma.diagonal().tail(M-MToTheD).fill(1);
+	choliSigma.diagonal().tail(M - MToTheD).fill(1);
 	return true;
 }
 

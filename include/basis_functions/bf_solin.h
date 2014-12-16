@@ -56,7 +56,8 @@ protected:
 
 	virtual bool real_init();
 
-    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
+	size_t get_param_dim_without_noise(size_t input_dim,
+			size_t num_basis_functions);
 
 private:
 	/**
@@ -98,6 +99,11 @@ private:
 	 * Factor for the spectral density. See log_hyper_updated for the definition.
 	 */
 	double c;
+
+	/**
+	 * (PI/L/2)^2.
+	 */
+	double piOverLOver2Sqrd;
 
 	/**
 	 * This will be the matrix Gamma from the paper.
