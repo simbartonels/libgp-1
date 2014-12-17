@@ -200,8 +200,11 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 TEST_P(BFGradientTest, CholeskyCorrect) {
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
-	iSigma = iSigma - L*L.transpose();
-	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-5);
+	//TODO: is this problematic?
+	iSigma.array() = (iSigma - L*L.transpose()).array().abs();
+	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-15)
+		<< "diff: " << std::endl << iSigma << std::endl
+		<< "L: " << std::endl << L << std::endl;
 }
 
 TEST_P(BFGradientTest, InverseCorrect) {
