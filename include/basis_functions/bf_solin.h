@@ -80,6 +80,13 @@ private:
 	inline void incCounter(Eigen::VectorXi & counter);
 
 	/**
+	 * Computes the basis function vector for one dimension.
+	 * @param xd The d-th entry of a vector x.
+	 * @param phi Where to write the output to.
+	 */
+	inline void phi1D(const double & xd, Eigen::VectorXd & phi);
+
+	/**
 	 * Contains the borders of the input domain. We will assume the input domain is
 	 * standardized to length 1.
 	 */
@@ -123,7 +130,7 @@ private:
 	size_t M_intern;
 
 	/**
-	 * Contains the numbers from 1 to M_intern multiplied with pi/2.
+	 * Contains the numbers from 1 to M_intern multiplied with pi/L/2.
 	 */
 	Eigen::VectorXd m;
 

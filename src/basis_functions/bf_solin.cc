@@ -14,20 +14,23 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 		const Eigen::VectorXd& x) {
 	Eigen::VectorXd phi(M);
 	phi.tail(M - input_dim * M_intern).setZero();
+	//here it needs to be phi
+	phi1D(x(0), phi);
 	//    Md = M;
 	size_t Md = M_intern;
-	phi.head(M_intern).array() = ((x(0) * m.array() + L) / L).sin() / sqrt(L);
 	//    for d = 2:D
 	for (size_t d = 1; d < input_dim; d++) {
-		phi_1D.array() = ((x(d) * m.array() + L) / L).sin() / sqrt(L);
+		phi1D(x(d), phi_1D);
 //        t2 = zeros(Md*M, sz);
 //        for m = 1:M
+		//we need to start at 1 as we do not want to overwrite phi.head(Md)
 		for (size_t j = 1; j < M_intern; j++) {
 //            idx = (m-1)*Md+(1:Md);
 //            t2(idx, :) = temp * diag(squeeze(Phi(d, m, :)));
 			//TODO: since we iterate over M_intern anyway: would it be faster to compute phi_1D(j) here?
 			phi.segment(j * Md, Md) = phi.head(Md) * phi_1D(j);
 		}
+		//no we want to overwrite phi.head(Md)
 		phi.head(Md).array() *= phi_1D(0);
 //        end
 //        temp = t2;
@@ -37,6 +40,11 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 	}
 //    K = temp;
 	return phi;
+}
+
+inline void Solin::phi1D(const double & xd, Eigen::VectorXd & phi){
+	//TODO: make precomputations
+	phi.head(M_intern).array() = (m.array() * (xd + L)).sin() / sqrt(L);
 }
 
 Eigen::MatrixXd libgp::Solin::getInverseOfSigma() {
@@ -76,7 +84,6 @@ bool libgp::Solin::gradBasisFunctionIsNull(size_t p) {
 void libgp::Solin::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
 	if (p < input_dim) {
 		counter.fill(1);
-		double temp;
 		for (size_t i = 0; i < MToTheD; i++) {
 			/*
 			 * df^-1/dx = -f^-2*df/dx
@@ -179,7 +186,7 @@ bool libgp::Solin::real_init() {
 	m.resize(M_intern);
 	phi_1D.resize(M_intern);
 	for (size_t i = 1; i <= M_intern; i++)
-		m(i - 1) = M_PI * i / 2;
+		m(i - 1) = M_PI * i / L / 2;
 	assert(MToTheD <= M);
 	Sigma.resize(M);
 	Sigma.diagonal().tail(M - MToTheD).fill(1);
