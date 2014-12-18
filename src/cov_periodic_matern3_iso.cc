@@ -18,7 +18,7 @@ namespace libgp
     param_dim = 3;
     loghyper.resize(param_dim);
     loghyper.setZero();
-    sqrt3 = sqrt(3);
+    sqrt3 = sqrt((double)3);
     return true;
   }
   

@@ -32,14 +32,11 @@ namespace libgp {
     
     /** Create and instance of GaussianProcess with given input dimensionality 
      *  and covariance function. */
-    GaussianProcess (size_t input_dim, std::string covf_def) : AbstractGaussianProcess(input_dim, covf_def){};
-    
-    /** Create and instance of GaussianProcess from file. */
-//    GaussianProcess (const char * filename);
-    
-    /** Write current gp model to file. */
-    void write(const char * filename);
+	GaussianProcess (size_t input_dim, std::string covf_def) : AbstractGaussianProcess(input_dim, covf_def){};
 
+    /** Create and instance of GaussianProcess from file. */
+    GaussianProcess (const char * filename) : AbstractGaussianProcess(filename){};
+    
   protected:
     double var_impl(const Eigen::VectorXd x_star);
 

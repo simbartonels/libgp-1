@@ -4,7 +4,6 @@ SET(LIBGP_TESTS
   log_likelihood_test.cc
   test_optimizer.cc
   test_covariance_functions.cc
-  test_basis_functions.cc
   test_gp_utils.cc
   test_cov_factory.cc
 )

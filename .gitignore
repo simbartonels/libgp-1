@@ -3,3 +3,7 @@ build
 archive
 *.swp
 .DS_Store
+/eigen3/
+/spiral_wht/
+*~
+*.ini

@@ -54,10 +54,21 @@ namespace libgp
       virtual double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2) = 0;
 
       /** Covariance gradient of two input vectors with respect to the hyperparameters.
+       *  The other function is more efficient if implemented but since that is not always the case
+       *  this funcion is kept for consistency.
        *  @param x1 first input vector
        *  @param x2 second input vector
        *  @param grad covariance gradient */
       virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad) = 0;
+
+      /** Covariance gradient of two input vectors with respect to the hyperparameters.
+       *  @param x1 first input vector
+       *  @param x2 second input vector
+       *  @param kernel_value the value of k(x1,x2)
+       *  @param grad covariance gradient */
+      virtual void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &g){
+    	  grad(x1, x2, g);
+      };
 
       /** Update parameter vector.
        *  @param p new parameter vector */
@@ -69,7 +80,7 @@ namespace libgp
 
       /** Get number of parameters for this covariance function.
        *  @return parameter vector dimensionality */
-      size_t get_param_dim();
+      virtual size_t get_param_dim();
 
       /** Get input dimensionality.
        *  @return input dimensionality */
@@ -77,14 +88,14 @@ namespace libgp
 
       /** Get log-hyperparameter of covariance function.
        *  @return log-hyperparameter */
-      Eigen::VectorXd get_loghyper();
+      virtual Eigen::VectorXd get_loghyper();
 
       /** Returns a string representation of this covariance function.
        *  @return string containing the name of this covariance function */
       virtual std::string to_string() = 0;
 
       /** Draw random target values from this covariance function for input X. */
-      Eigen::VectorXd draw_random_sample(Eigen::MatrixXd &X);
+      virtual Eigen::VectorXd draw_random_sample(Eigen::MatrixXd &X);
 
       bool loghyper_changed;
 

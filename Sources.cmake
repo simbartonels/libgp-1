@@ -15,6 +15,11 @@ SET(LIBGP_SRC
   src/cov_prod.cc
   src/abstract_gp.cc
   src/gp.cc
+  src/basis_functions/bf_multi_scale.cc
+  src/basis_functions/bf_solin.cc
+  src/basis_functions/basisf_factory.cc
+  src/gp_fic.cc
+  src/gp_deg.cc
   src/gp_utils.cc
   src/sampleset.cc
   src/rprop.cc
@@ -39,9 +44,23 @@ SET(LIBGP_INTERFACES
   include/cov_prod.h
   include/abstract_gp.h
   include/gp.h
+  include/basis_functions/IBasisFunction.h
+  include/basis_functions/bf_multi_scale.h
+  include/basis_functions/bf_solin.h
+  include/basis_functions/basisf_factory.h
+  include/gp_fic.h
+  include/gp_deg.h
   include/gp_utils.h
   include/sampleset.h
   include/rprop.h
   include/input_dim_filter.h
   include/cg.h
+)
+
+SET(FAST_FOOD_SRC
+  src/basis_functions/bf_fast_food.cc
+)
+
+SET(FAST_FOOD_INTERFACES
+  include/basis_functions/bf_fast_food.h
 )

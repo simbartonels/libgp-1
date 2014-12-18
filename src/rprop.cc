@@ -29,7 +29,7 @@ void RProp::maximize(GaussianProcess * gp, size_t n, bool verbose)
   Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
   Eigen::VectorXd params = gp->covf().get_loghyper();
   Eigen::VectorXd best_params = params;
-  double best = log(0);
+  double best = log(0.0);
 
   for (size_t i=0; i<n; ++i) {
     double lik = gp->log_likelihood();
