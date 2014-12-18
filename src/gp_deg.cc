@@ -72,15 +72,19 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	size_t n = sampleset->size();
-	if(n > dPhidi.cols()){
+	if (n > dPhidi.cols()) {
 		dPhidi.resize(M, n);
 		dPhidi.setZero();
 	}
 	Eigen::VectorXd t(M);
 	//TODO: here we have a few steps that aren't necessary for Solin!
 	Eigen::VectorXd phi_alpha_minus_y = Phi.transpose() * alpha - y;
-	//TODO: remove
-	Eigen::VectorXd iSigma_alpha = bf->getInverseOfSigma().transpose() * alpha;
+	//TODO: move allocations to constructor
+	Eigen::VectorXd iSigma_alpha(M);
+	if (!sigmaIsDiagonal)
+		iSigma_alpha = bf->getInverseOfSigma() * alpha;
+	else
+		iSigma_alpha = bf->getInverseOfSigma().diagonal().cwiseProduct(alpha);
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
 
@@ -124,17 +128,15 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 			if (sigmaIsDiagonal) {
 				//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
 				//we divert from the thesis here since we have the gradient of Sigma^-1
-				gradient(i) +=
-						(
-						//no multiplication with sn2 since it cancels
-						(alpha.transpose()
-								* diSigma.diagonal().cwiseProduct(alpha)
-								+ squared_noise
-										* Gamma.diagonal().cwiseProduct(
-												diSigma.diagonal()).sum())
-						//and last but not least d log(|Sigma|)
-								- diSigma.diagonal().cwiseProduct(
-										bf->getSigma().diagonal()).sum()) / 2;
+				gradient(i) += (
+				//no multiplication with sn2 since it cancels
+				(alpha.transpose() * diSigma.diagonal().cwiseProduct(alpha)
+						+ squared_noise
+								* Gamma.diagonal().cwiseProduct(
+										diSigma.diagonal()).sum())
+				//and last but not least d log(|Sigma|)
+						- diSigma.diagonal().cwiseProduct(
+								bf->getSigma().diagonal()).sum()) / 2;
 			} else {
 				//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
 				//we divert from the thesis here since we have the gradient of Sigma^-1
@@ -146,20 +148,18 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 						- diSigma.cwiseProduct(bf->getSigma()).sum()) / 2;
 			}
 		}
-		//noise gradient
-		//TODO: implement (efficiently)
-		double tr_iAiSigma;
-		if(sigmaIsDiagonal){
-			tr_iAiSigma = Gamma.diagonal().cwiseProduct(bf->getInverseOfSigma().diagonal()).sum();
-		}
-		else{
-			tr_iAiSigma = Gamma.cwiseProduct(bf->getInverseOfSigma()).sum();
-		}
-		gradient(num_params - 1) = (yy / squared_noise
-				- PhiyAlpha / squared_noise
-				- squared_noise * (alpha.transpose() * iSigma_alpha).sum()
-				- squared_noise * tr_iAiSigma - n + M);
 	}
+	//noise gradient
+	double tr_iAiSigma;
+	if (sigmaIsDiagonal) {
+		tr_iAiSigma = Gamma.diagonal().cwiseProduct(
+				bf->getInverseOfSigma().diagonal()).sum();
+	} else {
+		tr_iAiSigma = Gamma.cwiseProduct(bf->getInverseOfSigma()).sum();
+	}
+	gradient(num_params - 1) = -(yy / squared_noise - PhiyAlpha / squared_noise
+			- (alpha.transpose() * iSigma_alpha).sum()
+			- squared_noise * tr_iAiSigma - n + M);
 	return gradient;
 }
 
@@ -168,21 +168,21 @@ void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
 }
 
 void libgp::DegGaussianProcess::update_alpha() {
-	std::cout << "deg_gp: computing alpha" << std::endl;
+//	std::cout << "deg_gp: computing alpha" << std::endl;
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
 	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
-	std::cout << "deg_gp: done" << std::endl;
+//	std::cout << "deg_gp: done" << std::endl;
 
 	//this is stuff we need for the computation of the likelihood
 	//TODO: What if the user is not interested in doing that?
-	std::cout << "deg_gp: preparing computation of log-likelihood" << std::endl;
+//	std::cout << "deg_gp: preparing computation of log-likelihood" << std::endl;
 	yy = y.squaredNorm();
 	assert(yy == y.transpose() * y);
 	PhiyAlpha = Phiy.transpose() * alpha;
-	std::cout << "deg_gp: done" << std::endl;
+//	std::cout << "deg_gp: done" << std::endl;
 }
 
 void libgp::DegGaussianProcess::computeCholesky() {
@@ -190,14 +190,16 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	squared_noise = exp(2 * log_noise);
 //TODO: this step can be simplified for Solin! (Phi is constant)
 	//the best solution is probably to create gp_solin that inherits from gp_deg
-	std::cout << "deg_gp: computing Phi ... " << std::endl;
+//	std::cout << "deg_gp: computing Phi ... " << std::endl;
 	size_t n = sampleset->size();
 	if (n > Phi.rows())
 		Phi.resize(M, n);
 	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
-	std::cout << "deg_gp: done" << std::endl;
-	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
+//	std::cout << "deg_gp: Phi" << std::endl << Phi << std::endl;
+//	std::cout << "deg_gp: diag(Sigma) " << std::endl << bf->getSigma().diagonal().transpose() << std::endl;
+//	std::cout << "deg_gp: done" << std::endl;
+//	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
 	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
 	/*
 	 * TODO: Would it be more efficient not to create the whole matrix and instead compute it
@@ -206,7 +208,7 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	L =
 			(Phi * Phi.transpose() + squared_noise * bf->getInverseOfSigma()).selfadjointView<
 					Eigen::Lower>().llt().matrixL();
-	std::cout << "deg_gp: done" << std::endl;
+//	std::cout << "deg_gp: done" << std::endl;
 }
 
 void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {

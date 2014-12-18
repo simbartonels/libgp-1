@@ -155,7 +155,7 @@ inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared) {
 
 inline void Solin::incCounter(Eigen::VectorXi & counter) {
 	for (size_t idx = 0; idx < input_dim; idx++) {
-		double fill = counter(idx) % (M_intern + 1) + 1;
+		double fill = (counter(idx) % M_intern) + 1;
 		counter(idx) = fill;
 		if (fill > 1)
 			break;
@@ -183,8 +183,8 @@ bool libgp::Solin::real_init() {
 	//TODO: make this integer?
 	counter.resize(input_dim);
 
-	m.resize(M_intern);
 	phi_1D.resize(M_intern);
+	m.resize(M_intern);
 	for (size_t i = 1; i <= M_intern; i++)
 		m(i - 1) = M_PI * i / L / 2;
 	assert(MToTheD <= M);
