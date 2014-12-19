@@ -33,19 +33,17 @@ public:
 
 	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad);
 
+	    void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient);
+
+	    bool gradDiagWrappedIsNull(size_t parameter);
+
 		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
 
-		bool gradBasisFunctionIsNull(size_t p){
-			//TODO: implement in cc file
-			return false;
-		};
+		bool gradBasisFunctionIsNull(size_t p);
 
 		void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
 
-		bool gradiSigmaIsNull(size_t p){
-			//TODO: implement in cc file
-			return false;
-		};
+		bool gradiSigmaIsNull(size_t p);
 
 	    std::string to_string();
 
@@ -65,6 +63,11 @@ public:
 	     * Signal variance factor.
 	     */
 	    double c;
+
+	    /**
+	     * Contains c*|2*pi*diag(ell)|.
+	     */
+	    double c_over_ell_det;
 
 	    /**
 	     * Length scales.
@@ -110,6 +113,12 @@ public:
 	     * log(|Upsi|)/2
 	     */
 	    double halfLogDetiUpsi;
+
+	    /**
+	     * Vector used in the gradient computation of iSigma.
+	     */
+		Eigen::VectorXd temp;
+		Eigen::VectorXd UpsiCol;
 };
 }
 

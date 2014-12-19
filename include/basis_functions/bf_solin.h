@@ -36,6 +36,8 @@ public:
 	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
 			double kernel_value, Eigen::VectorXd &grad);
 
+	bool gradDiagWrappedIsNull(size_t parameter);
+
 	void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi,
 			size_t p, Eigen::VectorXd &grad);
 

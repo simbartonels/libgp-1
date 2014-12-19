@@ -97,6 +97,10 @@ void libgp::FastFood::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	//TODO: implement!
 }
 
+bool FastFood::gradDiagWrappedIsNull(size_t parameter){
+	return false;
+}
+
 void libgp::FastFood::gradBasisFunction(const Eigen::VectorXd& x,
 		const Eigen::VectorXd& phi, size_t p, Eigen::VectorXd& grad) {
 	assert(grad.size() == phi.size());

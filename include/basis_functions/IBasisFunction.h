@@ -6,6 +6,7 @@
 #define SOURCE_DIRECTORY__INCLUDE_IBASISFUNCTION_H_
 
 #include "cov.h"
+#include "sampleset.h"
 
 namespace libgp {
 class IBasisFunction: public CovarianceFunction {
@@ -138,15 +139,39 @@ public:
 	 * Returns the approximated kernel value. I.e. k(x,z)=phi(x) Sigma phi(z).
 	 */
 	double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2) {
-		//TODO: refactor
-		Eigen::VectorXd phix = computeBasisFunctionVector(x1);
-		Eigen::VectorXd phiz = computeBasisFunctionVector(x2);
-		Eigen::MatrixXd L = getCholeskyOfInvertedSigma();
-		Eigen::VectorXd r;
-		r = L * phix;
-		r = r.transpose() * L * phiz;
-		return r(0, 0);
+		//the last sum() is to convince Eigen that we can return a double.
+		return (computeBasisFunctionVector(x1).transpose() * getSigma() * computeBasisFunctionVector(x2)).sum();
 	}
+
+	/**
+	 * Returns the gradient of diagonal of the wrapped kernel matrix, i.e. dk(x,x)/dt.
+	 *
+	 * ATTENTION: The method is highly inefficient and should be overwritten!
+	 *
+	 * ASSUMPTION: diagK_i == cov(sampleset->x(i), sampleset->x(i))
+	 *
+	 * @param sampleset Sampleset of all datapoints.
+	 * @param diagK The diagonal of the kernel matrix.
+	 * @param parameter The parameter for which to compute the gradient.
+	 * @param gradient Where to write the output.
+	 */
+	virtual void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient){
+		//highly inefficient but this method should be overwritten anyways...
+		assert(diagK.size() == gradient.size());
+		size_t n = sampleset->size();
+		Eigen::VectorXd t(param_dim);
+		for (size_t j = 0; j < n; j++) {
+			double temp = diagK(j);
+			grad(sampleset->x(j), sampleset->x(j), temp, t);
+			gradient(j) = t(parameter);
+		}
+	}
+
+	/**
+	 * Returns true if gradDiagWrapped(..., parameter, ...) is all zeros.
+	 * @param parameter The number of the parameter that is optimized.
+	 */
+	virtual bool gradDiagWrappedIsNull(size_t parameter) = 0;
 
 	/**
 	 * Returns the noise on a log scale.

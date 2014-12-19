@@ -14,10 +14,6 @@
 
 namespace libgp {
 
-/*
- * TODO: This class can be made more memory efficient when iUpsi and LUpsi are stored in the same matrix.
- */
-
 size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M){
 	//1 for length scale
 	//input_dim length scales
@@ -44,6 +40,8 @@ bool MultiScale::real_init() {
 	U.resize(M, input_dim);
 	Uell.resize(M, input_dim);
 	ell.resize(input_dim);
+	temp.resize(M);
+	UpsiCol.resize(M);
 	return true;
 }
 
@@ -51,6 +49,7 @@ Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
 	Eigen::VectorXd uvx(M);
 	for (size_t i = 0; i < M; i++) {
+		//TODO: can we precompute parts of g? pretty ugly for loop in there
 		uvx(i) = g(x, U.row(i), Uell.row(i));
 	}
 	return uvx;
@@ -58,6 +57,7 @@ Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 
 void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 		const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) {
+	//TODO: vectorized this will be a big deal faster!
 	assert(grad.size() == phi.size());
 //	dAdl(Uvx, sigma(k, d), d, x, V, k)
 //	dAdl(A, p, d, x, z, i)
@@ -75,18 +75,13 @@ void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 		grad.array() = grad.array().square()
 				- Uell.col(d).array().cwiseInverse();
 		grad = ell(d) * grad.cwiseProduct(phi) / 4;
-//		for (size_t i = 0; i < M; i++) {
-//			double t = (U(i, d) - x(d)) / Uell(i, d);
-//			t = t * t - 1 / Uell(i, d);
-//			grad(i) = t * phi(i) / 2;
-//		}
 	} else if (p >= input_dim && p < M * input_dim + input_dim) {
 //        [d, j] = getDimensionAndIndex(di, D, M);
 //        p2 = sigma(j, d);
 //        Uvx = dAdl(Uvx, p2, d, x, V, j);
 		//	dAdl(A, p, d, x, z, i)
 		//	dA(i, :) = ((((z(i, d) - x(:, d))./p).^2-1./p))'.*A(i, :)/2
-		grad = Eigen::VectorXd::Zero(M);
+		grad.setZero();
 		size_t m = (p - input_dim) % M;
 		size_t d = (p - input_dim - m) / M;
 		double t = (U(m, d) - x(d)) / Uell(m, d);
@@ -103,45 +98,43 @@ void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 //        sig = sigma(j, d);
 //        dUvx(j, :) = (-V(j, d) + x(:, d))/sig .* Uvx(j, :)';
 //        Uvx = dUvx;
-		grad = Eigen::VectorXd::Zero(M);
+		grad.setZero();
 		size_t m = (p - input_dim) % M;
 		size_t d = (p - input_dim - m) / M - input_dim;
 		grad(m) = (-U(m, d) + x(d)) / Uell(m, d) * phi(m);
 	} else {
-		//length scale and noise derivative
-		grad = Eigen::VectorXd::Zero(M);
+		//amplitude and noise derivative
+		grad.setZero();
 	}
 }
 
+bool MultiScale::gradBasisFunctionIsNull(size_t p){
+	return p >= 2 * M * input_dim + input_dim;
+}
+
 Eigen::MatrixXd MultiScale::getInverseOfSigma() {
-	//TODO: check that upper part of iUpsi is same as lower part
 	return Upsi;
 }
 
 void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
-	//TODO: this function can be more efficient
-	//TODO: Does the = trigger a copy?
-	dSigmadp = Eigen::MatrixXd::Zero(M, M);
+	dSigmadp.setZero();
 	if (p < input_dim) {
 		// length scale derivatives
 		// zero
 	} else if (p == 2 * M * input_dim + input_dim + 1){
 		//noise derivative
 		//little contribution due to the inducing noise
-		dSigmadp = 2 * snu2 * Eigen::MatrixXd::Identity(M, M);
+		dSigmadp.diagonal().fill(2 * snu2);
 	} else if (p == 2 * M * input_dim + input_dim) {
 		//amplitude derivatives
 		//we need to subtract the inducing input noise since it is not affected by the amplitude
-		//TODO: is there a faster way to add to the diagonal?
 		dSigmadp = -Upsi+snu2*Eigen::MatrixXd::Identity(M, M);
 	} else {
 		//derivatives with respect to inducing inputs or inducing length scales
-		//TODO: unnecessary memory allocation on the heap!
-		Eigen::VectorXd temp(M);
 		size_t m = (p - input_dim) % M;
 		size_t d = ((p - input_dim - m) / M) % input_dim;
 		temp.array() = Uell.col(d).array() + (Uell(m, d) - ell(d));
-		Eigen::VectorXd UpsiCol = Upsi.col(m);
+		UpsiCol = Upsi.col(m);
 		//for the gradients we have to remove the inducing input noise (from the diagonal)
 		UpsiCol(m) -= snu2;
 		if (p < M * input_dim + input_dim) {
@@ -149,12 +142,12 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 			//	dAdl(A, p, d, x, z, i)
 			//	dA(i, :) = ((((z(i, d) - x(:, d))./p).^2-1./p))'.*A(i, :)/2
 			dSigmadp.col(m).array() = ((U(m, d) - U.col(d).array())
-					/ temp.array()).square() - 1 / temp.array();
+					/ temp.array()).square() - temp.cwiseInverse().array();
 			dSigmadp.col(m).array() *= (Uell(m, d) - ell(d) / 2)
 					* UpsiCol.array() / 2;
 			temp = dSigmadp.col(m);
 			dSigmadp.row(m) = temp;
-			dSigmadp(m, m) = 2 * dSigmadp(m, m);
+			dSigmadp(m, m) *= 2;
 		} else {
 			//derivatives for inducing inputs
 			dSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
@@ -164,6 +157,10 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 			dSigmadp.row(m) = temp;
 		}
 	}
+}
+
+bool MultiScale::gradiSigmaIsNull(size_t p){
+	return p < input_dim;
 }
 
 Eigen::MatrixXd MultiScale::getCholeskyOfInvertedSigma() {
@@ -194,24 +191,27 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 
 void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		double kernel_value, Eigen::VectorXd& grad) {
-	//TODO: there is actually no need for a general gradient
-	//think about adding a method gradDiag
 	grad.segment(input_dim, 2 * M * input_dim).setZero();
-	if (x1 == x2) {
-		kernel_value = kernel_value - sn2;
-		//amplitude gradient
-		grad(2 * M * input_dim + input_dim) = kernel_value;
-		//length scale gradients
-		grad.head(input_dim).fill(-kernel_value / 2);
-		//noise gradient
-		grad(2 * M * input_dim + input_dim + 1) = 2 * sn2;
-	} else {
-		grad(2 * M * input_dim + input_dim) = kernel_value;
-		//chain rule already applied
-		grad.head(input_dim).array() = ((x1.array() - x2.array()).square()
-				/ ell.array() - 1) * kernel_value / 2;
-		grad(2 * M * input_dim + input_dim + 1) = 0.;
-	}
+	grad(2 * M * input_dim + input_dim) = kernel_value;
+	//chain rule already applied
+	grad.head(input_dim).array() = ((x1.array() - x2.array()).square()
+			/ ell.array() - 1) * kernel_value / 2;
+	grad(2 * M * input_dim + input_dim + 1) = 0.;
+}
+
+void MultiScale::gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient){
+	if(parameter < input_dim)
+		gradient.fill(-c_over_ell_det / 2);
+	else if(parameter == 2 * M * input_dim + input_dim)
+		gradient.fill(c_over_ell_det);
+	else if(parameter == 2 * M * input_dim + input_dim + 1)
+		gradient.fill(2 * sn2);
+	else
+		gradient.setZero();
+}
+
+bool MultiScale::gradDiagWrappedIsNull(size_t parameter){
+	return parameter >= input_dim && parameter < 2 * M * input_dim + input_dim;
 }
 
 void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
@@ -231,6 +231,12 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	}
 
 	c = exp(loghyper(2 * M * input_dim + input_dim));
+	double ell_determinant_factor = 1;
+	for (size_t i = 0; i < input_dim; i++) {
+		ell_determinant_factor *= 2 * M_PI * ell(i);
+	}
+	ell_determinant_factor = sqrt(ell_determinant_factor);
+	c_over_ell_det = c / ell_determinant_factor;
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
 	snu2 = 1e-6 * sn2;
@@ -287,7 +293,7 @@ double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	z = exp(-0.5 * z);
 	double p = 1;
 	for (size_t i = 0; i < input_dim; i++) {
-		p = 2 * M_PI * p * sigma(i);
+		p *= 2 * M_PI * sigma(i);
 	}
 	p = sqrt(p);
 	return z / p;
