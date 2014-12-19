@@ -65,13 +65,27 @@ namespace libgp {
 	Eigen::MatrixXd Phi;
     Eigen::MatrixXd Lu;
     Eigen::VectorXd dg;
+	Eigen::VectorXd al;
     Eigen::VectorXd isqrtgamma;
     Eigen::MatrixXd V;
     Eigen::MatrixXd Luu;
+    Eigen::MatrixXd B;
+    Eigen::MatrixXd W;
+    Eigen::VectorXd w;
+    Eigen::MatrixXd Wdg;
+    Eigen::MatrixXd R;
+    Eigen::VectorXd v;
+    Eigen::MatrixXd BWdg;
+    Eigen::VectorXd WdgSum;
+
+    Eigen::VectorXd ddiagK;
+	Eigen::MatrixXd dKui;
+	Eigen::MatrixXd dKuui;
 
 	Eigen::VectorXd r;
 	Eigen::VectorXd beta;
 
+	Eigen::VectorXd temp;
 
     /**
      * Convenience pointer that just points to the covariance function cf in the super class.
