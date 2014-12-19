@@ -148,7 +148,7 @@ public:
 	 *
 	 * ATTENTION: The method is highly inefficient and should be overwritten!
 	 *
-	 * ASSUMPTION: diagK_i == cov(sampleset->x(i), sampleset->x(i))
+	 * ASSUMPTION: diagK_i == wrappedCov(sampleset->x(i), sampleset->x(i))
 	 *
 	 * @param sampleset Sampleset of all datapoints.
 	 * @param diagK The diagonal of the kernel matrix.
