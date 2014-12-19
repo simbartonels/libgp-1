@@ -5,6 +5,7 @@
 #include "cov.h"
 #include "basis_functions/basisf_factory.h"
 #include "basis_functions/IBasisFunction.h"
+#include "sampleset.h"
 
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
@@ -29,10 +30,16 @@ protected:
 		x1 = Eigen::VectorXd::Random(n);
 		x2 = Eigen::VectorXd::Random(n);
 		covf->set_loghyper(params);
+		sampleset = new libgp::SampleSet(n);
+		sampleset->add(x1, 0.);
+		grad.resize(1);
+		k.resize(1);
+		k(0) = covf->getWrappedKernelValue(x1, x1);
 	}
 	virtual void TearDown() {
 		delete covf;
 		delete wrappedCovarianceFunction;
+		delete sampleset;
 	}
 	int n, param_dim;
 	size_t M;
@@ -44,6 +51,9 @@ protected:
 	Eigen::VectorXd params;
 	Eigen::VectorXd x1;
 	Eigen::VectorXd x2;
+	Eigen::VectorXd grad;
+	Eigen::VectorXd k;
+	libgp::SampleSet * sampleset;
 
 	Eigen::VectorXd gradient() {
 		Eigen::VectorXd grad(param_dim);
@@ -55,6 +65,11 @@ protected:
 		Eigen::VectorXd grad(param_dim);
 		covf->grad(x1, x1, grad);
 		return grad;
+	}
+
+	double gradient_diag(size_t p){
+		covf->gradDiagWrapped(sampleset, k, p, grad);
+		return grad(0);
 	}
 
 	double numerical_gradient(int i) {
@@ -108,7 +123,7 @@ protected:
 };
 
 TEST_P(BFGradientTest, EqualToNumerical) {
-	Eigen::VectorXd grad = gradient_diag();
+	Eigen::VectorXd grad = gradient();
 	for (int i = 0; i < param_dim; ++i) {
 		double num_grad = numerical_gradient(i);
 		if (grad(i) == 0.0) {
@@ -125,9 +140,11 @@ TEST_P(BFGradientTest, EqualToNumerical) {
 
 //TODO: refactor. copy&paste code!
 TEST_P(BFGradientTest, DiagEqualToNumerical) {
-	Eigen::VectorXd grad = gradient();
+	Eigen::VectorXd grad = gradient_diag();
 	for (int i = 0; i < param_dim; ++i) {
 		double num_grad = numerical_gradient_diag(i);
+		double comp_grad2 = gradient_diag(i);
+		ASSERT_NEAR(grad(i), comp_grad2, 1e-7) << "Parameter number: " << i;
 		if (grad(i) == 0.0) {
 			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
@@ -200,7 +217,6 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 TEST_P(BFGradientTest, CholeskyCorrect) {
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
-	//TODO: is this problematic?
 	iSigma.array() = (iSigma - L*L.transpose()).array().abs();
 	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-15)
 		<< "diff: " << std::endl << iSigma << std::endl
