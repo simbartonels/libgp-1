@@ -76,15 +76,11 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		dPhidi.resize(M, n);
 		dPhidi.setZero();
 	}
-	Eigen::VectorXd t(M);
 	//TODO: here we have a few steps that aren't necessary for Solin!
 	Eigen::VectorXd phi_alpha_minus_y = Phi.transpose() * alpha - y;
 	//TODO: move allocations to constructor
-	Eigen::VectorXd iSigma_alpha(M);
-	if (!sigmaIsDiagonal)
-		iSigma_alpha = bf->getInverseOfSigma() * alpha;
-	else
-		iSigma_alpha = bf->getInverseOfSigma().diagonal().cwiseProduct(alpha);
+	Eigen::VectorXd t(M);
+	Eigen::MatrixXd Gamma(M, M);
 	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
 
@@ -92,7 +88,6 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	//TODO: it is certainly faster to precompute this
 	//on the other hand: is there not going to be another hyper-parameter update after this call anyway?
 	//Will be A^-1
-	Eigen::MatrixXd Gamma(M, M);
 	Gamma.setIdentity();
 	L.triangularView<Eigen::Lower>().solveInPlace(Gamma);
 	Gamma = Gamma.transpose() * Gamma;
@@ -150,15 +145,19 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		}
 	}
 	//noise gradient
+	//TODO: this stuff is parameter-independent! move it to compute alpha?
 	double tr_iAiSigma;
+	double alpha_iSigma_alpha;
 	if (sigmaIsDiagonal) {
 		tr_iAiSigma = Gamma.diagonal().cwiseProduct(
 				bf->getInverseOfSigma().diagonal()).sum();
+		alpha_iSigma_alpha = (alpha.array().square() * bf->getInverseOfSigma().diagonal().array()).sum();
 	} else {
 		tr_iAiSigma = Gamma.cwiseProduct(bf->getInverseOfSigma()).sum();
+		alpha_iSigma_alpha = alpha.transpose() * bf->getInverseOfSigma() * alpha;
 	}
 	gradient(num_params - 1) = -(yy / squared_noise - PhiyAlpha / squared_noise
-			- (alpha.transpose() * iSigma_alpha).sum()
+			- alpha_iSigma_alpha
 			- squared_noise * tr_iAiSigma - n + M);
 	return gradient;
 }
