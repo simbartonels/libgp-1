@@ -40,6 +40,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	k_star.resize(M);
 	dKuui.resize(M, M);
 	temp.resize(M);
+	LuuLu.resize(M, M);
 }
 
 FICGaussianProcess::~FICGaussianProcess() {
@@ -83,10 +84,15 @@ void FICGaussianProcess::computeCholesky() {
 	//noise is already added in k
 	dg = k - (V.transpose() * V).diagonal();
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
+	//TODO: first occurence of dg.cwiseInverse() should we save that result?
 	isqrtgamma.array() = 1 / dg.array().sqrt();
-	V = V * isqrtgamma.asDiagonal();
+
 	// TODO: V*V^T is symmetric and it should be possible to reduce the costs.
 	//Especially since V is an Mxn matrix!
+
+	//the line below would be faster here but not any longer in compute alpha
+	//	Lu = V * dg.cwiseInverse().asDiagonal() * V.transpose() + Eigen::MatrixXd::Identity(M, M);
+	V = V * isqrtgamma.asDiagonal();
 	Lu = V * V.transpose() + Eigen::MatrixXd::Identity(M, M);
 	Lu.topLeftCorner(M, M) = Lu.llt().matrixL();
 
@@ -95,13 +101,11 @@ void FICGaussianProcess::computeCholesky() {
 	 * the matrices are upper matrices. Here we have what they are supposed to be:
 	 * lower matrices.
 	 */
-	//TODO: avoid allocation
-	Eigen::MatrixXd temp = Luu * Lu;
-	//the line below does not work. why?
-//	L = L.triangularView<Eigen::Lower>().solve(Eigen::MatrixXd::Identity(M, M));
-	L = temp.triangularView<Eigen::Lower>().solve(
+	LuuLu = Luu * Lu;
+	//TODO: is a solveInPlace with L.setIdentity() faster?
+	L = LuuLu.triangularView<Eigen::Lower>().solve(
 			Eigen::MatrixXd::Identity(M, M));
-	temp.transpose().triangularView<Eigen::Upper>().solveInPlace(L);
+	LuuLu.transpose().triangularView<Eigen::Upper>().solveInPlace(L);
 	L = L - bf->getSigma();
 }
 
@@ -123,8 +127,12 @@ void FICGaussianProcess::update_alpha() {
 	// Map target values to VectorXd
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
+	//TODO: r and beta are used only in the computation of llh
+	//potential for speed up?
 	r.array() = y.array() * isqrtgamma.array();
 	beta = V * r;
+	//if we change definition of V: beta = V * y / gamma
+	//V is also used only here
 	/*
 	 * In the Matlab implementation Luu and Lu are upper matrices and that's
 	 * why we need to transpose here.
@@ -136,25 +144,25 @@ void FICGaussianProcess::update_alpha() {
 }
 
 double FICGaussianProcess::log_likelihood_impl() {
-	//TODO: move stuff that is parameter independent to computeAlpha or something
-	double t = 0;
-	double t3 = 0;
-	//TODO: is this method numerically stable? what are typical values?
-	for (size_t i = 0; i < M; i++) {
-		t += log(Lu(i, i));
-		t3 -= beta(i) * beta(i);
-	}
+//	double t = 0;
+//	double t3 = 0;
+//	//TODO: is this method numerically stable? what are typical values?
+//	for (size_t i = 0; i < M; i++) {
+//		t += log(Lu(i, i));
+//		t3 -= beta(i) * beta(i);
+//	}
 	size_t n = sampleset->size();
-	double t2 = 0;
-	for (size_t i = 0; i < n; i++) {
-		t2 += log(dg(i)) + r(i) * r(i);
-	}
-	//TODO: is this better? or should it be moved to the loop?
-	t2 = t2 + n * log2pi;
+//	double t2 = 0;
+//	for (size_t i = 0; i < n; i++) {
+//		t2 += log(dg(i)) + r(i) * r(i);
+//	}
+//	//TODO: is this better? or should it be moved to the loop?
+//	t2 = t2 + n * log2pi;
 
 	//TODO: the following call should be more efficient than the loops below. Does it compile?
-//	t = Lu.diagonal().log().sum()-beta.squaredNorm()+dg.log().sum()+r.squaredNorm()+n*log2pi;
-	return t + (t2 + t3) / 2;
+	return Lu.diagonal().array().log().sum() + (-beta.squaredNorm()
+			+ dg.array().log().sum() + r.squaredNorm() + n * log2pi) / 2;
+//	return t + (t2 + t3) / 2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
@@ -237,7 +245,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
 		gradient(i) = ddiagK_idg
-				//TODO: line below can be optimized (if either dKuui or dKui are 0)
+		//TODO: line below can be optimized (if either dKuui or dKui are 0)
 				+ (w.transpose() * (dKuui * w - 2 * (dKui * al))).sum()
 				- (v.array() * al.array().square()).sum()
 				- WdgSum.cwiseProduct(v).sum()

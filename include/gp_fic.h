@@ -87,6 +87,11 @@ namespace libgp {
 
 	Eigen::VectorXd temp;
 
+	/**
+	 * Temporary matrix to save the product of Luu and Lu.
+	 */
+	Eigen::MatrixXd LuuLu;
+
     /**
      * Convenience pointer that just points to the covariance function cf in the super class.
      */
