@@ -10,6 +10,8 @@
 namespace libgp{
 class MultiScale : public IBasisFunction{
 public:
+		void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag);
+
 		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
 		Eigen::MatrixXd getInverseOfSigma();
@@ -60,12 +62,23 @@ public:
 	    void initializeMatrices();
 
 	    /**
+	     * Given a parameter number and whether the parameter corresponds to a length scale or an
+	     * inducing point this function sets previous_m and previous_d accordingly. I.e. it sets
+	     * the number of the length scale / inducing point and the dimension as to access U and Uell.
+	     * @param p the number of the parameter
+	     * @param lengthScaleDerivative whether the parameter corresponds to an inducing length scale
+	     * 	or an inducing point
+	     */
+	    void inline setPreviousNumberAndDimensionForParameter(size_t p,
+	    		bool lengthScaleDerivative);
+
+	    /**
 	     * Signal variance factor.
 	     */
 	    double c;
 
 	    /**
-	     * Contains c*|2*pi*diag(ell)|.
+	     * Contains c/sqrt(|2*pi*diag(ell)|) + sn2.
 	     */
 	    double c_over_ell_det;
 
@@ -83,6 +96,16 @@ public:
 	     * Corresponding length scales.
 	     */
 	    Eigen::MatrixXd Uell;
+
+	    /**
+	     * Contains the products of the length scales.
+	     */
+	    Eigen::VectorXd factors;
+
+	    /**
+	     * Temporary vector that contains x-z.
+	     */
+	    Eigen::VectorXd delta;
 
 	    /**
 	     * Squared noise.
@@ -119,6 +142,26 @@ public:
 	     */
 		Eigen::VectorXd temp;
 		Eigen::VectorXd UpsiCol;
+
+		/**
+		 * Temporary vector of size input_dim. Used in initializeMatrices.
+		 */
+		Eigen::VectorXd temp_input_dim;
+
+		/**
+		 * Contains the parameter number of the last computed gradient.
+		 */
+		size_t previous_p;
+
+		/**
+		 * Contains the number of the basis vector or length scale of the last computed gradient.
+		 */
+		size_t previous_m;
+
+		/**
+		 * Contains the dimension of the basis vector or length scale of the last computed gradient.
+		 */
+		size_t previous_d;
 };
 }
 

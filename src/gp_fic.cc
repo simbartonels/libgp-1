@@ -71,10 +71,10 @@ void FICGaussianProcess::computeCholesky() {
 		V.resize(M, n);
 		Phi.resize(M, n);
 	}
-	for (size_t i = 0; i < n; i++) {
+	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
-		k(i) = bf->getWrappedKernelValue(sampleset->x(i), sampleset->x(i));
-	}
+	bf->putDiagWrapped(sampleset, k);
+
 	Luu = bf->getCholeskyOfInvertedSigma();
 	/*
 	 * TODO: could we just multiply Phi with sqrt(gamma) HERE instead of using
@@ -144,25 +144,9 @@ void FICGaussianProcess::update_alpha() {
 }
 
 double FICGaussianProcess::log_likelihood_impl() {
-//	double t = 0;
-//	double t3 = 0;
-//	//TODO: is this method numerically stable? what are typical values?
-//	for (size_t i = 0; i < M; i++) {
-//		t += log(Lu(i, i));
-//		t3 -= beta(i) * beta(i);
-//	}
 	size_t n = sampleset->size();
-//	double t2 = 0;
-//	for (size_t i = 0; i < n; i++) {
-//		t2 += log(dg(i)) + r(i) * r(i);
-//	}
-//	//TODO: is this better? or should it be moved to the loop?
-//	t2 = t2 + n * log2pi;
-
-	//TODO: the following call should be more efficient than the loops below. Does it compile?
 	return Lu.diagonal().array().log().sum() + (-beta.squaredNorm()
 			+ dg.array().log().sum() + r.squaredNorm() + n * log2pi) / 2;
-//	return t + (t2 + t3) / 2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {

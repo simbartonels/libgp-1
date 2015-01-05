@@ -46,6 +46,19 @@ public:
 	;
 
 	/**
+	 * Writes k(x, x) into diag where diag is of size sampleSet->size().
+	 * ATTENTION: For efficiency this method is to be overwritten!
+	 * @param sampleSet the sample set
+	 * @param diag the output vector
+	 */
+	virtual void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag){
+		size_t n = sampleSet->size();
+		assert(diag.size() == n);
+		for(size_t i = 0; i < n; i++)
+			diag(i) = getWrappedKernelValue(sampleSet->x(i), sampleSet->x(i));
+	};
+
+	/**
 	 * Computes the values of all basis functions for a given vector.
 	 * The underlying input distribution and the number of basis
 	 * functions should be determined during construction.
