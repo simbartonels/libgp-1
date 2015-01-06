@@ -65,6 +65,7 @@ public:
 	 * @param x input vector
 	 * @return the vector of basis function values
 	 */
+	//TODO: this is kinda bad since it requires n allocations multiple times!!!
 	virtual Eigen::VectorXd computeBasisFunctionVector(
 			const Eigen::VectorXd &x) = 0;
 
@@ -79,6 +80,16 @@ public:
 	virtual void gradBasisFunction(const Eigen::VectorXd &x,
 			const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) = 0;
 
+	//TODO: make abstract if successful
+	virtual void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd & Phi, size_t p, Eigen::MatrixXd & Grad){
+		size_t n = sampleSet->size();
+		Eigen::VectorXd temp(Phi.rows());
+		for(size_t i = 0; i<n;i++){
+			gradBasisFunction(sampleSet->x(i), Phi.col(i), p, temp);
+			Grad.col(i) = temp;
+		}
+	};
+
 	/**
 	 * Returns additional information about properties of the gradient of the basis function.
 	 * @param p the index of the parameter
@@ -90,7 +101,7 @@ public:
 	 * Returns the covariance matrix of the weight prior. I.e.
 	 * the matrix Sigma for which k(x,z)=phi(x) Sigma phi(z).
 	 */
-	virtual Eigen::MatrixXd getSigma() = 0;
+	virtual const Eigen::MatrixXd & getSigma() = 0;
 
 
 	/**
@@ -108,13 +119,13 @@ public:
 	 * Returns the inverse of Sigma.
 	 * TODO: implement and allow override
 	 */
-	virtual Eigen::MatrixXd getInverseOfSigma() = 0;
+	virtual const Eigen::MatrixXd & getInverseOfSigma() = 0;
 
 	/**
 	 * Returns the Cholesky of Sigma.
 	 * TODO: implement and allow override
 	 */
-	virtual Eigen::MatrixXd getCholeskyOfInvertedSigma() = 0;
+	virtual const Eigen::MatrixXd & getCholeskyOfInvertedSigma() = 0;
 
 	/**
 	 * Computes the derivative of Sigma^-1 with respect to parameter number param.

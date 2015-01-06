@@ -22,19 +22,16 @@ public:
 
 	Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-	Eigen::MatrixXd getInverseOfSigma();
+	const Eigen::MatrixXd & getInverseOfSigma();
 
-	Eigen::MatrixXd getCholeskyOfInvertedSigma();
+	const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
 
-	Eigen::MatrixXd getSigma();
+	const Eigen::MatrixXd & getSigma();
 
 	double getLogDeterminantOfSigma();
 
 	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
 			Eigen::VectorXd &grad);
-
-	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
-			double kernel_value, Eigen::VectorXd &grad);
 
 	bool gradDiagWrappedIsNull(size_t parameter);
 

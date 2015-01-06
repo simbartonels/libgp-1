@@ -44,7 +44,7 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 libgp::DegGaussianProcess::~DegGaussianProcess() {
 }
 
-double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd x_star) {
+double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 	temp = L.triangularView<Eigen::Lower>().solve(k_star);
 	return squared_noise * temp.squaredNorm();
 }
@@ -167,21 +167,17 @@ void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
 }
 
 void libgp::DegGaussianProcess::update_alpha() {
-//	std::cout << "deg_gp: computing alpha" << std::endl;
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
 	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
-//	std::cout << "deg_gp: done" << std::endl;
 
 	//this is stuff we need for the computation of the likelihood
 	//TODO: What if the user is not interested in doing that?
-//	std::cout << "deg_gp: preparing computation of log-likelihood" << std::endl;
 	yy = y.squaredNorm();
 	assert(yy == y.transpose() * y);
 	PhiyAlpha = Phiy.transpose() * alpha;
-//	std::cout << "deg_gp: done" << std::endl;
 }
 
 void libgp::DegGaussianProcess::computeCholesky() {
@@ -189,25 +185,20 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	squared_noise = exp(2 * log_noise);
 //TODO: this step can be simplified for Solin! (Phi is constant)
 	//the best solution is probably to create gp_solin that inherits from gp_deg
-//	std::cout << "deg_gp: computing Phi ... " << std::endl;
 	size_t n = sampleset->size();
-	if (n > Phi.rows())
+	if (n > Phi.cols())
 		Phi.resize(M, n);
-	for (size_t i = 0; i < n; i++)
+	for (size_t i = 0; i < n; i++){
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
-//	std::cout << "deg_gp: Phi" << std::endl << Phi << std::endl;
-//	std::cout << "deg_gp: diag(Sigma) " << std::endl << bf->getSigma().diagonal().transpose() << std::endl;
-//	std::cout << "deg_gp: done" << std::endl;
-//	std::cout << "deg_gp: computing Cholesky ... " << std::endl;
-	//L = (Phi * Phi.transpose() + squared_noise * bf->getInverseWeightPrior());
-	/*
-	 * TODO: Would it be more efficient not to create the whole matrix and instead compute it
-	 * in place?
-	 */
-	L =
-			(Phi * Phi.transpose() + squared_noise * bf->getInverseOfSigma()).selfadjointView<
-					Eigen::Lower>().llt().matrixL();
-//	std::cout << "deg_gp: done" << std::endl;
+	}
+	//TODO: find the fastest way to compute phi*phi'
+	//TODO: for which ever reason the lines below can not be put in one line
+	L = Phi * Phi.transpose();
+	L += squared_noise * bf->getInverseOfSigma();
+	L = L.selfadjointView<Eigen::Lower>().llt().matrixL();
+//	L =
+//			(Phi * Phi.transpose() + squared_noise * bf->getInverseOfSigma()).selfadjointView<
+//					Eigen::Lower>().llt().matrixL();
 }
 
 void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {

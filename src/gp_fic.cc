@@ -32,7 +32,6 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	//TODO: are all 3 matrices necessary?
 	L.resize(M, M);
 	Lu.resize(M, M);
-	Luu.resize(M, M);
 	W.resize(M, M);
 	BWdg.resize(M, M);
 	w.resize(M);
@@ -46,10 +45,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 FICGaussianProcess::~FICGaussianProcess() {
 }
 
-double FICGaussianProcess::var_impl(const Eigen::VectorXd x_star) {
-	//TODO: as far a I can tell this is the only usage of L
-	//=> it's probably sufficient to really use only the Cholesky
-	//and not necessary to compute the inverse
+double FICGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 	return bf->getWrappedKernelValue(x_star, x_star)
 			+ k_star.transpose() * L * k_star;
 }
@@ -75,14 +71,18 @@ void FICGaussianProcess::computeCholesky() {
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
 	bf->putDiagWrapped(sampleset, k);
 
-	Luu = bf->getCholeskyOfInvertedSigma();
 	/*
 	 * TODO: could we just multiply Phi with sqrt(gamma) HERE instead of using
 	 * the inverse later? What's more stable?
 	 */
-	V = Luu.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(Phi);
+	V = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>().solve(
+			Phi);
 	//noise is already added in k
+	//TODO: (V'*V).diagonal() can be computed a lot more efficient!!!
 	dg = k - (V.transpose() * V).diagonal();
+	//TODO: the line below should be faster but does not work
+//	dg.array() = k.array() - V.array().square().rowwise().sum();
+
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
 	//TODO: first occurence of dg.cwiseInverse() should we save that result?
 	isqrtgamma.array() = 1 / dg.array().sqrt();
@@ -101,7 +101,7 @@ void FICGaussianProcess::computeCholesky() {
 	 * the matrices are upper matrices. Here we have what they are supposed to be:
 	 * lower matrices.
 	 */
-	LuuLu = Luu * Lu;
+	LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
 	//TODO: is a solveInPlace with L.setIdentity() faster?
 	L = LuuLu.triangularView<Eigen::Lower>().solve(
 			Eigen::MatrixXd::Identity(M, M));
@@ -113,6 +113,8 @@ void FICGaussianProcess::updateCholesky(const double x[], double y) {
 	//Do nothing and just recompute everything.
 	//TODO: might be a slow down in applications!
 	cf->loghyper_changed = true;
+
+	//TODO: give signal to recompute y^Ty (also in gp_deg)
 }
 
 void FICGaussianProcess::update_k_star(const Eigen::VectorXd &x_star) {
@@ -140,13 +142,15 @@ void FICGaussianProcess::update_alpha() {
 	Lu.triangularView<Eigen::Lower>().solveInPlace(beta);
 	//alpha = Luu\(Lu\be)
 	alpha = Lu.transpose().triangularView<Eigen::Upper>().solve(beta);
-	Luu.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
+	bf->getCholeskyOfInvertedSigma().transpose().triangularView<Eigen::Upper>().solveInPlace(
+			alpha);
 }
 
 double FICGaussianProcess::log_likelihood_impl() {
 	size_t n = sampleset->size();
-	return Lu.diagonal().array().log().sum() + (-beta.squaredNorm()
-			+ dg.array().log().sum() + r.squaredNorm() + n * log2pi) / 2;
+	return Lu.diagonal().array().log().sum()
+			+ (-beta.squaredNorm() + dg.array().log().sum() + r.squaredNorm()
+					+ n * log2pi) / 2;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
@@ -197,21 +201,23 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 		bool gradBasisFunctionIsNull = bf->gradBasisFunctionIsNull(i);
 		if (!gradiSigmaIsNull) {
 			bf->gradiSigma(i, dKuui);
-		} else
-			//TODO: this case occurs!!!
+		} else {
+			//TODO: find a better way
 			dKuui.setZero();
+		}
 
 		if (!gradBasisFunctionIsNull) {
-			for (size_t j = 0; j < n; j++) {
-				bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, temp);
-				//TODO: is it possible to avoid the copy?
-				dKui.col(j) = temp;
-			}
+//			for (size_t j = 0; j < n; j++) {
+//				bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, temp);
+//				//TODO: is it possible to avoid the copy?
+//				dKui.col(j) = temp;
+//			}
+			bf->gradBasisFunction(sampleset, Phi, i, dKui);
 			//R = 2*dKui-dKuui*B;
 			R = 2 * dKui - dKuui * B;
 		} else {
 			R = -dKuui * B;
-			//TODO: NO!
+			//TODO: find a better way
 			dKui.setZero();
 		}
 

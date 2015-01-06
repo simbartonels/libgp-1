@@ -71,15 +71,15 @@ Eigen::VectorXd FastFood::multiplyW_withStandardBasisVector(size_t dim) {
 	return result;
 }
 
-Eigen::MatrixXd libgp::FastFood::getInverseOfSigma() {
+const Eigen::MatrixXd & libgp::FastFood::getInverseOfSigma() {
 	return iSigma;
 }
 
-Eigen::MatrixXd libgp::FastFood::getCholeskyOfInvertedSigma() {
+const Eigen::MatrixXd & libgp::FastFood::getCholeskyOfInvertedSigma() {
 	return choliSigma;
 }
 
-Eigen::MatrixXd libgp::FastFood::getSigma() {
+const Eigen::MatrixXd & libgp::FastFood::getSigma() {
 	return Sigma;
 }
 
@@ -103,6 +103,7 @@ bool FastFood::gradDiagWrappedIsNull(size_t parameter){
 
 void libgp::FastFood::gradBasisFunction(const Eigen::VectorXd& x,
 		const Eigen::VectorXd& phi, size_t p, Eigen::VectorXd& grad) {
+	//TODO: a vectorized version is faster
 	assert(grad.size() == phi.size());
 	if (p < input_dim) {
 		Eigen::VectorXd z = multiplyW_withStandardBasisVector(p);

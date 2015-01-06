@@ -6,10 +6,13 @@
 #include "gp.h"
 #include "gp_deg.h"
 #include "gp_utils.h"
-
+#ifdef BUILD_BENCHMARK
+#include "gp_fic_naive.h"
+#endif
 #include <cmath>
 #include <iostream>
 #include <gtest/gtest.h>
+
 
 void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	  size_t param_dim = gp->covf().get_param_dim();
@@ -60,6 +63,15 @@ TEST(LogLikelihoodTest, CheckGradientsFICGP)
   libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
   genericGradientTest(gp, input_dim);
 }
+
+#ifdef BUILD_BENCHMARK
+TEST(LogLikelihoodTest, CheckGradientsFICGPnaive)
+{
+  int input_dim = 3;
+  libgp::FICnaiveGaussianProcess * gp = new libgp::FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
+  genericGradientTest(gp, input_dim);
+}
+#endif
 
 TEST(LogLikelihoodTest, CheckGradientsDegGP)
 {

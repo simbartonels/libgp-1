@@ -37,7 +37,7 @@ namespace libgp {
 	  virtual ~FICGaussianProcess();
 
   protected:
-    double var_impl(const Eigen::VectorXd x_star);
+    double var_impl(const Eigen::VectorXd &x_star);
 
     double log_likelihood_impl();
 
@@ -68,7 +68,6 @@ namespace libgp {
 	Eigen::VectorXd al;
     Eigen::VectorXd isqrtgamma;
     Eigen::MatrixXd V;
-    Eigen::MatrixXd Luu;
     Eigen::MatrixXd B;
     Eigen::MatrixXd W;
     Eigen::VectorXd w;

@@ -19,11 +19,11 @@ public:
 
 		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-		Eigen::MatrixXd getInverseOfSigma();
+		const Eigen::MatrixXd & getInverseOfSigma();
 
-		Eigen::MatrixXd getCholeskyOfInvertedSigma();
+		const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
 
-		Eigen::MatrixXd getSigma();
+		const Eigen::MatrixXd & getSigma();
 
 		double getLogDeterminantOfSigma();
 

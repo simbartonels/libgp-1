@@ -14,11 +14,11 @@ public:
 
 		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-		Eigen::MatrixXd getInverseOfSigma();
+		const Eigen::MatrixXd & getInverseOfSigma();
 
-		Eigen::MatrixXd getCholeskyOfInvertedSigma();
+		const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
 
-		Eigen::MatrixXd getSigma();
+		const Eigen::MatrixXd & getSigma();
 
 		bool sigmaIsDiagonal(){
 			return false;
@@ -40,6 +40,8 @@ public:
 	    bool gradDiagWrappedIsNull(size_t parameter);
 
 		void gradBasisFunction(const Eigen::VectorXd &x, const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad);
+
+		void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::MatrixXd &Grad);
 
 		bool gradBasisFunctionIsNull(size_t p);
 

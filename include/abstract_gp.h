@@ -77,17 +77,17 @@ namespace libgp {
     size_t get_input_dim();
 
     /**
-     * Returns the matrix L.
+     * Returns a copy of the matrix L.
      */
     Eigen::MatrixXd getL();
 
     /**
-     * Returns the vector alpha.
+     * Returns a copy of the vector alpha.
      */
     Eigen::VectorXd getAlpha();
 
   protected:
-    virtual double var_impl(const Eigen::VectorXd x_star) = 0;
+    virtual double var_impl(const Eigen::VectorXd &x_star) = 0;
 
     virtual double log_likelihood_impl() = 0;
 

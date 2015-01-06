@@ -67,6 +67,48 @@ Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 	return uvx;
 }
 
+void MultiScale::gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::MatrixXd &Grad){
+	//TODO: lots of potential for optimization
+	size_t n = sampleSet->size();
+	for(size_t i = 0; i<n;i++){
+		if (p < input_dim) {
+			//derivative with respect to the length scales
+			/*
+			 * Since we add half the length scales to the inducing length scales the derivative with
+			 * respect to the length scales is not trivially zero.
+			 */
+			size_t d = p;
+			Grad.col(i).array() = (U.col(d).array() - (sampleSet->x(i))(d)) / Uell.col(d).array();
+			Grad.col(i).array() = Grad.col(i).array().square()
+					- Uell.col(d).array().cwiseInverse();
+			Grad.col(i) = ell(d) * Grad.col(i).cwiseProduct(Phi.col(i)) / 4;
+		} else if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
+			bool lengthScaleDerivative = p < M * input_dim + input_dim;
+			//use precomputed values where possible
+			if (p != previous_p) {
+				Grad.setZero();
+				setPreviousNumberAndDimensionForParameter(p, lengthScaleDerivative);
+			}
+
+			size_t m = previous_m;
+			size_t d = previous_d;
+			if (lengthScaleDerivative) {
+				//length scale derivatives
+				double t = (U(m, d) - (sampleSet->x(i))(d)) / Uell(m, d);
+				Grad.col(i)(m) = (t * t - 1 / Uell(m, d)) * Phi.col(i)(m) / 2;
+				Grad.col(i)(m) *= (Uell(m, d) - ell(d) / 2);
+			} else {
+				//inducing point derivatives
+				Grad.col(i)(m) = (-U(m, d) + (sampleSet->x(i))(d)) / Uell(m, d) * Phi.col(i)(m);
+			}
+		} else {
+			//amplitude and noise derivative
+			Grad.setZero();
+		}
+	}
+}
+
+
 void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 		const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) {
 	assert(grad.size() == phi.size());
@@ -119,7 +161,7 @@ bool MultiScale::gradBasisFunctionIsNull(size_t p) {
 	return p >= 2 * M * input_dim + input_dim;
 }
 
-Eigen::MatrixXd MultiScale::getInverseOfSigma() {
+const Eigen::MatrixXd & MultiScale::getInverseOfSigma() {
 	return Upsi;
 }
 
@@ -172,11 +214,11 @@ bool MultiScale::gradiSigmaIsNull(size_t p) {
 	return p < input_dim;
 }
 
-Eigen::MatrixXd MultiScale::getCholeskyOfInvertedSigma() {
+const Eigen::MatrixXd & MultiScale::getCholeskyOfInvertedSigma() {
 	return LUpsi;
 }
 
-Eigen::MatrixXd MultiScale::getSigma() {
+const Eigen::MatrixXd & MultiScale::getSigma() {
 	return iUpsi;
 }
 
@@ -271,24 +313,20 @@ void MultiScale::initializeMatrices() {
 		//don't transpose temp in place - it breaks things later
 		for (size_t j = 0; j < i; j++) {
 			Upsi(i, j) = g(U.row(i), U.row(j), temp_input_dim.transpose() + Uell.row(j)) / c;
+			Upsi(j, i) = Upsi(i, j);
 		}
-
 		Upsi(i, i) = g(U.row(i), U.row(i), temp_input_dim.transpose() + Uell.row(i)) / c + snu2;
 	}
 
 	//this division has been moved into the for-loop above
 	//LUpsi = LUpsi / c;
-	Upsi = Upsi.selfadjointView<Eigen::Lower>();
 
-	//TODO: refactor: Is it possible to remove the topLeftCorner-calls?
-	LUpsi.topLeftCorner(M, M) = Upsi.topLeftCorner(M, M).selfadjointView<
-			Eigen::Lower>().llt().matrixL();
-	//TODO: is this numerically stable? Probably it's better to make a sum over the logs!
-	halfLogDetiUpsi = -log(LUpsi.diagonal().prod());
+	LUpsi = Upsi.selfadjointView<Eigen::Lower>().llt().matrixL();
+//	halfLogDetiUpsi = -log(LUpsi.diagonal().prod());
+	halfLogDetiUpsi = -LUpsi.diagonal().array().log().sum();
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
 			LUpsi.Identity(M, M));
-	//TODO: it should be sufficient to transpose here
-	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().adjoint().solveInPlace(
+	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().transpose().solveInPlace(
 			iUpsi);
 }
 

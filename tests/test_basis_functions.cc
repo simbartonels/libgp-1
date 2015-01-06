@@ -69,6 +69,7 @@ protected:
 
 	double gradient_diag(size_t p){
 		covf->gradDiagWrapped(sampleset, k, p, grad);
+		//grad is a vector of size n=1
 		return grad(0);
 	}
 

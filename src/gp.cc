@@ -19,7 +19,7 @@ namespace libgp {
   //TODO: find a way to get the value from the super class
   const double initial_L_size = 1000;
 
-  double GaussianProcess::var_impl(const Eigen::VectorXd x_star){
+  double GaussianProcess::var_impl(const Eigen::VectorXd &x_star){
 	  int n = sampleset->size();
 	  Eigen::VectorXd v = L.topLeftCorner(n, n).triangularView<Eigen::Lower>().solve(k_star);
 	  return cf->get(x_star, x_star) - v.dot(v);

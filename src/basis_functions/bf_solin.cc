@@ -47,15 +47,15 @@ inline void Solin::phi1D(const double & xd, Eigen::VectorXd & phi){
 	phi.head(M_intern).array() = (m.array() * (xd + L)).sin() / sqrt(L);
 }
 
-Eigen::MatrixXd libgp::Solin::getInverseOfSigma() {
+const Eigen::MatrixXd & libgp::Solin::getInverseOfSigma() {
 	return iSigma;
 }
 
-Eigen::MatrixXd libgp::Solin::getCholeskyOfInvertedSigma() {
+const Eigen::MatrixXd & libgp::Solin::getCholeskyOfInvertedSigma() {
 	return choliSigma;
 }
 
-Eigen::MatrixXd libgp::Solin::getSigma() {
+const Eigen::MatrixXd & libgp::Solin::getSigma() {
 	return Sigma;
 }
 
@@ -65,10 +65,8 @@ double libgp::Solin::getLogDeterminantOfSigma() {
 
 void libgp::Solin::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		Eigen::VectorXd& grad) {
-}
-
-void libgp::Solin::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
-		double kernel_value, Eigen::VectorXd& grad) {
+	std::cout << "Warning: grad method is not implemented for bf_solin" << std::endl;
+	grad.fill(1);
 }
 
 bool Solin::gradDiagWrappedIsNull(size_t parameter){

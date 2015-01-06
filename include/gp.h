@@ -38,7 +38,7 @@ namespace libgp {
     GaussianProcess (const char * filename) : AbstractGaussianProcess(filename){};
     
   protected:
-    double var_impl(const Eigen::VectorXd x_star);
+    double var_impl(const Eigen::VectorXd &x_star);
 
     double log_likelihood_impl();
 
