@@ -186,6 +186,7 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 		temp.array() = Uell.col(d).array() + (Uell(m, d) - ell(d));
 
 		//TODO: unintended copy
+		//could be avoided by introducing another matrix Upsi-snu2
 		UpsiCol = Upsi.col(m);
 		//for the gradients we have to remove the inducing input noise (from the diagonal)
 		UpsiCol(m) -= snu2;
@@ -334,7 +335,7 @@ std::string MultiScale::to_string() {
 	return "MultiScale";
 }
 
-double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
+inline double MultiScale::g(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		const Eigen::VectorXd& sigma) {
 	//TODO: can we make this numerically more stable?
 	/*

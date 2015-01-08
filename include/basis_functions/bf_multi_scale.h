@@ -59,7 +59,7 @@ public:
 
 	    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
 	private:
-	    double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2, const Eigen::VectorXd & sigma);
+	    inline double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2, const Eigen::VectorXd & sigma);
 
 	    void initializeMatrices();
 
