@@ -78,17 +78,13 @@ void FICGaussianProcess::computeCholesky() {
 	V = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>().solve(
 			Phi);
 	//noise is already added in k
-	//TODO: (V'*V).diagonal() can be computed a lot more efficient!!!
 	dg = k - (V.transpose() * V).diagonal();
-	//TODO: the line below should be faster but does not work
-//	dg.array() = k.array() - V.array().square().rowwise().sum();
+	//the line below is not faster
+//	dg.array() = k.array() - V.array().square().colwise().sum().transpose();
 
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
-	//TODO: first occurence of dg.cwiseInverse() should we save that result?
+	//TODO: first occurence of dg.cwiseInverse() should we save that result? O(n) Operation!
 	isqrtgamma.array() = 1 / dg.array().sqrt();
-
-	// TODO: V*V^T is symmetric and it should be possible to reduce the costs.
-	//Especially since V is an Mxn matrix!
 
 	//the line below would be faster here but not any longer in compute alpha
 	//	Lu = V * dg.cwiseInverse().asDiagonal() * V.transpose() + Eigen::MatrixXd::Identity(M, M);
@@ -102,7 +98,7 @@ void FICGaussianProcess::computeCholesky() {
 	 * lower matrices.
 	 */
 	LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
-	//TODO: is a solveInPlace with L.setIdentity() faster?
+	//a solveInPlace with L.setIdentity() is not faster
 	L = LuuLu.triangularView<Eigen::Lower>().solve(
 			Eigen::MatrixXd::Identity(M, M));
 	LuuLu.transpose().triangularView<Eigen::Upper>().solveInPlace(L);

@@ -1,22 +1,11 @@
-//#include <omp.h>
-#include <sys/time.h>
 #include <cmath>
 
 #include "gp_fic.h"
-#include "gp_fic_naive.h"
+#include "naive/gp_fic_naive.h"
 #include "gp_utils.h"
+#include "util/time_call.h"
 
 using namespace libgp;
-
-typedef unsigned long long timestamp_t;
-
-    static timestamp_t
-    mytime ()
-    {
-      struct timeval now;
-      gettimeofday (&now, NULL);
-      return  now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
-    }
 
     static Eigen::VectorXd static_test;
 
@@ -88,14 +77,6 @@ typedef unsigned long long timestamp_t;
 
     }
 
-
-
-    void testSpeedOfSymmetricMatrixMultiplication(){
-    	//TODO: implement
-    	//1) A = Phi*PhiT
-    	//2) for loop
-    }
-
     Eigen::VectorXd returnVector(){
     	return static_test;
     }
@@ -150,69 +131,93 @@ typedef unsigned long long timestamp_t;
 
     }
 
-    void testSpeed(){
-    	size_t input_dim = 3;
-    	size_t M = 200;
-    	size_t n = 1000;
+    static FICGaussianProcess * gp;
 
-    	FICGaussianProcess gp(input_dim, "CovSum ( CovSEard, CovNoise)", M,
-    			"SparseMultiScaleGP");
-    	// initialize hyper parameter vector
-    	Eigen::VectorXd params(gp.covf().get_param_dim());
-    	params.setRandom();
-    	// set parameters of covariance function
-    	gp.covf().set_loghyper(params);
+    static FICnaiveGaussianProcess * gpnaive;
 
-    	FICnaiveGaussianProcess gpnaive(input_dim, "CovSum ( CovSEard, CovNoise)",
-    			M, "SparseMultiScaleGP");
-    	gpnaive.covf().set_loghyper(params);
+    void f1(){
+    	gp->log_likelihood();
+    }
 
-    	// add training patterns
-    	for (int i = 0; i < n; ++i) {
-    		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
-    		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
-    		gp.add_pattern(x, y);
-    		gpnaive.add_pattern(x, y);
-    	}
+    void f2(){
+    	gpnaive->log_likelihood();
+    }
 
-    	double fv = gp.log_likelihood();
-    	double nv = gpnaive.log_likelihood();
+    void testSpeedOfLogLikelihood(){
+    	double fv = gp->log_likelihood();
+    	double nv = gpnaive->log_likelihood();
     //	std::cout << "fv: " << fv << std::endl;
     //	std::cout << "nv: " << nv << std::endl;
     	assert(std::abs(fv-nv)/nv <1e-5);
 
-    	timestamp_t fast = 0;
-    	timestamp_t naive = 0;
-    	timestamp_t t = 0;
+    	std::cout << "speed of llh computation:" << std::endl;
+    	compare_time(f1, f2, 5);
+    }
 
-    	t = mytime();
-    	gp.log_likelihood();
-    	t = mytime() - t;
-    	fast = t;
+    static Eigen::MatrixXd V;
+    static Eigen::VectorXd dg;
 
-    	t = mytime();
-    	gpnaive.log_likelihood();
-    	t = mytime() - t;
-    	naive = t;
-    	for (int i = 0; i < 10; i++) {
-    		t = mytime();
-    		gp.log_likelihood();
-    		t = mytime() - t;
-    		if (t < fast)
-    			fast = t;
+    void f1CholComp(){
+//    	for(size_t i = 0; i < 100; i++)
+    	dg = V.array().square().colwise().sum().transpose();
+    }
 
-    		t = mytime();
-    		gpnaive.log_likelihood();
-    		t = mytime() - t;
-    		if (t < naive)
-    			naive = t;
-    	}
-    	std::cout << "fast: " << fast << std::endl;
-    	std::cout << "naive: " << naive << std::endl;
+    void f2CholComp(){
+//    	for(size_t i = 0; i < 100; i++)
+    	dg = (V.transpose() * V).diagonal();
+    }
 
+
+    void testSpeedOfCholeskyComputation1(){
+    	compare_time(f1CholComp, f2CholComp, 100);
+    }
+
+    void f1CholComp2(){
+    	gp->covf().loghyper_changed = true;
+    	gp->getL();
+    }
+
+    void f2CholComp2(){
+    	gpnaive->covf().loghyper_changed = true;
+    	gpnaive->getL();
+    }
+
+    void testSpeedOfCholeskyComputation2(){
+    	compare_time(f1CholComp2, f2CholComp2, 10);
     }
 
 int main(int argc, char const *argv[]) {
-	testPassingReferences();
+	size_t input_dim = 3;
+	size_t M = 200;
+	size_t n = 2000;
+	V.resize(M, n);
+	V.setRandom();
+
+	gp = new FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
+			"SparseMultiScaleGP");
+
+	// initialize hyper parameter vector
+	Eigen::VectorXd params(gp->covf().get_param_dim());
+	params.setRandom();
+	// set parameters of covariance function
+	gp->covf().set_loghyper(params);
+
+	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
+			M, "SparseMultiScaleGP");
+	gpnaive->covf().set_loghyper(params);
+
+	// add training patterns
+	for (int i = 0; i < n; ++i) {
+		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
+		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
+		gp->add_pattern(x, y);
+		gpnaive->add_pattern(x, y);
+	}
+
+//	testSpeedOfLogLikelihood();
+	testSpeedOfCholeskyComputation2();
+
+	delete gp;
+	delete gpnaive;
 	return 0;
 }

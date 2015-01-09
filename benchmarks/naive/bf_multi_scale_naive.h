@@ -2,13 +2,13 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
-#ifndef INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_H_
-#define INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_H_
+#ifndef INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_NAIVE_H_
+#define INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_NAIVE_H_
 
-#include "IBasisFunction.h"
+#include "basis_functions/IBasisFunction.h"
 
 namespace libgp{
-class MultiScale : public IBasisFunction{
+class MultiScaleNaive : public IBasisFunction{
 public:
 		void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag);
 
@@ -109,8 +109,6 @@ public:
 	     */
 	    Eigen::VectorXd delta;
 
-	    Eigen::MatrixXd Delta;
-
 	    /**
 	     * Squared noise.
 	     */
@@ -170,4 +168,4 @@ public:
 }
 
 
-#endif /* INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_H_ */
+#endif /* INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_NAIVE_H_ */

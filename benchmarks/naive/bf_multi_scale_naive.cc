@@ -2,7 +2,7 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
-#include "basis_functions/bf_multi_scale.h"
+#include "bf_multi_scale_naive.h"
 
 #include "cov_factory.h"
 
@@ -14,7 +14,7 @@
 
 namespace libgp {
 
-size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M) {
+size_t MultiScaleNaive::get_param_dim_without_noise(size_t input_dim, size_t M) {
 	//1 for length scale
 	//input_dim length scales
 	//M*input_dim inducing inputs
@@ -23,7 +23,7 @@ size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M) {
 	return 2 * M * input_dim + input_dim + 1;
 }
 
-bool MultiScale::real_init() {
+bool MultiScaleNaive::real_init() {
 	//TODO: signal that Multiscale ignores the covariance function!
 	CovFactory f;
 	CovarianceFunction * expectedCov;
@@ -46,41 +46,44 @@ bool MultiScale::real_init() {
 	UpsiCol.resize(M);
 	factors.resize(M);
 	delta.resize(input_dim);
-	Delta.resize(M, input_dim);
 	//this assures that previous_p can not correspond to a parameter number
 	previous_p = get_param_dim() + 2;
 	return true;
 }
 
-void MultiScale::putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag) {
+void MultiScaleNaive::putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag) {
 	diag.fill(c_over_ell_det + sn2);
 }
 
-Eigen::VectorXd MultiScale::computeBasisFunctionVector(
+Eigen::VectorXd MultiScaleNaive::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
-	Delta = x.transpose().replicate(M, 1) - U;
-	Delta.array() = Delta.array().square() / Uell.array();
-	Eigen::VectorXd uvx = Delta.rowwise().sum();
-	uvx.array() = (-0.5 * uvx.array()).exp() / factors.array();
+	//TODO: maybe it's possible to vectorize this
+	Eigen::VectorXd uvx(M);
+	for (size_t i = 0; i < M; i++) {
+		delta = x - U.row(i).transpose();
+		double z = delta.transpose().cwiseQuotient(Uell.row(i)) * delta;
+		z = exp(-0.5 * z);
+		uvx(i) = z / factors(i);
+	}
 	return uvx;
 }
 
-void MultiScale::gradBasisFunction(SampleSet * sampleSet,
+void MultiScaleNaive::gradBasisFunction(SampleSet * sampleSet,
 		const Eigen::MatrixXd &Phi, size_t p, Eigen::MatrixXd &Grad) {
 	size_t n = sampleSet->size();
 	if (p < input_dim) {
-		size_t d = p;
 		for (size_t i = 0; i < n; i++) {
-			//TODO: computing this gradient is quite slow!
 			//derivative with respect to the length scales
 			/*
 			 * Since we add half the length scales to the inducing length scales the derivative with
 			 * respect to the length scales is not trivially zero.
 			 */
+			size_t d = p;
 			Grad.col(i).array() = (U.col(d).array() - (sampleSet->x(i))(d))
 					/ Uell.col(d).array();
-			Grad.col(i).array() = ell(d) * (Grad.col(i).array().square()
-					- Uell.col(d).array().cwiseInverse()) * Phi.col(i).array() / 4;
+			Grad.col(i).array() = Grad.col(i).array().square()
+					- Uell.col(d).array().cwiseInverse();
+			Grad.col(i) = ell(d) * Grad.col(i).cwiseProduct(Phi.col(i)) / 4;
 		}
 	} else if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
 		bool lengthScaleDerivative = p < M * input_dim + input_dim;
@@ -112,7 +115,7 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 	}
 }
 
-void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
+void MultiScaleNaive::gradBasisFunction(const Eigen::VectorXd &x,
 		const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) {
 	assert(grad.size() == phi.size());
 	if (p < input_dim) {
@@ -151,7 +154,7 @@ void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
 	}
 }
 
-void inline MultiScale::setPreviousNumberAndDimensionForParameter(size_t p,
+void inline MultiScaleNaive::setPreviousNumberAndDimensionForParameter(size_t p,
 		bool lengthScaleDerivative) {
 	previous_m = (p - input_dim) % M;
 	previous_d = (p - input_dim - previous_m) / M;
@@ -160,15 +163,15 @@ void inline MultiScale::setPreviousNumberAndDimensionForParameter(size_t p,
 	previous_p = p;
 }
 
-bool MultiScale::gradBasisFunctionIsNull(size_t p) {
+bool MultiScaleNaive::gradBasisFunctionIsNull(size_t p) {
 	return p >= 2 * M * input_dim + input_dim;
 }
 
-const Eigen::MatrixXd & MultiScale::getInverseOfSigma() {
+const Eigen::MatrixXd & MultiScaleNaive::getInverseOfSigma() {
 	return Upsi;
 }
 
-void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
+void MultiScaleNaive::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 	dSigmadp.setZero();
 	if (p < input_dim) {
 		// length scale derivatives
@@ -214,23 +217,23 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 	}
 }
 
-bool MultiScale::gradiSigmaIsNull(size_t p) {
+bool MultiScaleNaive::gradiSigmaIsNull(size_t p) {
 	return p < input_dim;
 }
 
-const Eigen::MatrixXd & MultiScale::getCholeskyOfInvertedSigma() {
+const Eigen::MatrixXd & MultiScaleNaive::getCholeskyOfInvertedSigma() {
 	return LUpsi;
 }
 
-const Eigen::MatrixXd & MultiScale::getSigma() {
+const Eigen::MatrixXd & MultiScaleNaive::getSigma() {
 	return iUpsi;
 }
 
-double MultiScale::getLogDeterminantOfSigma() {
+double MultiScaleNaive::getLogDeterminantOfSigma() {
 	return halfLogDetiUpsi;
 }
 
-double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
+double MultiScaleNaive::getWrappedKernelValue(const Eigen::VectorXd &x1,
 		const Eigen::VectorXd &x2) {
 	//adding noise has to be incorporated here
 	double noise = 0;
@@ -239,12 +242,12 @@ double MultiScale::getWrappedKernelValue(const Eigen::VectorXd &x1,
 	return c * g(x1, x2, ell) + noise;
 }
 
-void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
+void MultiScaleNaive::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		Eigen::VectorXd& g) {
 	grad(x1, x2, getWrappedKernelValue(x1, x2), g);
 }
 
-void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
+void MultiScaleNaive::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		double kernel_value, Eigen::VectorXd& grad) {
 	grad.segment(input_dim, 2 * M * input_dim).setZero();
 	grad(2 * M * input_dim + input_dim + 1) = 0.;
@@ -259,7 +262,7 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 			/ ell.array() - 1) * kernel_value / 2;
 }
 
-void MultiScale::gradDiagWrapped(SampleSet * sampleset,
+void MultiScaleNaive::gradDiagWrapped(SampleSet * sampleset,
 		const Eigen::VectorXd & diagK, size_t parameter,
 		Eigen::VectorXd & gradient) {
 	if (parameter < input_dim)
@@ -272,11 +275,11 @@ void MultiScale::gradDiagWrapped(SampleSet * sampleset,
 		gradient.setZero();
 }
 
-bool MultiScale::gradDiagWrappedIsNull(size_t parameter) {
+bool MultiScaleNaive::gradDiagWrappedIsNull(size_t parameter) {
 	return parameter >= input_dim && parameter < 2 * M * input_dim + input_dim;
 }
 
-void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
+void MultiScaleNaive::log_hyper_updated(const Eigen::VectorXd& p) {
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(loghyper(i));
 	size_t idx = input_dim;
@@ -307,7 +310,7 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	initializeMatrices();
 }
 
-void MultiScale::initializeMatrices() {
+void MultiScaleNaive::initializeMatrices() {
 	/**
 	 * Initializes the matrices LUpsi and iUpsi.
 	 */
@@ -336,11 +339,11 @@ void MultiScale::initializeMatrices() {
 			iUpsi);
 }
 
-std::string MultiScale::to_string() {
+std::string MultiScaleNaive::to_string() {
 	return "MultiScale";
 }
 
-inline double MultiScale::g(const Eigen::VectorXd& x1,
+inline double MultiScaleNaive::g(const Eigen::VectorXd& x1,
 		const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
 	//TODO: can we make this numerically more stable?
 	/*

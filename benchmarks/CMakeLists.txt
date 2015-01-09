@@ -20,6 +20,8 @@
 
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/util)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/naive)
+
 
 # ----- Add sources -----
 INCLUDE("Sources.cmake")
@@ -33,3 +35,7 @@ TARGET_LINK_LIBRARIES(gpbenchm_fic gp)
 
 ADD_EXECUTABLE(gpbenchm_matrix_mult symmetric_matrix_multiplication.cc  ${LIBGP_BENCHMARKS})
 TARGET_LINK_LIBRARIES(gpbenchm_matrix_mult gp)
+
+ADD_EXECUTABLE(gpbenchm_multiscale bf_multi_scale.cc  ${LIBGP_BENCHMARKS})
+TARGET_LINK_LIBRARIES(gpbenchm_multiscale gp)
+
