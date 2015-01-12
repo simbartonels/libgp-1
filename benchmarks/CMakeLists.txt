@@ -31,11 +31,14 @@ INCLUDE("Sources.cmake")
 #TARGET_LINK_LIBRARIES(gpbenchmark gp)
 
 ADD_EXECUTABLE(gpbenchm_fic gp_fic.cc  ${LIBGP_BENCHMARKS})
+set_target_properties(gpbenchm_fic PROPERTIES COMPILE_FLAGS "-O2")
 TARGET_LINK_LIBRARIES(gpbenchm_fic gp)
 
 ADD_EXECUTABLE(gpbenchm_matrix_mult symmetric_matrix_multiplication.cc  ${LIBGP_BENCHMARKS})
+set_target_properties(gpbenchm_matrix_mult PROPERTIES COMPILE_FLAGS "-O2")
 TARGET_LINK_LIBRARIES(gpbenchm_matrix_mult gp)
 
 ADD_EXECUTABLE(gpbenchm_multiscale bf_multi_scale.cc  ${LIBGP_BENCHMARKS})
+set_target_properties(gpbenchm_multiscale PROPERTIES COMPILE_FLAGS "-O2")
 TARGET_LINK_LIBRARIES(gpbenchm_multiscale gp)
 
