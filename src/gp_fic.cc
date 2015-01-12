@@ -176,6 +176,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 
 	//    W = Ku./repmat(sqrt(dg)',nu,1);
 	//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku;
+	//TODO: in the computation of V this step could be made faster
 	W =
 			(Phi * dg.cwiseInverse().asDiagonal() * Phi.transpose()
 					+ bf->getInverseOfSigma()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(
