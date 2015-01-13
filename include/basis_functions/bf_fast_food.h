@@ -96,17 +96,17 @@ public:
 	    /**
 	     * The weight prior.
 	     */
-	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> Sigma;
+	    Eigen::MatrixXd Sigma;
 
 	    /**
 	     * The inverse weight prior.
 	     */
-	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> iSigma;
+	    Eigen::MatrixXd iSigma;
 
 	    /**
 	     * The Cholesky of the weight prior.
 	     */
-	    Eigen::DiagonalMatrix<double, Eigen::Dynamic> choliSigma;
+	    Eigen::MatrixXd choliSigma;
 
 	    /**
 	     * Log of half of the determinant of Sima.

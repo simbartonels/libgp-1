@@ -191,11 +191,14 @@ bool libgp::Solin::real_init() {
 	for (size_t i = 1; i <= M_intern; i++)
 		m(i - 1) = M_PI * i / L / 2;
 	assert(MToTheD <= M);
-	Sigma.resize(M);
+	Sigma.resize(M, M);
+	Sigma.setZero();
 	Sigma.diagonal().tail(M - MToTheD).fill(1);
-	iSigma.resize(M);
+	iSigma.resize(M, M);
+	iSigma.setZero();
 	iSigma.diagonal().tail(M - MToTheD).fill(1);
-	choliSigma.resize(M);
+	choliSigma.resize(M, M);
+	choliSigma.setZero();
 	choliSigma.diagonal().tail(M - MToTheD).fill(1);
 	return true;
 }

@@ -10,7 +10,7 @@
 namespace libgp {
 /**
  * Implements "Hilbert Space Methods for Reduced Rank Gaussian Process Regression" by Solin
- * and Särkkä from 2014. This implementation is taylored to the Squared Exponential but therefore
+ * and Sï¿½rkkï¿½ from 2014. This implementation is taylored to the Squared Exponential but therefore
  * a bit more clever as it allows automatic relevance determination without sacrificing O(M^3)
  * hyper-parameter optimization. For a derivation see my thesis.
  *
@@ -115,11 +115,11 @@ private:
 	/**
 	 * This will be the matrix Gamma from the paper.
 	 */
-	Eigen::DiagonalMatrix<double, Eigen::Dynamic> Sigma;
+	Eigen::MatrixXd Sigma;
 
-	Eigen::DiagonalMatrix<double, Eigen::Dynamic> iSigma;
+	Eigen::MatrixXd iSigma;
 
-	Eigen::DiagonalMatrix<double, Eigen::Dynamic> choliSigma;
+	Eigen::MatrixXd choliSigma;
 
 	double logDetSigma;
 

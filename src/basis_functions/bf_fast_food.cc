@@ -192,9 +192,12 @@ bool libgp::FastFood::real_init() {
 //	std::cout << "bf_fast_food: number of V matrices " << M_intern << std::endl;
 	assert(2 * M_intern * input_dim <= M);
 	ell.resize(input_dim);
-	Sigma.resize(M);
-	iSigma.resize(M);
-	choliSigma.resize(M);
+	Sigma.resize(M, M);
+	Sigma.setZero();
+	iSigma.resize(M, M);
+	iSigma.setZero();
+	choliSigma.resize(M, M);
+	choliSigma.setZero();
 	wht_tree = wht_get_tree(next_pow);
 	assert(wht_tree != NULL);
 

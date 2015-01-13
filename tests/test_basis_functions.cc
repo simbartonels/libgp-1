@@ -218,17 +218,19 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 TEST_P(BFGradientTest, CholeskyCorrect) {
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
-	iSigma.array() = (iSigma - L*L.transpose()).array().abs();
-	ASSERT_NEAR(iSigma.maxCoeff(), 0, 1e-15)
+	L.array() = (iSigma - L*L.transpose()).array().abs();
+	L.array()=L.array()/(iSigma.array()+1e-15);
+	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)
 		<< "diff: " << std::endl << iSigma << std::endl
 		<< "L: " << std::endl << L << std::endl;
 }
 
 TEST_P(BFGradientTest, InverseCorrect) {
-	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd Sigma = covf->getSigma();
-	Sigma = iSigma * Sigma;
-	ASSERT_TRUE(Sigma.isDiagonal(1e-10));
+	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
+	Eigen::MatrixXd shouldBeI = iSigma * Sigma;
+	shouldBeI.diagonal().array()-=1;
+	ASSERT_TRUE(shouldBeI.isZero(1e-10));
 }
 
 #ifdef BUILD_FAST_FOOD
