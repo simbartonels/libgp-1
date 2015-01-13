@@ -29,7 +29,6 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	bf = (IBasisFunction *) cf;
 	M = bf->getNumberOfBasisFunctions();
 	alpha.resize(M);
-	//TODO: are all 3 matrices necessary?
 	L.resize(M, M);
 	Lu.resize(M, M);
 //	W.resize(M, M);
@@ -51,7 +50,6 @@ double FICGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 }
 
 void FICGaussianProcess::computeCholesky() {
-	//TODO: refactor! this method is too long!
 	/*
 	 * This method does not compute the Cholesky in the same sense as
 	 * the GaussianProcess class does. Here the same thing happens as
@@ -100,6 +98,8 @@ void FICGaussianProcess::computeCholesky() {
 	 * the matrices are upper matrices. Here we have what they are supposed to be:
 	 * lower matrices.
 	 */
+//	LuuLu = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>() * Lu.triangularView<Eigen::Lower>();
+	//TODO: check if the line above is faster
 	LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
 	//a solveInPlace with L.setIdentity() is not faster
 	L = LuuLu.triangularView<Eigen::Lower>().solve(
@@ -204,21 +204,35 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);
 		bool gradiSigmaIsNull = bf->gradiSigmaIsNull(i);
 		bool gradBasisFunctionIsNull = bf->gradBasisFunctionIsNull(i);
+
+		double wdKuuiw;
 		if (!gradiSigmaIsNull) {
 			bf->gradiSigma(i, dKuui);
+			wdKuuiw = (w.transpose() * dKuui * w).sum();
 		} else {
-			//TODO: find a better way
-			dKuui.setZero();
+//			dKuui.setZero();
+			wdKuuiw = 0;
 		}
 
+		double wdKuial;
 		if (!gradBasisFunctionIsNull) {
 			bf->gradBasisFunction(sampleset, Phi, i, dKui);
+			wdKuial = 2 * (w.transpose()  * dKui * al).sum();
 			//R = 2*dKui-dKuui*B;
-			R = 2 * dKui - dKuui * B;
+			if(!gradiSigmaIsNull)
+				R = 2 * dKui - dKuui * B;
+			else
+				//TODO: do we want to compute that?!
+				R = 2 * dKui;
 		} else {
-			R = -dKuui * B;
-			//TODO: find a better way
-			dKui.setZero();
+			//this branch will be entered only for two parameters (in case of MultiScale)
+			if(!gradiSigmaIsNull)
+				R = -dKuui * B;
+			else
+				//TODO: can we avoid that?
+				R.setZero();
+//			dKui.setZero();
+			wdKuial = 0;
 		}
 
 		double ddiagK_idg;
@@ -236,7 +250,8 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 //                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
 		gradient(i) = ddiagK_idg
 		//TODO: line below can be optimized (if either dKuui or dKui are 0)
-				+ (w.transpose() * (dKuui * w - 2 * (dKui * al))).sum()
+				+ wdKuuiw - wdKuial
+				//TODO: save al^2?
 				- (v.array() * al.array().square()).sum()
 				- WdgSum.cwiseProduct(v).sum()
 				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum();
