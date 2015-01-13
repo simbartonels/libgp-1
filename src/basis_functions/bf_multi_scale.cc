@@ -70,6 +70,8 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 	size_t n = sampleSet->size();
 	if (p < input_dim) {
 		size_t d = p;
+		temp.array() = Uell.col(d).array().cwiseInverse();
+		double t = ell(d)/4;
 		for (size_t i = 0; i < n; i++) {
 			//TODO: computing this gradient is quite slow!
 			//derivative with respect to the length scales
@@ -77,10 +79,14 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 			 * Since we add half the length scales to the inducing length scales the derivative with
 			 * respect to the length scales is not trivially zero.
 			 */
+
 			Grad.col(i).array() = (U.col(d).array() - (sampleSet->x(i))(d))
-					/ Uell.col(d).array();
-			Grad.col(i).array() = ell(d) * (Grad.col(i).array().square()
-					- Uell.col(d).array().cwiseInverse()) * Phi.col(i).array() / 4;
+								/ Uell.col(d).array();
+			Grad.col(i).array() = t * (Grad.col(i).array().square() - temp.array()) * Phi.col(i).array();
+			//the line below is not faster
+//			Grad.col(i).array() = t * (((U.col(d).array() - (sampleSet->x(i))(d))
+//					/ Uell.col(d).array()).square() - temp.array()) * Phi.col(i).array();
+
 		}
 	} else if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
 		bool lengthScaleDerivative = p < M * input_dim + input_dim;
@@ -93,17 +99,17 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 		size_t m = previous_m;
 		size_t d = previous_d;
 		if (lengthScaleDerivative) {
+			double t2 = (Uell(m, d) - ell(d) / 2) / 2;
 			//length scale derivatives
 			for (size_t i = 0; i < n; i++) {
 				double t = (U(m, d) - (sampleSet->x(i))(d)) / Uell(m, d);
-				Grad.col(i)(m) = (t * t - 1 / Uell(m, d)) * Phi.col(i)(m) / 2;
-				Grad.col(i)(m) *= (Uell(m, d) - ell(d) / 2);
+				Grad(m, i) = t2 * (t * t - 1 / Uell(m, d)) * Phi(m, i);
 			}
 		} else {
 			//inducing point derivatives
 			for (size_t i = 0; i < n; i++) {
-				Grad.col(i)(m) = (-U(m, d) + (sampleSet->x(i))(d)) / Uell(m, d)
-						* Phi.col(i)(m);
+				Grad(m, i) = (-U(m, d) + (sampleSet->x(i))(d)) / Uell(m, d)
+						* Phi(m, i);
 			}
 		}
 	} else {
