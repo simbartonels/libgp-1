@@ -3,10 +3,7 @@
 #include <sys/time.h>
 #include <cmath>
 
-typedef unsigned long long timestamp_t;
-
-static timestamp_t
-mytime ()
+static timestamp_t mytime ()
 {
   struct timeval now;
   gettimeofday (&now, NULL);
@@ -42,5 +39,14 @@ void compare_time(void (*f1)(), void (*f2)(), size_t calls){
 	}
 	std::cout << "f1: " << fast << std::endl;
 	std::cout << "f2: " << naive << std::endl;
+}
+
+static timestamp_t last_stop = mytime();
+
+timestamp_t stop_watch(){
+	timestamp_t now = mytime();
+	timestamp_t ret = now - last_stop;
+	last_stop = now;
+	return ret;
 }
 
