@@ -5,6 +5,7 @@ Eigen::MatrixXd Mat1;
 Eigen::MatrixXd Mat2;
 Eigen::MatrixXd Target;
 Eigen::VectorXd diag;
+Eigen::VectorXd target;
 
 void mult_baseline(){
 	Target = Mat1 * Mat2;
@@ -45,7 +46,12 @@ void mult1_alternative3(){
 	//TODO: use selfadjointView where possible
 	//TODO: is it possible to it as return type!?
 	Target.triangularView<Eigen::StrictlyUpper>() = Target.transpose();
-	//TODO: MAKE SURE THE RESULT IS INDEED THE SAME!!!
+}
+
+void mult1_alt3_with_init(){
+	Target.setZero();
+	Target.selfadjointView<Eigen::Lower>().rankUpdate(Mat1);
+	Target.triangularView<Eigen::StrictlyUpper>() = Target.transpose();
 }
 
 void mult2(){
@@ -54,6 +60,24 @@ void mult2(){
 
 void mult_diag(){
 	Target = Mat1 * diag.asDiagonal() * Mat1.transpose();
+}
+
+void mult_with_symmetric_baseline(){
+	Mat2 = Mat1.transpose() * Target;
+}
+
+void mult_with_symmetric1(){
+	Mat2 = Mat1.transpose() * Target.selfadjointView<Eigen::Lower>();
+}
+
+void add_to_diag_baseline(){
+	Target += Eigen::MatrixXd::Identity(500, 500);
+	Target -= Eigen::MatrixXd::Identity(500, 500);
+}
+
+void add_to_diag1(){
+	Target.diagonal().array() += 1;
+	Target.diagonal().array() -= 1;
 }
 
 int main(int argc, char const *argv[]) {
@@ -70,9 +94,19 @@ int main(int argc, char const *argv[]) {
 //	compare_time(mult1, mult2, 5);
 //	compare_time(mult1, mult_diag, 5);
 
-//	Target.setZero();
-	compare_time(mult1_alternative3, mult1, 5);
+	Target.setZero();
+	Target.selfadjointView<Eigen::Lower>().rankUpdate(Mat1);
+	Target.triangularView<Eigen::StrictlyUpper>() = Target.transpose();
+	Target -= Mat1*Mat1.transpose();
+	assert(Target.array().abs().maxCoeff() < 1e-10);
+//	compare_time(mult1_alternative3, mult1, 5);
 //	compare_time(mult1, mult1_alternative2, 5);
+	compare_time(mult1, mult1_alt3_with_init, 5);
+	compare_time(add_to_diag_baseline, add_to_diag1, 5);
+
+
+//	Target.setRandom();
+//	compare_time(mult_with_symmetric_baseline, mult_with_symmetric1, 5);
 }
 
 
