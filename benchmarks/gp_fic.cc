@@ -186,6 +186,14 @@ using namespace libgp;
     	compare_time(f1CholComp2, f2CholComp2, 10);
     }
 
+    void llhGradBaseline(){
+    	gpnaive->log_likelihood_gradient();
+    }
+
+    void llhGradFast(){
+    	gp->log_likelihood_gradient();
+    }
+
 int main(int argc, char const *argv[]) {
 	size_t input_dim = 3;
 	size_t M = 200;
@@ -215,7 +223,9 @@ int main(int argc, char const *argv[]) {
 	}
 
 //	testSpeedOfLogLikelihood();
-	testSpeedOfCholeskyComputation2();
+//	testSpeedOfCholeskyComputation2();
+
+	compare_time(llhGradBaseline, llhGradFast, 1);
 
 	delete gp;
 	delete gpnaive;

@@ -32,7 +32,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	//TODO: are all 3 matrices necessary?
 	L.resize(M, M);
 	Lu.resize(M, M);
-	W.resize(M, M);
+//	W.resize(M, M);
 	BWdg.resize(M, M);
 	w.resize(M);
 	beta.resize(M);
@@ -78,6 +78,7 @@ void FICGaussianProcess::computeCholesky() {
 	V = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>().solve(
 			Phi);
 	//noise is already added in k
+	//TODO: symmetric matrix multiplication = potential for speed up
 	dg = k - (V.transpose() * V).diagonal();
 	//the line below is not faster
 //	dg.array() = k.array() - V.array().square().colwise().sum().transpose();
@@ -89,8 +90,10 @@ void FICGaussianProcess::computeCholesky() {
 	//the line below would be faster here but not any longer in compute alpha
 	//	Lu = V * dg.cwiseInverse().asDiagonal() * V.transpose() + Eigen::MatrixXd::Identity(M, M);
 	V = V * isqrtgamma.asDiagonal();
-	Lu = V * V.transpose() + Eigen::MatrixXd::Identity(M, M);
-	Lu.topLeftCorner(M, M) = Lu.llt().matrixL();
+	Lu.setZero();
+	Lu.selfadjointView<Eigen::Lower>().rankUpdate(V);
+	Lu.diagonal().array()+=1;
+	Lu = Lu.llt().matrixL();
 
 	/*
 	 * Here we have to divert from the Matlab implementation. in Matlab all
@@ -177,10 +180,15 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	//    W = Ku./repmat(sqrt(dg)',nu,1);
 	//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku;
 	//TODO: in the computation of V this step could be made faster
-	W =
-			(Phi * dg.cwiseInverse().asDiagonal() * Phi.transpose()
-					+ bf->getInverseOfSigma()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(
-					Phi);
+	//we misuse BWdg as temporary variable here
+	BWdg.setZero();
+	BWdg.selfadjointView<Eigen::Lower>().rankUpdate(Phi * isqrtgamma.asDiagonal());
+	BWdg+=bf->getInverseOfSigma();
+	W = BWdg.selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
+//	W =
+//			(Phi * dg.cwiseInverse().asDiagonal() * Phi.transpose()
+//					+ bf->getInverseOfSigma()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(
+//					Phi);
 
 	//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
 	al = (y - W.transpose() * (W * (y.cwiseQuotient(dg)))).cwiseQuotient(dg);
@@ -204,11 +212,6 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 		}
 
 		if (!gradBasisFunctionIsNull) {
-//			for (size_t j = 0; j < n; j++) {
-//				bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, temp);
-//				//TODO: is it possible to avoid the copy?
-//				dKui.col(j) = temp;
-//			}
 			bf->gradBasisFunction(sampleset, Phi, i, dKui);
 			//R = 2*dKui-dKuui*B;
 			R = 2 * dKui - dKuui * B;
