@@ -7,6 +7,8 @@ Eigen::MatrixXd Target;
 Eigen::VectorXd diag;
 Eigen::VectorXd target;
 
+static double x;
+
 void mult_baseline(){
 	Target = Mat1 * Mat2;
 }
@@ -80,6 +82,18 @@ void add_to_diag1(){
 	Target.diagonal().array() -= 1;
 }
 
+void v1Diagv2_base(){
+	for(size_t i = 0; i < 100000; i++)
+		x = diag.transpose() * diag.asDiagonal() * diag;
+//	std::cout << x;
+}
+
+void v1Diagv2_1(){
+	for(size_t i = 0; i < 100000; i++)
+		x = (diag.array().square() * (diag.asDiagonal()).diagonal().array()).sum();
+//	std::cout << x;
+}
+
 int main(int argc, char const *argv[]) {
 	Mat1.resize(500, 3000);
 	Mat1.setRandom();
@@ -101,12 +115,14 @@ int main(int argc, char const *argv[]) {
 	assert(Target.array().abs().maxCoeff() < 1e-10);
 //	compare_time(mult1_alternative3, mult1, 5);
 //	compare_time(mult1, mult1_alternative2, 5);
-	compare_time(mult1, mult1_alt3_with_init, 5);
-	compare_time(add_to_diag_baseline, add_to_diag1, 5);
+//	compare_time(mult1, mult1_alt3_with_init, 5);
+//	compare_time(add_to_diag_baseline, add_to_diag1, 5);
 
 
 //	Target.setRandom();
 //	compare_time(mult_with_symmetric_baseline, mult_with_symmetric1, 5);
+
+	compare_time(v1Diagv2_base, v1Diagv2_1, 5);
 }
 
 
