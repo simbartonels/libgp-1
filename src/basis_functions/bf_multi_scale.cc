@@ -118,45 +118,6 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 	}
 }
 
-void MultiScale::gradBasisFunction(const Eigen::VectorXd &x,
-		const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) {
-	assert(grad.size() == phi.size());
-	if (p < input_dim) {
-		//derivative with respect to the length scales
-		/*
-		 * Since we add half the length scales to the inducing length scales the derivative with
-		 * respect to the length scales is not trivially zero.
-		 */
-		size_t d = p;
-		grad.array() = (U.col(d).array() - x(d)) / Uell.col(d).array();
-		grad.array() = grad.array().square()
-				- Uell.col(d).array().cwiseInverse();
-		grad = ell(d) * grad.cwiseProduct(phi) / 4;
-	} else if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
-		bool lengthScaleDerivative = p < M * input_dim + input_dim;
-		//use precomputed values where possible
-		if (p != previous_p) {
-			grad.setZero();
-			setPreviousNumberAndDimensionForParameter(p, lengthScaleDerivative);
-		}
-
-		size_t m = previous_m;
-		size_t d = previous_d;
-		if (lengthScaleDerivative) {
-			//length scale derivatives
-			double t = (U(m, d) - x(d)) / Uell(m, d);
-			grad(m) = (t * t - 1 / Uell(m, d)) * phi(m) / 2;
-			grad(m) *= (Uell(m, d) - ell(d) / 2);
-		} else {
-			//inducing point derivatives
-			grad(m) = (-U(m, d) + x(d)) / Uell(m, d) * phi(m);
-		}
-	} else {
-		//amplitude and noise derivative
-		grad.setZero();
-	}
-}
-
 void inline MultiScale::setPreviousNumberAndDimensionForParameter(size_t p,
 		bool lengthScaleDerivative) {
 	previous_m = (p - input_dim) % M;

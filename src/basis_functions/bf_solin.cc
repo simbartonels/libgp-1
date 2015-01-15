@@ -74,9 +74,9 @@ bool Solin::gradDiagWrappedIsNull(size_t parameter){
 }
 
 
-void libgp::Solin::gradBasisFunction(const Eigen::VectorXd& x,
-		const Eigen::VectorXd& phi, size_t p, Eigen::VectorXd& grad) {
-	grad.fill(0);
+void libgp::Solin::gradBasisFunction(SampleSet * sampleSet,
+		const Eigen::MatrixXd& Phi, size_t p, Eigen::MatrixXd& Grad) {
+	Grad.fill(0);
 }
 
 bool libgp::Solin::gradBasisFunctionIsNull(size_t p) {

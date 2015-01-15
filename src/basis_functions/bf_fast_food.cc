@@ -97,27 +97,31 @@ void libgp::FastFood::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	//TODO: implement!
 }
 
-bool FastFood::gradDiagWrappedIsNull(size_t parameter){
+bool FastFood::gradDiagWrappedIsNull(size_t parameter) {
 	return false;
 }
 
-void libgp::FastFood::gradBasisFunction(const Eigen::VectorXd& x,
-		const Eigen::VectorXd& phi, size_t p, Eigen::VectorXd& grad) {
-	//TODO: a vectorized version is faster
-	assert(grad.size() == phi.size());
+void libgp::FastFood::gradBasisFunction(SampleSet * sampleSet,
+		const Eigen::MatrixXd& Phi, size_t p, Eigen::MatrixXd& Grad) {
+	assert(Grad.size() == Phi.size());
 	if (p < input_dim) {
+		size_t n = sampleSet->size();
+		//TODO: use precomputed values
 		Eigen::VectorXd z = multiplyW_withStandardBasisVector(p);
-		double c = x(p) / ell(p);
-		grad.head(M_intern * input_dim) = c
-				* z.cwiseProduct(
-						phi.segment(M_intern * input_dim,
-								M_intern * input_dim));
-		grad.segment(M_intern * input_dim, M_intern * input_dim) = c
-				* z.cwiseProduct(-phi.head(M_intern * input_dim));
-		//TODO: can we assume here that the rest of the gradient is already set to zero?
-		grad.tail(M - 2 * M_intern * input_dim).setZero();
+		for (size_t i = 0; i < n; i++) {
+			//TODO: a vectorized version is faster
+			double c = (sampleSet->x(i))(p) / ell(p);
+			Grad.col(i).head(M_intern * input_dim) = c
+					* z.cwiseProduct(
+							Phi.col(i).segment(M_intern * input_dim,
+									M_intern * input_dim));
+			Grad.col(i).segment(M_intern * input_dim, M_intern * input_dim) = c
+					* z.cwiseProduct(-Phi.col(i).head(M_intern * input_dim));
+			//can we assume here that the rest of the gradient is already set to zero? yes
+//			grad.tail(M - 2 * M_intern * input_dim).setZero();
+		}
 	} else {
-		grad.setZero();
+		Grad.setZero();
 	}
 }
 
@@ -168,8 +172,8 @@ std::string libgp::FastFood::to_string() {
 	return "FastFood";
 }
 
-
-size_t FastFood::get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions){
+size_t FastFood::get_param_dim_without_noise(size_t input_dim,
+		size_t num_basis_functions) {
 	//length scales + amplitude
 	//no need to take care of the noise
 	return input_dim + 1;

@@ -133,7 +133,8 @@ TEST_P(BFGradientTest, EqualToNumerical) {
 		}
 		else {
 			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
-			<< std::endl << "numerical gradient: " << num_grad;
+			<< std::endl << "numerical gradient: " << num_grad
+			<< std::endl << "computed gradient: " << grad(i);
 		}
 	}
 }
@@ -145,12 +146,14 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 	for (int i = 0; i < param_dim; ++i) {
 		double num_grad = numerical_gradient_diag(i);
 		double comp_grad2 = gradient_diag(i);
-		ASSERT_NEAR(grad(i), comp_grad2, 1e-7) << "Parameter number: " << i;
+
 		if (grad(i) == 0.0) {
-			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			ASSERT_NEAR(grad(i), comp_grad2, 1e-7) << "Parameter number: " << i;
+						ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
 		else {
+			ASSERT_NEAR((grad(i) - comp_grad2)/grad(i), 0.0, 1e-7) << "Parameter number: " << i;
 			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}

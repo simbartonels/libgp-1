@@ -66,8 +66,11 @@ public:
 	 * @return the vector of basis function values
 	 */
 	//TODO: this is kinda bad since it requires n allocations multiple times!!!
+	//but it's equally bad for all implementations so nothing to be too concerned about for my thesis
 	virtual Eigen::VectorXd computeBasisFunctionVector(
 			const Eigen::VectorXd &x) = 0;
+
+	virtual void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd & Phi, size_t p, Eigen::MatrixXd & Grad) = 0;
 
 	/**
 	 * Computes the derivative of a basis function vector phi(x) with respect to parameter i.
@@ -78,16 +81,15 @@ public:
 	 * @param grad where to put the result
 	 */
 	virtual void gradBasisFunction(const Eigen::VectorXd &x,
-			const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) = 0;
-
-	//TODO: make abstract if successful
-	virtual void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd & Phi, size_t p, Eigen::MatrixXd & Grad){
-		size_t n = sampleSet->size();
-		Eigen::VectorXd temp(Phi.rows());
-		for(size_t i = 0; i<n;i++){
-			gradBasisFunction(sampleSet->x(i), Phi.col(i), p, temp);
-			Grad.col(i) = temp;
-		}
+			const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad){
+		SampleSet * sampleSet = new SampleSet(x.size());
+		sampleSet->add(x.data(), 0.);
+//		Eigen::Map<Eigen::MatrixXd> Phi(phi.data(), phi.rows(), phi.cols());
+		Eigen::MatrixXd Phi = phi;
+		Eigen::MatrixXd Grad = grad;
+		gradBasisFunction(sampleSet, Phi, p, Grad);
+		grad = Grad.col(0);
+		delete sampleSet;
 	};
 
 	/**
