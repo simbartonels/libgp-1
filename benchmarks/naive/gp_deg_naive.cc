@@ -2,8 +2,6 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
-#include "gp_deg.h"
-
 #include "basis_functions/basisf_factory.h"
 
 #include "cov_se_ard.h"
@@ -11,12 +9,13 @@
 #include "cov_noise.h"
 
 #include <cmath>
+#include "gp_deg_naive.h"
 
 namespace libgp {
 
 const double log2piOver2 = log(2 * M_PI) / 2;
 
-libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
+libgp::DegGaussianProcessNaive::DegGaussianProcessNaive(size_t input_dim,
 		std::string covf_def, size_t num_basisf, std::string basisf_def) :
 		AbstractGaussianProcess(input_dim, covf_def) {
 	BasisFFactory factory;
@@ -33,7 +32,6 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 	L.resize(M, M);
 	k_star.resize(M);
 	temp.resize(M);
-	Gamma.resize(M, M);
 
 	diSigma.resize(M, M);
 	diSigma.setZero();
@@ -42,26 +40,31 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 
 }
 
-libgp::DegGaussianProcess::~DegGaussianProcess() {
+libgp::DegGaussianProcessNaive::~DegGaussianProcessNaive() {
 }
 
-double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
+double libgp::DegGaussianProcessNaive::var_impl(const Eigen::VectorXd &x_star) {
 	temp = L.triangularView<Eigen::Lower>().solve(k_star);
 	return squared_noise * temp.squaredNorm();
 }
 
-double libgp::DegGaussianProcess::log_likelihood_impl() {
+double libgp::DegGaussianProcessNaive::log_likelihood_impl() {
 	const std::vector<double>& targets = sampleset->y();
 	size_t n = sampleset->size();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
+	double halfLogDetA = 0;
 	double halfLogDetSigma = bf->getLogDeterminantOfSigma();
-	double halfLogDetA = L.diagonal().array().log().sum();
+	//TODO: does this call work?
+//	halfLogDetA = L.diagonal().log().sum();
+	for (size_t j = 0; j < M; j++) {
+		halfLogDetA += log(L(j, j));
+	}
 	double llh = (yy - PhiyAlpha) / squared_noise / 2 + halfLogDetA
 			+ halfLogDetSigma + (n - M) * log_noise + n * log2piOver2;
 	return llh;
 }
 
-Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
+Eigen::VectorXd libgp::DegGaussianProcessNaive::log_likelihood_gradient_impl() {
 	//TODO: refactor, this method is too long.
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
@@ -71,29 +74,33 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	if (n > dPhidi.cols()) {
 		dPhidi.resize(M, n);
 		dPhidi.setZero();
-		phi_alpha_minus_y.resize(n);
-		iAPhi.resize(M, n);
 	}
+	//TODO: here we have a few steps that aren't necessary for Solin!
+	Eigen::VectorXd phi_alpha_minus_y = Phi.transpose() * alpha - y;
+	//TODO: move allocations to constructor
+	Eigen::VectorXd t(M);
+	Eigen::MatrixXd Gamma(M, M);
+	Eigen::MatrixXd iAPhi = L.triangularView<Eigen::Lower>().solve(Phi);
+	L.transpose().triangularView<Eigen::Upper>().solveInPlace(iAPhi);
 
 	//TODO: is it possible to speed this up if sigma is diagonal?
-
-	//we misuse diSigma as temporary variable here
-	diSigma.setIdentity();
-	L.triangularView<Eigen::Lower>().solveInPlace(diSigma);
-//	Gamma = diSigma.transpose() * diSigma;
-	Gamma.setZero();
-	Gamma.selfadjointView<Eigen::Lower>().rankUpdate(diSigma.transpose());
-	//Gamma is now A^-1
-	//TODO: here we have a few steps that aren't necessary for Solin!
-	phi_alpha_minus_y = Phi.transpose() * alpha - y;
-	iAPhi = Gamma * Phi;
-
-	diSigma.setZero();
-	dPhidi.setZero();
+	//TODO: it is certainly faster to precompute this
+	//on the other hand: is there not going to be another hyper-parameter update after this call anyway?
+	//Will be A^-1
+	Gamma.setIdentity();
+	L.triangularView<Eigen::Lower>().solveInPlace(Gamma);
+	Gamma = Gamma.transpose() * Gamma;
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
 		if (!bf->gradBasisFunctionIsNull(i)) {
-			bf->gradBasisFunction(sampleset, Phi, i, dPhidi);
+			for (size_t j = 0; j < n; j++) {
+				//TODO: this has a lot of optimization potential especially for fast food
+				//when vectorizing this
+				bf->gradBasisFunction(sampleset->x(j), Phi.col(j), i, t);
+				//TODO: it is actually quite bad that we need to copy here
+				//could it be faster using .data()?
+				dPhidi.col(j) = t;
+			}
 			//the first sum() call is a workaround for Eigen not recognizing the result to be a scalar
 			/*
 			 * dividing by squared noise here is more efficient since alpha and phialpha-y have
@@ -137,6 +144,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		}
 	}
 	//noise gradient
+	//TODO: this stuff is parameter-independent! move it to compute alpha?
 	double tr_iAiSigma;
 	double alpha_iSigma_alpha;
 	if (sigmaIsDiagonal) {
@@ -153,11 +161,11 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	return gradient;
 }
 
-void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
+void libgp::DegGaussianProcessNaive::update_k_star(const Eigen::VectorXd& x_star) {
 	k_star = bf->computeBasisFunctionVector(x_star);
 }
 
-void libgp::DegGaussianProcess::update_alpha() {
+void libgp::DegGaussianProcessNaive::update_alpha() {
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	Phiy = Phi * y;
@@ -171,7 +179,7 @@ void libgp::DegGaussianProcess::update_alpha() {
 	PhiyAlpha = Phiy.transpose() * alpha;
 }
 
-void libgp::DegGaussianProcess::computeCholesky() {
+void libgp::DegGaussianProcessNaive::computeCholesky() {
 	log_noise = bf->getLogNoise();
 	squared_noise = exp(2 * log_noise);
 //TODO: this step can be simplified for Solin! (Phi is constant)
@@ -182,13 +190,17 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	for (size_t i = 0; i < n; i++){
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
 	}
-	L.triangularView<Eigen::Lower>().setZero();
-	L.selfadjointView<Eigen::Lower>().rankUpdate(Phi);
+	//TODO: find the fastest way to compute phi*phi'
+	//TODO: for which ever reason the lines below can not be put in one line
+	L = Phi * Phi.transpose();
 	L += squared_noise * bf->getInverseOfSigma();
-	L.triangularView<Eigen::Lower>() = L.selfadjointView<Eigen::Lower>().llt().matrixL();
+	L = L.selfadjointView<Eigen::Lower>().llt().matrixL();
+//	L =
+//			(Phi * Phi.transpose() + squared_noise * bf->getInverseOfSigma()).selfadjointView<
+//					Eigen::Lower>().llt().matrixL();
 }
 
-void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {
+void libgp::DegGaussianProcessNaive::updateCholesky(const double x[], double y) {
 //Do nothing and just recompute everything.
 //TODO: might be a slow down in applications!
 	cf->loghyper_changed = true;

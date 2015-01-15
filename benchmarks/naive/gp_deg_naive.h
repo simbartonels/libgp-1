@@ -2,8 +2,8 @@
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
 
-#ifndef SOURCE_DIRECTORY__INCLUDE_GP_DEC_H_
-#define SOURCE_DIRECTORY__INCLUDE_GP_DEC_H_
+#ifndef SOURCE_DIRECTORY__INCLUDE_GP_DEG_NAIVE_H_
+#define SOURCE_DIRECTORY__INCLUDE_GP_DEG_NAIVE_H_
 
 #include <cmath>
 #include <Eigen/Dense>
@@ -19,14 +19,14 @@ namespace libgp {
    * See section about weight space view in "Gaussian Processes for Machine Learning"
    * by Rasmussen and Williams from 2006.
    *  @author Manuel Blum, Simon Bartels */
-  class DegGaussianProcess : public AbstractGaussianProcess
+  class DegGaussianProcessNaive : public AbstractGaussianProcess
   {
   public:
 
     /** Create and instance of GaussianProcess with given input dimensionality
      *  and covariance function. */
-	  DegGaussianProcess (size_t input_dim, std::string covf_def, size_t num_basisf, std::string basisf_def);
-	  virtual ~DegGaussianProcess();
+	  DegGaussianProcessNaive (size_t input_dim, std::string covf_def, size_t num_basisf, std::string basisf_def);
+	  virtual ~DegGaussianProcessNaive();
 
   protected:
     double var_impl(const Eigen::VectorXd &x_star);
@@ -70,9 +70,6 @@ namespace libgp {
 
 	Eigen::MatrixXd diSigma;
 	Eigen::MatrixXd dPhidi;
-	Eigen::MatrixXd Gamma;
-	Eigen::MatrixXd iAPhi;
-	Eigen::VectorXd phi_alpha_minus_y;
 
 
     /*
@@ -90,4 +87,4 @@ namespace libgp {
 
 
 
-#endif /* SOURCE_DIRECTORY__INCLUDE_GP_DEC_H_ */
+#endif /* SOURCE_DIRECTORY__INCLUDE_GP_DEG_NAIVE_H_ */

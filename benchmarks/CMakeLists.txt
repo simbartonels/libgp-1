@@ -45,3 +45,7 @@ TARGET_LINK_LIBRARIES(gpbenchm_multiscale gp)
 ADD_EXECUTABLE(gpbenchm_misc_mm misc_matrix_multiplications.cc  ${LIBGP_BENCHMARKS})
 set_target_properties(gpbenchm_misc_mm PROPERTIES COMPILE_FLAGS "-O2")
 TARGET_LINK_LIBRARIES(gpbenchm_misc_mm gp)
+
+ADD_EXECUTABLE(gpbenchm_deg gp_deg.cc  ${LIBGP_BENCHMARKS})
+set_target_properties(gpbenchm_deg PROPERTIES COMPILE_FLAGS "-O2")
+TARGET_LINK_LIBRARIES(gpbenchm_deg gp)
