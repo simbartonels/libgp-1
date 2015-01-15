@@ -41,12 +41,15 @@ namespace libgp {
     void update_alpha();
 
     /** Compute covariance matrix and perform cholesky decomposition. */
-    void computeCholesky();
+    virtual void computeCholesky();
 
     void updateCholesky(const double x[], double y);
 
+    virtual inline void llh_setup();
+
   private:
     //TODO: think about a way to make this constant
+    //one possibility is to construct an inner degenerate gp class
     bool sigmaIsDiagonal;
 
     double log_noise;

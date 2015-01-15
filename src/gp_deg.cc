@@ -61,13 +61,10 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 	return llh;
 }
 
-Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
-	//TODO: refactor, this method is too long.
-	size_t num_params = bf->get_param_dim();
-	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
+void inline DegGaussianProcess::llh_setup(){
+	size_t n = sampleset->size();
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
-	size_t n = sampleset->size();
 	if (n > dPhidi.cols()) {
 		dPhidi.resize(M, n);
 		dPhidi.setZero();
@@ -75,21 +72,30 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		iAPhi.resize(M, n);
 	}
 
-	//TODO: is it possible to speed this up if sigma is diagonal?
-
 	//we misuse diSigma as temporary variable here
 	diSigma.setIdentity();
 	L.triangularView<Eigen::Lower>().solveInPlace(diSigma);
-//	Gamma = diSigma.transpose() * diSigma;
 	Gamma.setZero();
 	Gamma.selfadjointView<Eigen::Lower>().rankUpdate(diSigma.transpose());
 	//Gamma is now A^-1
+	//is it possible avoid computing Gamma if sigma is diagonal? not when looking at Solin's implementation
 	//TODO: here we have a few steps that aren't necessary for Solin!
 	phi_alpha_minus_y = Phi.transpose() * alpha - y;
 	iAPhi = Gamma * Phi;
-
-	diSigma.setZero();
 	dPhidi.setZero();
+	diSigma.setZero();
+}
+
+Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
+	//TODO: refactor, this method is too long.
+	size_t num_params = bf->get_param_dim();
+	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
+	const std::vector<double>& targets = sampleset->y();
+	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
+	size_t n = sampleset->size();
+
+	llh_setup();
+
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
 		if (!bf->gradBasisFunctionIsNull(i)) {
@@ -179,9 +185,9 @@ void libgp::DegGaussianProcess::computeCholesky() {
 	size_t n = sampleset->size();
 	if (n > Phi.cols())
 		Phi.resize(M, n);
-	for (size_t i = 0; i < n; i++){
+	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
-	}
+
 	L.triangularView<Eigen::Lower>().setZero();
 	L.selfadjointView<Eigen::Lower>().rankUpdate(Phi);
 	L += squared_noise * bf->getInverseOfSigma();
