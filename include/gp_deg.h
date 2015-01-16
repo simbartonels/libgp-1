@@ -47,16 +47,29 @@ namespace libgp {
 
     virtual inline void llh_setup();
 
+	Eigen::MatrixXd Phi;
+	Eigen::MatrixXd dPhidi;
+
+    /*
+     * Convenience pointer that just points to cf.
+     */
+    IBasisFunction * bf;
+
+    /**
+     * Number of basis functions.
+     */
+    size_t M;
+
+    double log_noise;
+    double squared_noise;
+
   private:
     //TODO: think about a way to make this constant
     //one possibility is to construct an inner degenerate gp class
     bool sigmaIsDiagonal;
 
-    double log_noise;
-    double squared_noise;
 
 	Eigen::VectorXd temp;
-	Eigen::MatrixXd Phi;
     Eigen::MatrixXd Lu;
 
 	Eigen::VectorXd Phiy;
@@ -72,21 +85,9 @@ namespace libgp {
 	double yy;
 
 	Eigen::MatrixXd diSigma;
-	Eigen::MatrixXd dPhidi;
 	Eigen::MatrixXd Gamma;
 	Eigen::MatrixXd iAPhi;
 	Eigen::VectorXd phi_alpha_minus_y;
-
-
-    /*
-     * Convenience pointer that just points to cf.
-     */
-    IBasisFunction * bf;
-
-    /**
-     * Number of basis functions.
-     */
-    size_t M;
   };
 }
 
