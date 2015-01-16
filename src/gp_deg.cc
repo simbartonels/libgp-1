@@ -67,23 +67,15 @@ void inline DegGaussianProcess::llh_setup(){
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	if (n > dPhidi.cols()) {
 		dPhidi.resize(M, n);
-		dPhidi.setZero();
 		phi_alpha_minus_y.resize(n);
 		iAPhi.resize(M, n);
 	}
 
-	//we misuse diSigma as temporary variable here
-	diSigma.setIdentity();
-	L.triangularView<Eigen::Lower>().solveInPlace(diSigma);
-	Gamma.setZero();
-	Gamma.selfadjointView<Eigen::Lower>().rankUpdate(diSigma.transpose());
 	//Gamma is now A^-1
 	//is it possible avoid computing Gamma if sigma is diagonal? not when looking at Solin's implementation
 	//TODO: here we have a few steps that aren't necessary for Solin!
 	phi_alpha_minus_y = Phi.transpose() * alpha - y;
-	iAPhi = Gamma * Phi;
-	dPhidi.setZero();
-	diSigma.setZero();
+	iAPhi = Gamma.selfadjointView<Eigen::Lower>() * Phi;
 }
 
 Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
@@ -95,6 +87,16 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	size_t n = sampleset->size();
 
 	llh_setup();
+	//we misuse diSigma as temporary variable here
+	diSigma.setIdentity();
+	L.triangularView<Eigen::Lower>().solveInPlace(diSigma);
+	Gamma.setZero();
+	Gamma.selfadjointView<Eigen::Lower>().rankUpdate(diSigma.transpose());
+	//TODO: would be nice to avoid this copy
+	Gamma.triangularView<Eigen::StrictlyUpper>() = Gamma.transpose();
+
+	diSigma.setZero();
+	dPhidi.setZero();
 
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
@@ -180,8 +182,6 @@ void libgp::DegGaussianProcess::update_alpha() {
 void libgp::DegGaussianProcess::computeCholesky() {
 	log_noise = bf->getLogNoise();
 	squared_noise = exp(2 * log_noise);
-//TODO: this step can be simplified for Solin! (Phi is constant)
-	//the best solution is probably to create gp_solin that inherits from gp_deg
 	size_t n = sampleset->size();
 	if (n > Phi.cols())
 		Phi.resize(M, n);
