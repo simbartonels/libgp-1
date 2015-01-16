@@ -15,9 +15,6 @@
 
 namespace libgp {
 
-//TODO: add to cmake list
-//TODO: might need to make teh cholesky a protected field (though isn't it protected from the abstract_gp anyway?)
-
   /** Derived class that implements "Hilbert Space Methods for Reduced Rank Gaussian Process Regression" by Solin and Särkkä from 2014.
    *  The gp_deg class does not allow to use all the advantages of this approach and therefore an extra implementation is necessary.
    *  @author Manuel Blum, Simon Bartels */
@@ -30,14 +27,24 @@ namespace libgp {
 	  SolinGaussianProcess (size_t input_dim, std::string covf_def, size_t num_basisf, std::string basisf_def);
 	  virtual ~SolinGaussianProcess();
 
+	  virtual void updateCholesky(const double x[], double y);
+
   protected:
+
     virtual void computeCholesky();
 
   protected:
     virtual inline void llh_setup();
 
   private:
+
+    /**
+     * Flag to indicate whether new data points have been added.
+     */
+    bool newDataPoints;
+
     Eigen::MatrixXd PhiPhi;
   };
 }
+
 #endif /* SOURCE_DIRECTORY__INCLUDE_GP_SOLIN_H_ */

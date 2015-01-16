@@ -5,6 +5,7 @@
 #include <gp_fic.h>
 #include "gp.h"
 #include "gp_deg.h"
+#include "gp_solin.h"
 #include "gp_utils.h"
 #ifdef BUILD_BENCHMARK
 #include "gp_fic_naive.h"
@@ -77,5 +78,12 @@ TEST(LogLikelihoodTest, CheckGradientsDegGP)
 {
   int input_dim = 3;
   libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "Solin");
+  genericGradientTest(gp, input_dim);
+}
+
+TEST(LogLikelihoodTest, CheckGradientsSolinGP)
+{
+  int input_dim = 3;
+  libgp::SolinGaussianProcess * gp = new libgp::SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "Solin");
   genericGradientTest(gp, input_dim);
 }

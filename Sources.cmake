@@ -20,6 +20,7 @@ SET(LIBGP_SRC
   src/basis_functions/basisf_factory.cc
   src/gp_fic.cc
   src/gp_deg.cc
+  src/gp_solin.cc
   src/gp_utils.cc
   src/sampleset.cc
   src/rprop.cc
@@ -50,6 +51,7 @@ SET(LIBGP_INTERFACES
   include/basis_functions/basisf_factory.h
   include/gp_fic.h
   include/gp_deg.h
+  include/gp_solin.h
   include/gp_utils.h
   include/sampleset.h
   include/rprop.h
