@@ -45,7 +45,12 @@ namespace libgp {
 
     void updateCholesky(const double x[], double y);
 
-    virtual inline void llh_setup();
+    virtual inline void llh_setup_other();
+    virtual inline void llh_setup_Gamma();
+    /**
+     * Updates variables such as noise and n.
+     */
+    virtual inline void update_internal_variables();
 
 	Eigen::MatrixXd Phi;
 	Eigen::MatrixXd dPhidi;
@@ -56,6 +61,11 @@ namespace libgp {
     IBasisFunction * bf;
 
     /**
+     * The number of data points.
+     */
+    size_t n;
+
+    /**
      * Number of basis functions.
      */
     size_t M;
@@ -64,6 +74,9 @@ namespace libgp {
     double squared_noise;
 
   private:
+    inline double getSigmaGradient(size_t i);
+    inline double getNoiseGradient();
+
     //TODO: think about a way to make this constant
     //one possibility is to construct an inner degenerate gp class
     bool sigmaIsDiagonal;
@@ -78,6 +91,8 @@ namespace libgp {
 	 * (Phi*y)^T*alpha
 	 */
 	double PhiyAlpha;
+
+	bool recompute_yy;
 
 	/**
 	 * y^T*y

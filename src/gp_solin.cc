@@ -17,12 +17,13 @@ libgp::SolinGaussianProcess::~SolinGaussianProcess() {
 
 void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	newDataPoints = true;
+	DegGaussianProcess::updateCholesky(x, y);
 }
 
 void libgp::SolinGaussianProcess::computeCholesky() {
+	DegGaussianProcess::update_internal_variables();
 	if (newDataPoints) {
 		newDataPoints = false;
-		size_t n = sampleset->size();
 		if (n > Phi.cols())
 			Phi.resize(M, n);
 		for (size_t i = 0; i < n; i++)
@@ -30,22 +31,17 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 		PhiPhi.setZero();
 		PhiPhi.selfadjointView<Eigen::Lower>().rankUpdate(Phi);
 	}
-	log_noise = bf->getLogNoise();
-	squared_noise = exp(2 * log_noise);
 
 	L.triangularView<Eigen::Lower>() = PhiPhi.triangularView<Eigen::Lower>();
-	//TODO: unfair advantage over fast food
 	L.diagonal() += squared_noise * bf->getInverseOfSigma().diagonal();
 	L.triangularView<Eigen::Lower>() =
 			L.selfadjointView<Eigen::Lower>().llt().matrixL();
 }
 
-inline void libgp::SolinGaussianProcess::llh_setup() {
+inline void libgp::SolinGaussianProcess::llh_setup_other() {
 	//do nothing
-	size_t n = sampleset->size();
-	if (n > dPhidi.cols()) {
+	if (n > dPhidi.cols())
 		dPhidi.resize(M, n);
-	}
 }
 
 }

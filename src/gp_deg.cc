@@ -23,6 +23,7 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 	//wrap initialized covariance function with basis function
 	cf = factory.createBasisFunction(basisf_def, num_basisf, cf);
 	cf->loghyper_changed = 0;
+	recompute_yy = true;
 	bf = (IBasisFunction *) cf;
 	sigmaIsDiagonal = bf->sigmaIsDiagonal();
 	log_noise = bf->getLogNoise();
@@ -52,8 +53,8 @@ double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 
 double libgp::DegGaussianProcess::log_likelihood_impl() {
 	const std::vector<double>& targets = sampleset->y();
-	size_t n = sampleset->size();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
+
 	double halfLogDetSigma = bf->getLogDeterminantOfSigma();
 	double halfLogDetA = L.diagonal().array().log().sum();
 	double llh = (yy - PhiyAlpha) / squared_noise / 2 + halfLogDetA
@@ -61,8 +62,7 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 	return llh;
 }
 
-void inline DegGaussianProcess::llh_setup(){
-	size_t n = sampleset->size();
+void inline DegGaussianProcess::llh_setup_other(){
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 	if (n > dPhidi.cols()) {
@@ -70,33 +70,34 @@ void inline DegGaussianProcess::llh_setup(){
 		phi_alpha_minus_y.resize(n);
 		iAPhi.resize(M, n);
 	}
-
-	//Gamma is now A^-1
-	//is it possible avoid computing Gamma if sigma is diagonal? not when looking at Solin's implementation
-	//TODO: here we have a few steps that aren't necessary for Solin!
 	phi_alpha_minus_y = Phi.transpose() * alpha - y;
 	iAPhi = Gamma.selfadjointView<Eigen::Lower>() * Phi;
 }
 
-Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
-	//TODO: refactor, this method is too long.
-	size_t num_params = bf->get_param_dim();
-	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
-	const std::vector<double>& targets = sampleset->y();
-	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
-	size_t n = sampleset->size();
-
-	llh_setup();
+void inline DegGaussianProcess::llh_setup_Gamma(){
 	//we misuse diSigma as temporary variable here
 	diSigma.setIdentity();
 	L.triangularView<Eigen::Lower>().solveInPlace(diSigma);
 	Gamma.setZero();
 	Gamma.selfadjointView<Eigen::Lower>().rankUpdate(diSigma.transpose());
 	//TODO: would be nice to avoid this copy
-	Gamma.triangularView<Eigen::StrictlyUpper>() = Gamma.transpose();
+	Gamma.triangularView<Eigen::StrictlyUpper>() = Gamma.triangularView<Eigen::StrictlyLower>().transpose();
+	//Gamma is now A^-1
+	//is it possible avoid computing Gamma if sigma is diagonal? not when looking at Solin's implementation
+
+	llh_setup_other();
 
 	diSigma.setZero();
 	dPhidi.setZero();
+}
+
+Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
+	size_t num_params = bf->get_param_dim();
+	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
+	const std::vector<double>& targets = sampleset->y();
+	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
+
+	llh_setup_Gamma();
 
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
@@ -115,35 +116,45 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		}
 		//now the dSigma parts
 		if (!bf->gradiSigmaIsNull(i)) {
-			bf->gradiSigma(i, diSigma);
-			/*
-			 * Hopefully the compiler can optimize the following branch, i.e. use that
-			 * sigmaIsDiagonal does not change.
-			 */
-			if (sigmaIsDiagonal) {
-				//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
-				//we divert from the thesis here since we have the gradient of Sigma^-1
-				gradient(i) += (
-				//no multiplication with sn2 since it cancels
-				(alpha.transpose() * diSigma.diagonal().cwiseProduct(alpha)
-						+ squared_noise
-								* Gamma.diagonal().cwiseProduct(
-										diSigma.diagonal()).sum())
-				//and last but not least d log(|Sigma|)
-						- diSigma.diagonal().cwiseProduct(
-								bf->getSigma().diagonal()).sum()) / 2;
-			} else {
-				//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
-				//we divert from the thesis here since we have the gradient of Sigma^-1
-				gradient(i) += (
-				//no multiplication with sn2 since it cancels
-				(alpha.transpose() * diSigma * alpha
-						+ squared_noise * Gamma.cwiseProduct(diSigma).sum())
-				//and last but not least d log(|Sigma|)
-						- diSigma.cwiseProduct(bf->getSigma()).sum()) / 2;
-			}
+			gradient(i) += getSigmaGradient(i);
 		}
 	}
+
+	gradient(num_params - 1) = getNoiseGradient();
+	return gradient;
+}
+
+inline double DegGaussianProcess::getSigmaGradient(size_t i){
+	bf->gradiSigma(i, diSigma);
+	/*
+	 * Hopefully the compiler can optimize the following branch, i.e. use that
+	 * sigmaIsDiagonal does not change.
+	 */
+	if (sigmaIsDiagonal) {
+		//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
+		//we divert from the thesis here since we have the gradient of Sigma^-1
+		return (
+		//no multiplication with sn2 since it cancels
+		(alpha.transpose() * diSigma.diagonal().cwiseProduct(alpha)
+				+ squared_noise
+						* Gamma.diagonal().cwiseProduct(
+								diSigma.diagonal()).sum())
+		//and last but not least d log(|Sigma|)
+				- diSigma.diagonal().cwiseProduct(
+						bf->getSigma().diagonal()).sum()) / 2;
+	} else {
+		//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
+		//we divert from the thesis here since we have the gradient of Sigma^-1
+		return (
+		//no multiplication with sn2 since it cancels
+		(alpha.transpose() * diSigma * alpha
+				+ squared_noise * diSigma.cwiseProduct(Gamma).sum())
+		//and last but not least d log(|Sigma|)
+				- diSigma.cwiseProduct(bf->getSigma()).sum()) / 2;
+	}
+}
+
+inline double DegGaussianProcess::getNoiseGradient(){
 	//noise gradient
 	double tr_iAiSigma;
 	double alpha_iSigma_alpha;
@@ -155,10 +166,9 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		tr_iAiSigma = Gamma.cwiseProduct(bf->getInverseOfSigma()).sum();
 		alpha_iSigma_alpha = alpha.transpose() * bf->getInverseOfSigma() * alpha;
 	}
-	gradient(num_params - 1) = -(yy / squared_noise - PhiyAlpha / squared_noise
+	return -(yy / squared_noise - PhiyAlpha / squared_noise
 			- alpha_iSigma_alpha
 			- squared_noise * tr_iAiSigma - n + M);
-	return gradient;
 }
 
 void libgp::DegGaussianProcess::update_k_star(const Eigen::VectorXd& x_star) {
@@ -172,32 +182,44 @@ void libgp::DegGaussianProcess::update_alpha() {
 	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
 	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
 
-	//this is stuff we need for the computation of the likelihood
-	//TODO: What if the user is not interested in doing that?
-	yy = y.squaredNorm();
-	assert(yy == y.transpose() * y);
+	//this is stuff needed only in the computation of llh and gradient
+	//but it MUST NOT be moved to llh
+	//if somebody calls only gradient without llh that would give wrong results
+	if(recompute_yy){
+		yy = y.squaredNorm();
+		recompute_yy = false;
+	}
 	PhiyAlpha = Phiy.transpose() * alpha;
 }
 
 void libgp::DegGaussianProcess::computeCholesky() {
-	log_noise = bf->getLogNoise();
-	squared_noise = exp(2 * log_noise);
-	size_t n = sampleset->size();
-	if (n > Phi.cols())
-		Phi.resize(M, n);
+	update_internal_variables();
+
 	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
 
 	L.triangularView<Eigen::Lower>().setZero();
 	L.selfadjointView<Eigen::Lower>().rankUpdate(Phi);
-	L += squared_noise * bf->getInverseOfSigma();
+	if(sigmaIsDiagonal)
+		L.diagonal() += squared_noise * bf->getInverseOfSigma().diagonal();
+	else
+		L += squared_noise * bf->getInverseOfSigma();
 	L.triangularView<Eigen::Lower>() = L.selfadjointView<Eigen::Lower>().llt().matrixL();
+}
+
+void DegGaussianProcess::update_internal_variables(){
+	log_noise = bf->getLogNoise();
+	squared_noise = exp(2 * log_noise);
+	n = sampleset->size();
+	if (n > Phi.cols())
+		Phi.resize(M, n);
 }
 
 void libgp::DegGaussianProcess::updateCholesky(const double x[], double y) {
 //Do nothing and just recompute everything.
 //TODO: might be a slow down in applications!
 	cf->loghyper_changed = true;
+	recompute_yy = true;
 }
 
 }

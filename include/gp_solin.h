@@ -34,7 +34,7 @@ namespace libgp {
     virtual void computeCholesky();
 
   protected:
-    virtual inline void llh_setup();
+    virtual inline void llh_setup_other();
 
   private:
 
