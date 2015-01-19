@@ -65,11 +65,11 @@ TEST(LogLikelihoodTest, CheckGradientsFICGP)
   genericGradientTest(gp, input_dim);
 }
 
-#ifdef BUILD_BENCHMARK
-TEST(LogLikelihoodTest, CheckGradientsFICGPnaive)
+#ifdef BUILD_FAST_FOOD
+TEST(LogLikelihoodTest, CheckGradientsDegGPFastFood)
 {
   int input_dim = 3;
-  libgp::FICnaiveGaussianProcess * gp = new libgp::FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
+  libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FastFood");
   genericGradientTest(gp, input_dim);
 }
 #endif
