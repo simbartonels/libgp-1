@@ -4,6 +4,8 @@
 #include "basis_functions/bf_multi_scale.h"
 #include "naive/bf_fast_food_naive.h"
 #include "basis_functions/bf_fast_food.h"
+#include "basis_functions/bf_solin.h"
+#include "naive/bf_solin_naive.h"
 #include "gp_utils.h"
 #include "util/time_call.h"
 #include "cov_factory.h"
@@ -47,6 +49,10 @@ using namespace libgp;
 		impl->gradBasisFunction(sampleSet, Phi, p, Grad);
 	}
 
+	void f1gradbf_naive(){
+		naive->gradBasisFunction(sampleSet, Phi, p, Grad);
+	}
+
 	void f2gradbf(){
 		size_t n = sampleSet->size();
 		for(size_t i = 0; i<n;i++){
@@ -76,9 +82,33 @@ using namespace libgp;
     	for(size_t i = 0; i < param_dim; i++){
 //    		p = i*M*D+D-1;
     		p = i;
-    		compare_time(f1gradbf, f2gradbf, 10);
+    		compare_time(f1gradbf_naive, f1gradbf, 10);
     	}
 	}
+
+	static Eigen::MatrixXd diSigmadp;
+
+	void gradiSigma_baseline(){
+		naive->gradiSigma(p, diSigmadp);
+	}
+
+	void gradiSigma_impl(){
+		impl->gradiSigma(p, diSigmadp);
+	}
+
+	void testSpeedOfGradiSigma(){
+    	// add training patterns
+		size_t M = impl->getNumberOfBasisFunctions();
+		diSigmadp.resize(M, M);
+
+    	size_t param_dim = impl->get_param_dim();
+    	for(size_t i = 0; i < param_dim; i++){
+//    		p = i*M*D+D-1;
+    		p = i;
+    		compare_time(gradiSigma_baseline, gradiSigma_impl, 10);
+    	}
+	}
+
 
 	void initFastFood(){
 		((FastFood *)impl)->setPIs(((FastFoodNaive *) naive)->getPIs());
@@ -88,8 +118,8 @@ using namespace libgp;
 	}
 
 	int main(int argc, char const *argv[]) {
-		size_t D = 64;
-		size_t M = 600;
+		size_t D = 3;
+		size_t M = 8000;
 
 		CovFactory f;
 		CovarianceFunction * cov;
@@ -99,21 +129,26 @@ using namespace libgp;
 
 //		impl = new MultiScale();
 //		naive = new MultiScaleNaive();
-		naive = new FastFoodNaive();
-		impl = new FastFood();
-		impl->init(M, cov);
+//		naive = new FastFoodNaive();
+//		impl = new FastFood();
+		impl = new Solin();
+		naive = new SolinNaive();
 
+		impl->init(M, cov);
+		std::cout << "initialization of impl complete" << std::endl;
 		naive->init(M, cov);
+		std::cout << "initialization complete" << std::endl;
 
 		Eigen::VectorXd p(impl->get_param_dim());
 		p.setRandom();
 		impl->set_loghyper(p);
 		naive->set_loghyper(p);
 
-		initFastFood();
+//		initFastFood();
 
+		testSpeedOfGradiSigma();
 //		testSpeedOfGradBasisFunction();
-		testSpeedOfBasisFunction();
+//		testSpeedOfBasisFunction();
 
 		delete impl;
 		delete naive;
