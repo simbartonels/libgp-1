@@ -31,7 +31,6 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	alpha.resize(M);
 	L.resize(M, M);
 	Lu.resize(M, M);
-//	W.resize(M, M);
 	BWdg.resize(M, M);
 	w.resize(M);
 	beta.resize(M);
@@ -112,8 +111,6 @@ void FICGaussianProcess::updateCholesky(const double x[], double y) {
 	//Do nothing and just recompute everything.
 	//TODO: might be a slow down in applications!
 	cf->loghyper_changed = true;
-
-	//TODO: give signal to recompute y^Ty (also in gp_deg)
 }
 
 void FICGaussianProcess::update_k_star(const Eigen::VectorXd &x_star) {

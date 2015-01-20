@@ -20,14 +20,15 @@ void f3(){
 }
 
 int main(int argc, char const *argv[]) {
-	size_t msize = 4000;
-	Mat1.resize(msize, msize);
+	size_t msize = 2000;
+	size_t fac = 10;
+	Mat1.resize(msize, fac * msize);
 	Mat1.setRandom();
 	v.resize(msize);
 	v.setRandom();
 	Mat2.resize(msize, msize);
 	Mat2.setRandom();
-	u.resize(msize);
+	u.resize(fac * msize);
 	u.setRandom();
 
 	compare_time(f_base, f2, 20);

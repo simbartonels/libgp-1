@@ -340,7 +340,7 @@ void MultiScaleNaive::initializeMatrices() {
 }
 
 std::string MultiScaleNaive::to_string() {
-	return "MultiScale";
+	return "MultiScaleNaive";
 }
 
 inline double MultiScaleNaive::g(const Eigen::VectorXd& x1,
