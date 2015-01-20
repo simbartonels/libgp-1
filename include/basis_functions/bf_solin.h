@@ -18,6 +18,8 @@ namespace libgp {
  */
 class Solin: public IBasisFunction {
 public:
+	Solin();
+
 	virtual ~Solin();
 
 	Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
@@ -90,7 +92,8 @@ private:
 	 * standardized to length 1.
 	 */
 	//TODO: make this static const
-	double L;
+	const double L;
+	const double sqrtL;
 
 	/**
 	 * Contains the length scales.
