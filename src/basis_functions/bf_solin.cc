@@ -17,16 +17,15 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 		const Eigen::VectorXd& x) {
 	Eigen::VectorXd phi(M);
 	phi.tail(M - input_dim * M_intern).setZero();
-	//here it needs to be phi
+	//for this call it needs to be phi and not phi_1D
 	phi1D(x(0), phi);
 	size_t Md = M_intern;
 	for (size_t d = 1; d < input_dim; d++) {
+		//it's not faster to compute phi_1D(j) in the loop
 		phi1D(x(d), phi_1D);
 		//we need to start at 1 as we do not want to overwrite phi.head(Md)
-		for (size_t j = 1; j < M_intern; j++) {
-			//TODO: since we iterate over M_intern anyway: would it be faster to compute phi_1D(j) here?
+		for (size_t j = 1; j < M_intern; j++)
 			phi.segment(j * Md, Md) = phi.head(Md) * phi_1D(j);
-		}
 		//no we want to overwrite phi.head(Md)
 		phi.head(Md).array() *= phi_1D(0);
 		Md *= M_intern;
@@ -35,7 +34,6 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 }
 
 inline void Solin::phi1D(const double & xd, Eigen::VectorXd & phi){
-	//TODO: make precomputations
 	phi.head(M_intern).array() = (m.array() * (xd + L)).sin() / sqrtL;
 }
 
@@ -78,18 +76,19 @@ bool libgp::Solin::gradBasisFunctionIsNull(size_t p) {
 
 void libgp::Solin::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
 	if (p < input_dim) {
-		counter.fill(1);
-		for (size_t i = 0; i < MToTheD; i++) {
-			/*
-			 * df^-1/dx = -f^-2*df/dx
-			 * In our case df/dx=f*c and therefore we get
-			 * df^-1/dx=-f^-1*c
-			 */
-			diSigmadp(i, i) = (ell(p) * piOverLOver2Sqrd * counter(p)
-					* counter(p) - 1) * iSigma.diagonal()(i);
-
-			incCounter(counter);
-		}
+//		counter.fill(1);
+//		double temp = ell(p) * piOverLOver2Sqrd;
+//		for (size_t i = 0; i < MToTheD; i++) {
+//			/*
+//			 * df^-1/dx = -f^-2*df/dx
+//			 * In our case df/dx=f*c and therefore we get
+//			 * df^-1/dx=-f^-1*c
+//			 */
+//			diSigmadp(i, i) = (temp * counter(p)
+//					* counter(p) - 1) * iSigma.diagonal()(i);
+//			incCounter(counter);
+//		}
+		diSigmadp.diagonal().head(MToTheD) = (ell(p) * piOverLOver2Sqrd * indices.col(p).array().square().cast<double>() - 1.) * iSigma.diagonal().head(MToTheD).array();
 	} else if (p == input_dim){
 		diSigmadp.diagonal().head(MToTheD) = -2*iSigma.diagonal().head(MToTheD);
 	}
@@ -117,7 +116,7 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	}
 	sf2 = exp(2 * p(input_dim));
 
-	//initialize spectral density
+	//initialize spectral density constants
 	c = sf2 * pow(2 * M_PI, 0.5 * input_dim) * exp(temp);
 	temp = M_PI / L / 2;
 	temp *= temp;
@@ -130,16 +129,14 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	counter.fill(1);
 	for (size_t i = 0; i < MToTheD; i++) {
 		lambdaSquared.array() = piOverLOver2Sqrd
-				* counter.array().square().cast<double>();
+				* indices.row(i).array().square().cast<double>();
 		double value = spectralDensity(lambdaSquared);
 		Sigma.diagonal()(i) = value;
 		iSigma.diagonal()(i) = 1 / value;
 		choliSigma.diagonal()(i) = 1 / sqrt(value);
 		logDetSigma += log(value);
-
-		incCounter(counter);
 	}
-
+	//logDetSigma is supposed to contain half of the lot determinant
 	logDetSigma /= 2;
 }
 
@@ -149,8 +146,14 @@ inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared) {
 
 inline void Solin::incCounter(Eigen::VectorXi & counter) {
 	for (size_t idx = 0; idx < input_dim; idx++) {
-		double fill = (counter(idx) % M_intern) + 1;
+		//this part is not the bottleneck
+//		size_t fill = (counter(idx) % M_intern) + 1;
+		size_t fill = counter(idx) + 1;
+		//overflow ?
+		if(fill == M_intern)
+			fill = 1;
 		counter(idx) = fill;
+		//no overflow, no need to increase the next values
 		if (fill > 1)
 			break;
 	}
@@ -173,6 +176,12 @@ bool libgp::Solin::real_init() {
 	MToTheD = (size_t) std::pow((double) M_intern, (int) input_dim);
 
 	counter.resize(input_dim);
+	indices.resize(MToTheD, input_dim);
+	for(size_t i = 0; i < MToTheD; i++){
+		counter.fill(1);
+		indices.row(i) = counter;
+		incCounter(counter);
+	}
 
 	phi_1D.resize(M_intern);
 	m.resize(M_intern);

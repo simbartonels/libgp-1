@@ -141,6 +141,8 @@ private:
 	 */
 	Eigen::VectorXd phi_1D;
 
+	Eigen::MatrixXi indices;
+
 	/**
 	 * Contains pow(M_intern, input_dim).
 	 */
