@@ -5,7 +5,7 @@
 #ifndef INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_NAIVE_H_
 #define INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_NAIVE_H_
 
-#include "IBasisFunction.h"
+#include "basis_functions/IBasisFunction.h"
 extern "C" {
 	#include "spiral_wht.h"
 }
@@ -66,6 +66,8 @@ public:
 		 * Returns the sampled permutation matrices.
 		 */
 		Eigen::MatrixXd getPI();
+
+		std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> getPIs();
 
 	protected:
 		void log_hyper_updated(const Eigen::VectorXd &p);

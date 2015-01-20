@@ -67,6 +67,19 @@ public:
 		 */
 		Eigen::MatrixXd getPI();
 
+		/**
+		 * Returns a pointer to the permutation matrix storage.
+		 */
+		std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> getPIs();
+
+		void setS(const Eigen::MatrixXd& S);
+
+		void setG(const Eigen::MatrixXd& G);
+
+		void setB(const Eigen::MatrixXd& B);
+
+		void setPIs(std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs);
+
 	protected:
 		void log_hyper_updated(const Eigen::VectorXd &p);
 
@@ -75,6 +88,11 @@ public:
 	    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
 
 	private:
+
+	    /**
+	     * Deletes all permutation matrices.
+	     */
+	    void deletePIs();
 
 	    /**
 	     * Executes the multiplication W*e_k.

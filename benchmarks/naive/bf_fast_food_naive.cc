@@ -265,4 +265,9 @@ Eigen::MatrixXd FastFoodNaive::getPI() {
 	}
 	return pi_matrix;
 }
+
+
+std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> FastFoodNaive::getPIs(){
+	return PIs;
+}
 }

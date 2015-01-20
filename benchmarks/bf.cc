@@ -2,6 +2,8 @@
 
 #include "naive/bf_multi_scale_naive.h"
 #include "basis_functions/bf_multi_scale.h"
+#include "naive/bf_fast_food_naive.h"
+#include "basis_functions/bf_fast_food.h"
 #include "gp_utils.h"
 #include "util/time_call.h"
 #include "cov_factory.h"
@@ -26,12 +28,12 @@ using namespace libgp;
 
 	void testSpeedOfBasisFunction(){
 		Eigen::VectorXd diff = impl->computeBasisFunctionVector(x) - naive->computeBasisFunctionVector(x);
-		diff.array() /= impl->computeBasisFunctionVector(x).array();
+		diff.array() = diff.array().abs();
+		diff.array() /= (impl->computeBasisFunctionVector(x).array().abs() + 1e-30);
 
 		assert(diff.array().abs().maxCoeff() < 1e-5);
 
-		compare_time(f1bf, f2bf, 10);
-
+		compare_time(f1bf, f2bf, 20);
 	}
 
 	static SampleSet * sampleSet;
@@ -71,15 +73,23 @@ using namespace libgp;
     	}
 
     	size_t param_dim = impl->get_param_dim();
-    	for(size_t i = 0; i < 3; i++){
-    		p = i*M*D+D-1;
+    	for(size_t i = 0; i < param_dim; i++){
+//    		p = i*M*D+D-1;
+    		p = i;
     		compare_time(f1gradbf, f2gradbf, 10);
     	}
 	}
 
+	void initFastFood(){
+		((FastFood *)impl)->setPIs(((FastFoodNaive *) naive)->getPIs());
+		((FastFood *)impl)->setB(((FastFoodNaive *) naive)->getB());
+		((FastFood *)impl)->setG(((FastFoodNaive *) naive)->getG());
+		((FastFood *)impl)->setS(((FastFoodNaive *) naive)->getS());
+	}
+
 	int main(int argc, char const *argv[]) {
-		size_t D = 12;
-		size_t M = 200;
+		size_t D = 64;
+		size_t M = 600;
 
 		CovFactory f;
 		CovarianceFunction * cov;
@@ -87,10 +97,12 @@ using namespace libgp;
 		x.resize(D);
 		x.setRandom();
 
-		impl = new MultiScale();
+//		impl = new MultiScale();
+//		naive = new MultiScaleNaive();
+		naive = new FastFoodNaive();
+		impl = new FastFood();
 		impl->init(M, cov);
 
-		naive = new MultiScaleNaive();
 		naive->init(M, cov);
 
 		Eigen::VectorXd p(impl->get_param_dim());
@@ -98,8 +110,10 @@ using namespace libgp;
 		impl->set_loghyper(p);
 		naive->set_loghyper(p);
 
-		testSpeedOfGradBasisFunction();
+		initFastFood();
 
+//		testSpeedOfGradBasisFunction();
+		testSpeedOfBasisFunction();
 
 		delete impl;
 		delete naive;

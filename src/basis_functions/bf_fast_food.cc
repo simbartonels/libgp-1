@@ -16,11 +16,15 @@
 namespace libgp {
 
 FastFood::~FastFood() {
-	while (!PIs.empty()) {
-		delete PIs.back();
-		PIs.pop_back();
-	}
+	deletePIs();
 	wht_delete(wht_tree);
+}
+
+void FastFood::deletePIs(){
+	while (!PIs.empty()) {
+			delete PIs.back();
+			PIs.pop_back();
+		}
 }
 
 Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
@@ -33,12 +37,12 @@ Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 	//x.tail(next_input_dim - input_dim).fill(0);
 
 	for (size_t m = 0; m < M_intern; m++) {
-		//TODO: it could be efficient to transpose B in general!
-		temp.array() = b.row(m).transpose().array() * x.array();
+		//it's not more efficient to transpose B in general. but easier readable
+		temp.array() = b.col(m).array() * x.array();
 		wht_apply(wht_tree, 1, temp.data());
-		temp = g.row(m).transpose().cwiseProduct((*PIs.at(m)) * temp);
+		temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
-		temp = s.row(m).transpose().cwiseProduct(temp);
+		temp = s.col(m).cwiseProduct(temp);
 		//TODO: is the part below faster than the for loop? if so fix it
 		//TODO: read again the documentation for segment!
 //		phi.segment((M_intern + m) * input_dim,
@@ -60,12 +64,11 @@ Eigen::VectorXd FastFood::multiplyW_withStandardBasisVector(size_t dim) {
 	x.setZero();
 	x(dim) = 1;
 	for (size_t m = 0; m < M_intern; m++) {
-		//TODO: it could be efficient to transpose B in general!
-		temp.array() = b.row(m).transpose().array() * x.array();
+		temp.array() = b.col(m).array() * x.array();
 		wht_apply(wht_tree, 1, temp.data());
-		temp = g.row(m).transpose().cwiseProduct((*PIs.at(m)) * temp);
+		temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
-		temp = s.row(m).transpose().cwiseProduct(temp);
+		temp = s.col(m).cwiseProduct(temp);
 		result.segment(m * input_dim, input_dim) = temp.head(input_dim);
 	}
 	return result;
@@ -205,9 +208,9 @@ bool libgp::FastFood::real_init() {
 	wht_tree = wht_get_tree(next_pow);
 	assert(wht_tree != NULL);
 
-	s.resize(M_intern, next_input_dim);
-	g.resize(M_intern, next_input_dim);
-	b.resize(M_intern, next_input_dim);
+	s.resize(next_input_dim, M_intern);
+	g.resize(next_input_dim, M_intern);
+	b.resize(next_input_dim, M_intern);
 	//vector will automatically resize, this call just breaks things
 	//PIs.resize(M_intern);
 	x.resize(next_input_dim);
@@ -225,17 +228,17 @@ bool libgp::FastFood::real_init() {
 		PIs.push_back(pi);
 		assert(pi == PIs.at(i));
 		for (size_t d1 = 0; d1 < next_input_dim; d1++) {
-			g.row(i)(d1) = Utils::randn();
+			g(d1, i) = Utils::randn();
 			double d = 2 * Utils::randi(2);
-			b.row(i)(d1) = d - 1;
+			b(d1, i) = d - 1;
 			double r = 0;
 			for (size_t d2 = 0; d2 < next_input_dim; d2++) {
 				double stdn = Utils::randn();
 				r += stdn * stdn;
 			}
-			s.row(i)(d1) = sqrt(r);
+			s(d1, i) = sqrt(r);
 		}
-		s.row(i) /= g.row(i).norm();
+		s.col(i) /= g.col(i).norm();
 	}
 	s /= sqrt(next_input_dim);
 //	std::cout << "bf_fast_food: initialization complete" << std::endl;
@@ -243,15 +246,27 @@ bool libgp::FastFood::real_init() {
 }
 
 Eigen::MatrixXd FastFood::getS() {
-	return s;
+	return s.transpose();
 }
 
 Eigen::MatrixXd FastFood::getG() {
-	return g;
+	return g.transpose();
 }
 
 Eigen::MatrixXd FastFood::getB() {
-	return b;
+	return b.transpose();
+}
+
+void FastFood::setS(const Eigen::MatrixXd& S) {
+	s = S.transpose();
+}
+
+void FastFood::setG(const Eigen::MatrixXd& G) {
+	g = G.transpose();
+}
+
+void FastFood::setB(const Eigen::MatrixXd& B) {
+	b = B.transpose();
 }
 
 Eigen::MatrixXd FastFood::getPI() {
@@ -264,5 +279,21 @@ Eigen::MatrixXd FastFood::getPI() {
 		}
 	}
 	return pi_matrix;
+}
+
+std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> FastFood::getPIs(){
+	return PIs;
+}
+
+void FastFood::setPIs(std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs) {
+	deletePIs();
+	size_t els = PIs.size();
+	for(size_t i = 0; i < els; i++){
+		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
+				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
+						next_input_dim);
+		pi->indices() = PIs.at(i)->indices();
+		this->PIs.push_back(pi);
+	}
 }
 }
