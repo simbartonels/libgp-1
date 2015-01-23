@@ -45,14 +45,30 @@ namespace libgp {
 
     void updateCholesky(const double x[], double y);
 
-    virtual inline void llh_setup_other();
+    /**
+     * Computes the inverse of LL^T.
+     * Unfortunately it seems necessary to compute the gradients.
+     * Calls llh_setup_other().
+     */
     virtual inline void llh_setup_Gamma();
+
+    /**
+     * Solves LL^T for Phi and other stuff that is not necessary for Solin's Laplace Approximation.
+     */
+    virtual inline void llh_setup_other();
     /**
      * Updates variables such as noise and n.
      */
     virtual inline void update_internal_variables();
 
+    /**
+     * Contains phi(X).
+     */
 	Eigen::MatrixXd Phi;
+
+	/**
+	 * Temporary variable for d Phi(X) / d theta_i.
+	 */
 	Eigen::MatrixXd dPhidi;
 
     /*
@@ -70,11 +86,32 @@ namespace libgp {
      */
     size_t M;
 
+    /**
+     * Contains the log noise.
+     */
     double log_noise;
+
+    /**
+     * Contains the squared noise.
+     */
     double squared_noise;
 
   private:
+    /**
+     * Computes all contributions of Sigma to the derivative of the log-likelihood with respect
+     * to parameter number i.
+     * @param i
+     * 	the parameter number
+     * @returns
+     *  contribution of Sigma to the gradient of the log-likelihood
+     */
     inline double getSigmaGradient(size_t i);
+
+    /**
+     * Computes the noise gradient for the log-likelihood.
+     * @returns
+     *  Gradient of the log-likelihood with respect to the noise.
+     */
     inline double getNoiseGradient();
 
     //TODO: think about a way to make this constant
@@ -82,9 +119,19 @@ namespace libgp {
     bool sigmaIsDiagonal;
 
 
+    /**
+     * Temporary vector of size M. Used in various locations.
+     */
 	Eigen::VectorXd temp;
+
+	/**
+	 * Cholesky decomposition of Phi*Phi^T.
+	 */
     Eigen::MatrixXd Lu;
 
+    /**
+     * Contains Phi*y.
+     */
 	Eigen::VectorXd Phiy;
 
 	/**
@@ -92,6 +139,9 @@ namespace libgp {
 	 */
 	double PhiyAlpha;
 
+	/**
+	 * Flag that signals whether new data points have been added or not.
+	 */
 	bool recompute_yy;
 
 	/**
@@ -99,9 +149,24 @@ namespace libgp {
 	 */
 	double yy;
 
+	/**
+	 * Space for d Sigma / d theta_i.
+	 */
 	Eigen::MatrixXd diSigma;
+
+	/**
+	 * Contains the inverse of LL^T.
+	 */
 	Eigen::MatrixXd Gamma;
+
+	/**
+	 * Contains LL^T solved for Phi.
+	 */
 	Eigen::MatrixXd iAPhi;
+
+	/**
+	 * Contains Phi*alpha-y.
+	 */
 	Eigen::VectorXd phi_alpha_minus_y;
   };
 }

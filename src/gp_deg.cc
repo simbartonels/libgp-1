@@ -97,7 +97,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	const std::vector<double>& targets = sampleset->y();
 	Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 
-	llh_setup_Gamma();
+	llh_setup_Gamma(); //also calls llh_setup_other().
 
 	for (size_t i = 0; i < num_params - 1; i++) {
 		//let's start with dA
