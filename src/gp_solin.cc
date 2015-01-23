@@ -8,7 +8,7 @@ namespace libgp {
 libgp::SolinGaussianProcess::SolinGaussianProcess(size_t input_dim,
 		std::string covf_def, size_t num_basisf, std::string basisf_def) :
 		DegGaussianProcess(input_dim, covf_def, num_basisf, basisf_def) {
-	newDataPoints = false;
+	newDataPoints = true;
 	PhiPhi.resize(M, M);
 }
 
@@ -17,6 +17,7 @@ libgp::SolinGaussianProcess::~SolinGaussianProcess() {
 
 void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	newDataPoints = true;
+	//recompute_yy is updated in the parent method
 	DegGaussianProcess::updateCholesky(x, y);
 }
 
@@ -52,7 +53,7 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 }
 
 inline void libgp::SolinGaussianProcess::llh_setup_other() {
-	//do nothing
+	//do basically nothing
 	if (n > dPhidi.cols())
 		dPhidi.resize(M, n);
 }
