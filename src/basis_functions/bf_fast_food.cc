@@ -20,11 +20,11 @@ FastFood::~FastFood() {
 	wht_delete(wht_tree);
 }
 
-void FastFood::deletePIs(){
+void FastFood::deletePIs() {
 	while (!PIs.empty()) {
-			delete PIs.back();
-			PIs.pop_back();
-		}
+		delete PIs.back();
+		PIs.pop_back();
+	}
 }
 
 Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
@@ -56,22 +56,6 @@ Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		}
 	}
 	return phi;
-}
-
-Eigen::VectorXd FastFood::multiplyW_withStandardBasisVector(size_t dim) {
-	//TODO: the result of this can be precomputed!
-	Eigen::VectorXd result(M_intern * input_dim);
-	x.setZero();
-	x(dim) = 1;
-	for (size_t m = 0; m < M_intern; m++) {
-		temp.array() = b.col(m).array() * x.array();
-		wht_apply(wht_tree, 1, temp.data());
-		temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
-		wht_apply(wht_tree, 1, temp.data());
-		temp = s.col(m).cwiseProduct(temp);
-		result.segment(m * input_dim, input_dim) = temp.head(input_dim);
-	}
-	return result;
 }
 
 const Eigen::MatrixXd & libgp::FastFood::getInverseOfSigma() {
@@ -109,17 +93,16 @@ void libgp::FastFood::gradBasisFunction(SampleSet * sampleSet,
 	assert(Grad.size() == Phi.size());
 	if (p < input_dim) {
 		size_t n = sampleSet->size();
-		//TODO: use precomputed values
-		Eigen::VectorXd z = multiplyW_withStandardBasisVector(p);
 		for (size_t i = 0; i < n; i++) {
 			//TODO: a vectorized version is faster
 			double c = (sampleSet->x(i))(p) / ell(p);
 			Grad.col(i).head(M_intern * input_dim) = c
-					* z.cwiseProduct(
+					* He.col(p).cwiseProduct(
 							Phi.col(i).segment(M_intern * input_dim,
 									M_intern * input_dim));
 			Grad.col(i).segment(M_intern * input_dim, M_intern * input_dim) = c
-					* z.cwiseProduct(-Phi.col(i).head(M_intern * input_dim));
+					* He.col(p).cwiseProduct(
+							-Phi.col(i).head(M_intern * input_dim));
 			//can we assume here that the rest of the gradient is already set to zero? yes
 //			grad.tail(M - 2 * M_intern * input_dim).setZero();
 		}
@@ -185,18 +168,14 @@ size_t FastFood::get_param_dim_without_noise(size_t input_dim,
 bool libgp::FastFood::real_init() {
 	//TODO: check covariance function!
 
-	//next_pow = ilog2(input_dim) + 1;
 	int out;
 	std::frexp(input_dim - 1, &out);
 	next_pow = out;
 	next_input_dim = pow(2, next_pow);
-//	std::cout << "bf_fast_food: internal dimension " << next_input_dim
-//			<< std::endl;
 	assert(next_input_dim >= input_dim);
 	assert(pow(2, next_pow - 1) < input_dim);
 	assert(M >= 2 * input_dim);
 	M_intern = floor(M / 2 / input_dim);
-//	std::cout << "bf_fast_food: number of V matrices " << M_intern << std::endl;
 	assert(2 * M_intern * input_dim <= M);
 	ell.resize(input_dim);
 	Sigma.resize(M, M);
@@ -216,7 +195,12 @@ bool libgp::FastFood::real_init() {
 	x.resize(next_input_dim);
 	x.tail(next_input_dim - input_dim).fill(0);
 	temp.resize(next_input_dim);
+	He.resize(M_intern * input_dim, input_dim);
+	initializeMatrices();
+	return true;
+}
 
+inline void FastFood::initializeMatrices() {
 	for (size_t i = 0; i < M_intern; i++) {
 		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
 				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
@@ -241,8 +225,20 @@ bool libgp::FastFood::real_init() {
 		s.col(i) /= g.col(i).norm();
 	}
 	s /= sqrt(next_input_dim);
-//	std::cout << "bf_fast_food: initialization complete" << std::endl;
-	return true;
+
+	Eigen::VectorXd result(M_intern * input_dim);
+	for (size_t d = 0; d < input_dim; d++) {
+		x.setZero();
+		x(d) = 1;
+		for (size_t m = 0; m < M_intern; m++) {
+			temp.array() = b.col(m).array() * x.array();
+			wht_apply(wht_tree, 1, temp.data());
+			temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
+			wht_apply(wht_tree, 1, temp.data());
+			temp = s.col(m).cwiseProduct(temp);
+			He.col(d).segment(m * input_dim, input_dim) = temp.head(input_dim);
+		}
+	}
 }
 
 Eigen::MatrixXd FastFood::getS() {
@@ -281,14 +277,15 @@ Eigen::MatrixXd FastFood::getPI() {
 	return pi_matrix;
 }
 
-std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> FastFood::getPIs(){
+std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> FastFood::getPIs() {
 	return PIs;
 }
 
-void FastFood::setPIs(std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs) {
+void FastFood::setPIs(
+		std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs) {
 	deletePIs();
 	size_t els = PIs.size();
-	for(size_t i = 0; i < els; i++){
+	for (size_t i = 0; i < els; i++) {
 		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
 				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
 						next_input_dim);

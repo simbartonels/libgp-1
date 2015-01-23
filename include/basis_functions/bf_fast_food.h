@@ -95,11 +95,9 @@ public:
 	    void deletePIs();
 
 	    /**
-	     * Executes the multiplication W*e_k.
-	     * @param k the number of the standard basis vector
-	     * @return a vector of length M_intern * input_dim that contains the result.
+	     * Initializes the matrices B,G,S,Pi and He.
 	     */
-	    Eigen::VectorXd multiplyW_withStandardBasisVector(size_t p);
+	    inline void initializeMatrices();
 
 	    /**
 	     * Signal amplitude.
@@ -176,6 +174,11 @@ public:
 	     * Temporary structure used in multiplyW().
 	     */
 		Eigen::VectorXd temp;
+
+		/**
+		 * Matrix that contains the results of HGPiHBe_d where d in [1, ..., D].
+		 */
+		Eigen::MatrixXd He;
 
 		/**
 		 * Contains log(|Sigma|)/2.
