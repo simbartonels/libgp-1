@@ -32,6 +32,8 @@ namespace libgp {
   protected:
 
     virtual void computeCholesky();
+    virtual void update_alpha();
+
 
   protected:
     virtual inline void llh_setup_other();

@@ -96,6 +96,26 @@ namespace libgp {
      */
     double squared_noise;
 
+    /**
+     * Contains Phi*y.
+     */
+	Eigen::VectorXd Phiy;
+
+	/**
+	 * (Phi*y)^T*alpha
+	 */
+	double PhiyAlpha;
+
+	/**
+	 * Flag that signals whether new data points have been added or not.
+	 */
+	bool recompute_yy;
+
+	/**
+	 * y^T*y
+	 */
+	double yy;
+
   private:
     /**
      * Computes all contributions of Sigma to the derivative of the log-likelihood with respect
@@ -128,26 +148,6 @@ namespace libgp {
 	 * Cholesky decomposition of Phi*Phi^T.
 	 */
     Eigen::MatrixXd Lu;
-
-    /**
-     * Contains Phi*y.
-     */
-	Eigen::VectorXd Phiy;
-
-	/**
-	 * (Phi*y)^T*alpha
-	 */
-	double PhiyAlpha;
-
-	/**
-	 * Flag that signals whether new data points have been added or not.
-	 */
-	bool recompute_yy;
-
-	/**
-	 * y^T*y
-	 */
-	double yy;
 
 	/**
 	 * Space for d Sigma / d theta_i.

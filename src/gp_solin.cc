@@ -20,6 +20,19 @@ void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	DegGaussianProcess::updateCholesky(x, y);
 }
 
+void libgp::SolinGaussianProcess::update_alpha() {
+	if(recompute_yy){
+		const std::vector<double>& targets = sampleset->y();
+		Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
+		Phiy = Phi * y;
+		yy = y.squaredNorm();
+		recompute_yy = false;
+	}
+	alpha = L.triangularView<Eigen::Lower>().solve(Phiy);
+	L.transpose().triangularView<Eigen::Upper>().solveInPlace(alpha);
+	PhiyAlpha = Phiy.transpose() * alpha;
+}
+
 void libgp::SolinGaussianProcess::computeCholesky() {
 	DegGaussianProcess::update_internal_variables();
 	if (newDataPoints) {
