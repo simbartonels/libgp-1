@@ -103,10 +103,11 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 		//let's start with dA
 		if (!bf->gradBasisFunctionIsNull(i)) {
 			bf->gradBasisFunction(sampleset, Phi, i, dPhidi);
-			//the first sum() call is a workaround for Eigen not recognizing the result to be a scalar
+			//
 			/*
-			 * dividing by squared noise here is more efficient since alpha and phialpha-y have
-			 * more entries than this for loop has iterations.
+			 * The first sum() call is a workaround for Eigen not recognizing the result as scalar.
+			 * Dividing by squared noise in the loop is more efficient since alpha and phialpha-y have
+			 * more entries than this loop has iterations.
 			 */
 			gradient(i) =
 					((alpha.transpose() * dPhidi * phi_alpha_minus_y).sum()
@@ -125,6 +126,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 }
 
 inline double DegGaussianProcess::getSigmaGradient(size_t i){
+	//the check if this function needs to be called is done outside
 	bf->gradiSigma(i, diSigma);
 	/*
 	 * Hopefully the compiler can optimize the following branch, i.e. use that
@@ -143,13 +145,10 @@ inline double DegGaussianProcess::getSigmaGradient(size_t i){
 				- diSigma.diagonal().cwiseProduct(
 						bf->getSigma().diagonal()).sum()) / 2;
 	} else {
-		//these are the Sigma and |Sigma| parts from the derivatives of A and |A|
-		//we divert from the thesis here since we have the gradient of Sigma^-1
+		//same as above but using the whole matrix and not just the diagonal
 		return (
-		//no multiplication with sn2 since it cancels
 		(alpha.transpose() * diSigma * alpha
 				+ squared_noise * diSigma.cwiseProduct(Gamma).sum())
-		//and last but not least d log(|Sigma|)
 				- diSigma.cwiseProduct(bf->getSigma()).sum()) / 2;
 	}
 }
@@ -163,6 +162,7 @@ inline double DegGaussianProcess::getNoiseGradient(){
 				bf->getInverseOfSigma().diagonal()).sum();
 		alpha_iSigma_alpha = (alpha.array().square() * bf->getInverseOfSigma().diagonal().array()).sum();
 	} else {
+		//same as above but using the whole matrix and not just the diagonal
 		tr_iAiSigma = Gamma.cwiseProduct(bf->getInverseOfSigma()).sum();
 		alpha_iSigma_alpha = alpha.transpose() * bf->getInverseOfSigma() * alpha;
 	}
