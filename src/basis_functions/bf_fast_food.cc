@@ -5,6 +5,7 @@
 #include "basis_functions/bf_fast_food.h"
 
 #include "cov_factory.h"
+#include "cov.h"
 
 #include "cov_se_ard.h"
 #include "cov_sum.h"
@@ -43,17 +44,11 @@ Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
 		temp = s.col(m).cwiseProduct(temp);
-		//TODO: is the part below faster than the for loop? if so fix it
-		//TODO: read again the documentation for segment!
-//		phi.segment((M_intern + m) * input_dim,
-//				(M_intern + m) * input_dim + input_dim).array() = temp.head(
-//				input_dim).array().cos();
-//		phi.segment(m * input_dim, m * input_dim + input_dim).array() = temp.head(
-//				input_dim).array().sin();
-		for (size_t j = 0; j < input_dim; j++) {
-			phi(m * input_dim + j) = cos(temp(j));
-			phi((M_intern + m) * input_dim + j) = sin(temp(j));
-		}
+		phi.segment((M_intern + m) * input_dim,
+				input_dim).array() = temp.head(
+				input_dim).array().sin();
+		phi.segment(m * input_dim, input_dim).array() = temp.head(
+				input_dim).array().cos();
 	}
 	return phi;
 }
@@ -94,7 +89,6 @@ void libgp::FastFood::gradBasisFunction(SampleSet * sampleSet,
 	if (p < input_dim) {
 		size_t n = sampleSet->size();
 		for (size_t i = 0; i < n; i++) {
-			//TODO: a vectorized version is faster
 			double c = (sampleSet->x(i))(p) / ell(p);
 			Grad.col(i).head(M_intern * input_dim) = c
 					* He.col(p).cwiseProduct(
@@ -120,11 +114,11 @@ bool FastFood::gradBasisFunctionIsNull(size_t p) {
 
 void libgp::FastFood::gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp) {
 	if (p == input_dim) {
-		//TODO: this could be more efficient
-		diSigmadp.setIdentity();
+		//we may assume that diSigmadp is initialized with 0s before the first call
+//		diSigmadp.setIdentity();
 //		dSigmadp.diagonal().fill(2 * sf2 / M_intern / input_dim);
 		diSigmadp.diagonal().fill(-2. * M_intern * input_dim / sf2);
-		diSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
+//		diSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
 	} else {
 		//in an efficient implementation this function will not be called in this case
 		diSigmadp.setZero();
@@ -166,7 +160,16 @@ size_t FastFood::get_param_dim_without_noise(size_t input_dim,
 }
 
 bool libgp::FastFood::real_init() {
-	//TODO: check covariance function!
+	CovFactory f;
+	CovarianceFunction * expectedCov;
+	expectedCov = f.create(input_dim, "CovSum ( CovSEard, CovNoise)");
+	if (cov->to_string() != expectedCov->to_string()) {
+		std::cerr
+				<< "This implementation of FastFood"
+						" is only applicable for covariance function: "
+				<< expectedCov->to_string() << std::endl;
+		return false;
+	}
 
 	int out;
 	std::frexp(input_dim - 1, &out);
