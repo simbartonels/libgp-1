@@ -33,9 +33,9 @@ using namespace libgp;
 		diff.array() = diff.array().abs();
 		diff.array() /= (impl->computeBasisFunctionVector(x).array().abs() + 1e-30);
 
-		assert(diff.array().abs().maxCoeff() < 1e-5);
-
 		compare_time(f1bf, f2bf, 20);
+
+		assert(diff.array().abs().maxCoeff() < 1e-5);
 	}
 
 	static SampleSet * sampleSet;
@@ -129,10 +129,10 @@ using namespace libgp;
 
 //		impl = new MultiScale();
 //		naive = new MultiScaleNaive();
-//		naive = new FastFoodNaive();
-//		impl = new FastFood();
-		impl = new Solin();
-		naive = new SolinNaive();
+		naive = new FastFoodNaive();
+		impl = new FastFood();
+//		impl = new Solin();
+//		naive = new SolinNaive();
 
 		impl->init(M, cov);
 		std::cout << "initialization of impl complete" << std::endl;
@@ -144,11 +144,11 @@ using namespace libgp;
 		impl->set_loghyper(p);
 		naive->set_loghyper(p);
 
-//		initFastFood();
+		initFastFood();
 
-		testSpeedOfGradiSigma();
+//		testSpeedOfGradiSigma();
 //		testSpeedOfGradBasisFunction();
-//		testSpeedOfBasisFunction();
+		testSpeedOfBasisFunction();
 
 		delete impl;
 		delete naive;
