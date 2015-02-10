@@ -41,12 +41,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	 * they are copied, one column at a time, into one long
 	 * string array. */
 	int status = mxGetString(prhs[0], input_buf, buflen);
+
 	if (status != 0) {
 		//something went wrong
 	}
 	std::string bf_name(input_buf);
+	std::cout << "bfmex: Using basis function: " << bf_name << std::endl;
 	seed = (size_t) mxGetScalar(prhs[1]);
 	M = (size_t) mxGetScalar(prhs[2]);
+	if(M == 0){
+		std::cout << "bfmex: M must be greater 0!" << std::endl;
+		exit(-1);
+	}
 	p = mxGetM(prhs[3]);
 	n = mxGetM(prhs[4]);
 	D = mxGetN(prhs[4]);
@@ -62,10 +68,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[4]), n,
 			D);
+
 	plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
+
 	Eigen::MatrixXd Phi(M, n);
 	for (size_t i = 0; i < n; i++)
 		Phi.col(i) = bf->computeBasisFunctionVector(X.row(i));
+
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, n) = Phi;
 	if (nrhs > 5) {
 		//we want the gradients
