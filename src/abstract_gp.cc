@@ -197,7 +197,8 @@ Eigen::VectorXd AbstractGaussianProcess::getAlpha(){
 
 Eigen::MatrixXd AbstractGaussianProcess::getL(){
 	compute();
-	return L;
+	//make sure that the upper part is deleted
+	return L.triangularView<Eigen::Lower>();
 }
 
 
