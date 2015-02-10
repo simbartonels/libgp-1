@@ -17,9 +17,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t D;
 	size_t n;
 	size_t p;
-	if (nrhs != 4 || nlhs < 2) { /* check the input */
+	if (nrhs < 4 || nlhs < 2) { /* check the input */
 		mexErrMsgTxt(
-				"Usage: [alpha, L, nlZ, dnlZ, s, g, pi, b] = infFastFoodmex(M, unwrap(hyp), x, y)");
+				"Usage: [alpha, L, nlZ, dnlZ, s, g, pi, b] = infFastFoodmex(M, unwrap(hyp), x, y, seed)");
 	}
 	M = (size_t) mxGetScalar(prhs[0]);
 	n = mxGetM(prhs[2]);
@@ -28,8 +28,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	std::cout << "number of basis function: " << M << std::endl;
 	std::cout << "number of points: " << n << std::endl;
 	p = mxGetM(prhs[1]);
+	size_t seed = (size_t) time(0);
+	if(nrhs >= 5)
+		seed = (size_t) mxGetScalar(prhs[4]);
 	libgp::DegGaussianProcess gp(D, "CovSum ( CovSEard, CovNoise)", M,
-			"FastFood");
+			"FastFood", seed);
 	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[1]),
 			p);
 
@@ -67,6 +70,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				plhs[5] = mxCreateDoubleMatrix(M, D, mxREAL);
 				plhs[6] = mxCreateDoubleMatrix(M, D, mxREAL);
 				plhs[7] = mxCreateDoubleMatrix(M, D, mxREAL);
+				//TODO: does this still work?
 				Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[4]), M, D) =
 						bf->getS();
 				Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[5]), M, D) =
