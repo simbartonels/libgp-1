@@ -204,6 +204,7 @@ bool libgp::FastFood::real_init() {
 }
 
 inline void FastFood::initializeMatrices() {
+	srand(seed);
 	for (size_t i = 0; i < M_intern; i++) {
 		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
 				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
