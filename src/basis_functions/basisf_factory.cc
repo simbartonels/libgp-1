@@ -27,17 +27,29 @@ BasisFFactory::BasisFFactory () {
   BasisFFactory::~BasisFFactory () {};
   
   IBasisFunction* BasisFFactory::createBasisFunction(const std::string key, size_t num_basisf, CovarianceFunction * wrapped_cov_func) {
-    IBasisFunction * bf = NULL;
-
-    std::map<std::string , BasisFFactory::create_func_def>::iterator it = registry.find(key);
-    if (it == registry.end()) {
-      std::cerr << "fatal error while parsing basis function: " << key << " not found" << std::endl;
-      exit(0);
-    } 
-    bf = registry.find(key)->second();
+    IBasisFunction * bf = findBasisFunction(key);
     bool initialized = bf->init(num_basisf, wrapped_cov_func);
     assert(initialized);
     return bf;
+  }
+
+  IBasisFunction* BasisFFactory::createBasisFunction(const std::string key, size_t num_basisf, CovarianceFunction * wrapped_cov_func, size_t seed) {
+    IBasisFunction * bf = findBasisFunction(key);
+	bool initialized = bf->init(num_basisf, wrapped_cov_func, seed);
+    assert(initialized);
+    return bf;
+  }
+
+  IBasisFunction* BasisFFactory::findBasisFunction(const std::string key){
+	    IBasisFunction * bf = NULL;
+
+	    std::map<std::string , BasisFFactory::create_func_def>::iterator it = registry.find(key);
+	    if (it == registry.end()) {
+	      std::cerr << "fatal error while parsing basis function: " << key << " not found" << std::endl;
+	      exit(0);
+	    }
+	    bf = registry.find(key)->second();
+	    return bf;
   }
 
   std::vector<std::string> BasisFFactory::list()

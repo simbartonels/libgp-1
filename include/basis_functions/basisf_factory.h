@@ -36,10 +36,21 @@ public:
 	 */
 	libgp::IBasisFunction* createBasisFunction(const std::string key, size_t M, CovarianceFunction * wrapped_cov_func);
 
+	/**
+	 *  Creates an instance of CovarianceFunction that implements IBasisFunction.
+	 *  @param key string representation of a basis function
+	 *  @param M the number of basis functions
+	 *  @param wrapped_cov_func the wrapped covariance function
+	 *  @param seed for random number generation
+	 *  @return instance of IBasisFunction
+	 */
+	libgp::IBasisFunction* createBasisFunction(const std::string key, size_t M, CovarianceFunction * wrapped_cov_func, size_t seed);
+
 	/** Returns a string vector of available covariance functions. */
 	std::vector<std::string> list();
 
 private:
+	IBasisFunction * findBasisFunction(const std::string key);
 	typedef IBasisFunction*(*create_func_def)();
 	std::map<std::string, BasisFFactory::create_func_def> registry;
 };

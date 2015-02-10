@@ -17,11 +17,11 @@ namespace libgp {
 const double log2piOver2 = log(2 * M_PI) / 2;
 
 libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
-		std::string covf_def, size_t num_basisf, std::string basisf_def) :
+		std::string covf_def, size_t num_basisf, std::string basisf_def, size_t seed) :
 		AbstractGaussianProcess(input_dim, covf_def) {
 	BasisFFactory factory;
 	//wrap initialized covariance function with basis function
-	cf = factory.createBasisFunction(basisf_def, num_basisf, cf);
+	cf = factory.createBasisFunction(basisf_def, num_basisf, cf, seed);
 	cf->loghyper_changed = 0;
 	recompute_yy = true;
 	bf = (IBasisFunction *) cf;
@@ -42,6 +42,12 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 	dPhidi.setZero();
 
 }
+
+libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
+		std::string covf_def, size_t num_basisf, std::string basisf_def) :
+				DegGaussianProcess::DegGaussianProcess(input_dim, covf_def, num_basisf, basisf_def, (size_t) time(0)){
+}
+
 
 libgp::DegGaussianProcess::~DegGaussianProcess() {
 }

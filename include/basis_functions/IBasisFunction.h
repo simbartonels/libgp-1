@@ -27,23 +27,36 @@ public:
 		return false;
 	}
 
-	/** Initialization method for atomic basis functions.
+	/** Initialization method for atomic basis functions. Randomly initializes a seed and calls
+	 * init(M, wrappeCov, seed).
 	 *  @param M the number of basis functions
 	 *  @param wrappedCovFunc the wrapped covariance function
 	 *  @return true if initialization was successful.
 	 */
 	bool init(size_t M, CovarianceFunction * wrappedCovFunc) {
+		size_t seed = (size_t) time(0);
+		return init(M, wrappedCovFunc, seed);
+	}
+	;
+
+	/** Initialization method for atomic basis functions.
+	 *  @param M the number of basis functions
+	 *  @param wrappedCovFunc the wrapped covariance function
+	 *  @param seed for random numbers
+	 *  @return true if initialization was successful.
+	 */
+	bool init(size_t M, CovarianceFunction * wrappedCovFunc, size_t seed){
 		//TODO (Simon): refactor. this is actually already a lot of functionality for a header file
 		input_dim = wrappedCovFunc->get_input_dim();
 
 		this->M = M;
+		this->seed = seed;
 		cov = wrappedCovFunc;
 		//+1 for noise
 		param_dim = get_param_dim_without_noise(input_dim, M) + 1;
 		loghyper.resize(param_dim);
 		return real_init();
 	}
-	;
 
 	/**
 	 * Writes k(x, x) into diag where diag is of size sampleSet->size().
@@ -240,6 +253,8 @@ protected:
 	size_t M;
 
 	CovarianceFunction * cov;
+
+	size_t seed;
 };
 }
 
