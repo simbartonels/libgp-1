@@ -8,7 +8,7 @@ files1 = [files, '../spiral_wht/spiral_wht.c ../spiral_wht/s_*.c ../spiral_wht/w
 %eval(['mex -O infFastFoodmex.cc -I../include -I../spiral_wht -I/usr/include/eigen3 ', files1, ' DBESTTREE = ', BESTTREE]);
 
 %eval(['mex -O infFastFoodmex.cc -Llibwht.a -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
-eval(['mex -O infFastFoodmex.cc libwht.a -DBUILD_FAST_FOOD -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
+eval(['mex -O bfmex.cc libwht.a -DBUILD_FAST_FOOD -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
 %TODO: one of the reasons this line fails could be a 32 / 64 bit issue
 %files='../../build/libgp.a';
 %eval(['mex -O bfmex.cc -I../include -I/usr/include/eigen3 -I../spiral_wht ', files]);
