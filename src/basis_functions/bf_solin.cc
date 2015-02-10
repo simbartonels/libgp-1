@@ -11,6 +11,8 @@ namespace libgp {
 
 libgp::Solin::Solin():
 		//since our input data is normalized we can fix L:=1.2
+		//FIXME: that is not true!!! there could still be data points going beyond [-1,1]
+		//or wait: do they not because they are divided by the standard deviation?
 		L(1.2), sqrtL(sqrt(1.2)) {
 }
 
@@ -117,7 +119,6 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	Eigen::VectorXd lambdaSquared(input_dim);
 	logDetSigma = 0;
 
-	counter.fill(1);
 	for (size_t i = 0; i < MToTheD; i++) {
 		lambdaSquared.array() = piOverLOver2Sqrd
 				* indices.row(i).array().square().cast<double>();
@@ -127,7 +128,7 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 		choliSigma.diagonal()(i) = 1 / sqrt(value);
 		logDetSigma += log(value);
 	}
-	//logDetSigma is supposed to contain half of the lot determinant
+	//logDetSigma is supposed to contain half of the log determinant
 	logDetSigma /= 2;
 }
 
