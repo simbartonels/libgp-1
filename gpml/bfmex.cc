@@ -39,17 +39,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[4]), n,
 			D);
-	if (nrhs == 5) {
-		plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
-		Eigen::MatrixXd Phi(M, n);
-		for (size_t i = 0; i < n; i++)
-			Phi.col(i) = bf->computeBasisFunctionVector(X.col(i));
-		Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, n) = Phi;
-	} else {
-		//we want the gradients as well
+	plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
+	Eigen::MatrixXd Phi(M, n);
+	for (size_t i = 0; i < n; i++)
+		Phi.col(i) = bf->computeBasisFunctionVector(X.row(i));
+	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, n) = Phi;
+	if(nrhs > 5) {
+		//we want the gradients
 		std::cout << "gradients not implemented" << std::endl;
-		plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
-		Eigen::MatrixXd Phi(M, n);
 		Phi.setZero();
 //		for (size_t i = 0; i < n; i++)
 //			Phi.col(i) = bf->gradBasisFunction(X.col(i));

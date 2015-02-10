@@ -70,7 +70,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				plhs[5] = mxCreateDoubleMatrix(M, D, mxREAL);
 				plhs[6] = mxCreateDoubleMatrix(M, D, mxREAL);
 				plhs[7] = mxCreateDoubleMatrix(M, D, mxREAL);
-				//TODO: does this still work?
 				Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[4]), M, D) =
 						bf->getS();
 				Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[5]), M, D) =
