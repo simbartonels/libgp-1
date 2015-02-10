@@ -117,7 +117,7 @@ void libgp::FastFood::gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp) {
 		//we may assume that diSigmadp is initialized with 0s before the first call
 //		diSigmadp.setIdentity();
 //		dSigmadp.diagonal().fill(2 * sf2 / M_intern / input_dim);
-		diSigmadp.diagonal().fill(-2. * M_intern * input_dim / sf2);
+		diSigmadp.diagonal().head(2 * M_intern * input_dim).fill(-2. * M_intern * input_dim / sf2);
 //		diSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
 	} else {
 		//in an efficient implementation this function will not be called in this case
