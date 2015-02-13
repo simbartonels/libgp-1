@@ -43,9 +43,36 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 
 }
 
+//libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
+//		std::string covf_def, size_t num_basisf, std::string basisf_def) :
+//				DegGaussianProcess::DegGaussianProcess(input_dim, covf_def, num_basisf, basisf_def, (size_t) time(0)){
+//}
+//TODO: refactor
 libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 		std::string covf_def, size_t num_basisf, std::string basisf_def) :
-				DegGaussianProcess::DegGaussianProcess(input_dim, covf_def, num_basisf, basisf_def, (size_t) time(0)){
+		AbstractGaussianProcess(input_dim, covf_def) {
+	BasisFFactory factory;
+	//wrap initialized covariance function with basis function
+	cf = factory.createBasisFunction(basisf_def, num_basisf, cf);
+	cf->loghyper_changed = 0;
+	recompute_yy = true;
+	bf = (IBasisFunction *) cf;
+	sigmaIsDiagonal = bf->sigmaIsDiagonal();
+	log_noise = bf->getLogNoise();
+	squared_noise = exp(2 * log_noise);
+	M = bf->getNumberOfBasisFunctions();
+	alpha.resize(M);
+	Phiy.resize(M);
+	L.resize(M, M);
+	k_star.resize(M);
+	temp.resize(M);
+	Gamma.resize(M, M);
+
+	diSigma.resize(M, M);
+	diSigma.setZero();
+	dPhidi.resize(M, 1);
+	dPhidi.setZero();
+
 }
 
 
