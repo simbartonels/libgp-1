@@ -8,6 +8,8 @@
 #include "cov.h"
 #include "sampleset.h"
 
+#include "time.h"
+
 namespace libgp {
 class IBasisFunction: public CovarianceFunction {
 	/**
