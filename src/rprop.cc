@@ -43,7 +43,7 @@ void RProp::maximize(AbstractGaussianProcess * gp, size_t n, bool verbose)
 
   for (size_t i=0; i<n; ++i) {
 	  double lik = step(gp, best, Delta, grad_old, params, best_params);
-	  if(lik == NAN)
+	  if(std::isnan(lik))
 		  break;
 	  if (verbose) std::cout << i << " " << -lik << std::endl;
   }
@@ -65,8 +65,9 @@ void RProp::maximize(AbstractGaussianProcess * gp, Eigen::MatrixXd & param_histo
 	  for (size_t i=0; i<n; ++i){
 		  double lik = step(gp, best, Delta, grad_old, params, best_params);
 		  double t = tic() - start;
-		  if(lik == NAN)
+		  if(std::isnan(lik))
 			  break;
+		  std::cout << i << " " << -lik << std::endl;
 		  param_history.col(i).tail(param_dim) = params;
 		  param_history(0, i) = t;
 	  }
