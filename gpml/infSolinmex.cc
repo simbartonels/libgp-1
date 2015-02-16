@@ -19,9 +19,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	M = (size_t) mxGetScalar(prhs[0]);
 	n = mxGetM(prhs[2]);
 	D = mxGetN(prhs[2]);
-	std::cout << "input dimensionality: " << D << std::endl;
-	std::cout << "number of basis function: " << M << std::endl;
-	std::cout << "number of points: " << n << std::endl;
+	//std::cout << "input dimensionality: " << D << std::endl;
+	//std::cout << "number of basis function: " << M << std::endl;
+	//std::cout << "number of points: " << n << std::endl;
 	p = mxGetM(prhs[1]);
 	libgp::DegGaussianProcess gp(D, "CovSum ( CovSEard, CovNoise)", M,
 			"Solin");

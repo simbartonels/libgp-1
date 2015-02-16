@@ -46,7 +46,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		//something went wrong
 	}
 	std::string bf_name(input_buf);
-	std::cout << "bfmex: Using basis function: " << bf_name << std::endl;
+//	std::cout << "bfmex: Using basis function: " << bf_name << std::endl;
 	seed = (size_t) mxGetScalar(prhs[1]);
 	M = (size_t) mxGetScalar(prhs[2]);
 	if(M == 0){
