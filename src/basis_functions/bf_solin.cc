@@ -140,7 +140,7 @@ inline void Solin::incCounter(Eigen::VectorXi & counter) {
 	for (size_t idx = 0; idx < input_dim; idx++) {
 		size_t c = counter(idx) + 1;
 		//overflow ?
-		if (c == M_intern)
+		if (c == M_intern + 1)
 			c = 1;
 		counter(idx) = c;
 		//no overflow, no need to increase the next values
