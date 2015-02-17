@@ -22,13 +22,11 @@
 #define NAN (INFINITY-INFINITY)
 #endif
 
-static bool isnan(double d){
 #ifdef _MSC_VER
+static bool isnan(double d){
 	return _isnan(d);
-#else
-	return std::isnan(d);
-#endif
 }
+#endif
 
 static double tic() {
 #if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
