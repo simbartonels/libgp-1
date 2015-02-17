@@ -49,6 +49,9 @@ namespace libgp {
      *  @return predicted variance */
     double var(const double x[]);
 
+    /**
+     * Returns the POSITIVE log-likelihood.
+     */
     double log_likelihood();
 
     Eigen::VectorXd log_likelihood_gradient();
