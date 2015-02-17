@@ -7,8 +7,6 @@
 #include <Eigen/Dense>
 #include <iostream>
 
-//extern int dpotrs_(char *, long *, long *, double *, long *, double *, long *, long *);
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t M;
 	size_t D;
@@ -27,7 +25,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			"Solin");
 	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[1]),
 			p);
-//	std::cout << "bf_multi_scale: params" << std::endl << params << std::endl;
 
 	gp.covf().set_loghyper(params);
 
@@ -35,9 +32,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[2]), n,
 			D);
 
-	for (size_t i=0; i < n; i++) {
+	for (size_t i=0; i < n; i++)
 		gp.add_pattern(X.row(i), y(i));
-	}
 
 	plhs[0] = mxCreateDoubleMatrix(M, 1, mxREAL); /* allocate space for output */
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), M) = gp.getAlpha();
