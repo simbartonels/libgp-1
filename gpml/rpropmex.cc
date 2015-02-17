@@ -134,8 +134,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt(ss.str().c_str());
 		return;
 	}
+	mexPrintf("rpropmex: Initializating GP.\n");
 	gp->covf().set_loghyper(params);
-	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.");
+	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
 	libgp::RProp rprop;
 	if (nlhs == 2) {
 		plhs[1] = mxCreateDoubleMatrix(p + 1, iters, mxREAL);
@@ -144,7 +145,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[1]), p + 1, iters) =
 				theta_over_time;
 	} else if (nlhs == 1) {
-		rprop.maximize(gp, iters, false);
+		rprop.maximize(gp, iters, true);
 	}
 	plhs[0] = mxCreateDoubleMatrix(p, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), p) =
