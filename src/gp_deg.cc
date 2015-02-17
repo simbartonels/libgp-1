@@ -92,7 +92,7 @@ double libgp::DegGaussianProcess::log_likelihood_impl() {
 	double halfLogDetA = L.diagonal().array().log().sum();
 	double llh = (yy - PhiyAlpha) / squared_noise / 2 + halfLogDetA
 			+ halfLogDetSigma + (n - M) * log_noise + n * log2piOver2;
-	return llh;
+	return -llh;
 }
 
 void inline DegGaussianProcess::llh_setup_other(){
@@ -155,7 +155,7 @@ Eigen::VectorXd libgp::DegGaussianProcess::log_likelihood_gradient_impl() {
 	}
 
 	gradient(num_params - 1) = getNoiseGradient();
-	return gradient;
+	return -gradient;
 }
 
 inline double DegGaussianProcess::getSigmaGradient(size_t i){
