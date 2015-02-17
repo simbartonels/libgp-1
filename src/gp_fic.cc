@@ -98,7 +98,7 @@ void FICGaussianProcess::computeCholesky() {
 	 * lower matrices.
 	 */
 //	LuuLu = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>() * Lu.triangularView<Eigen::Lower>();
-	//TODO: check if the line above is faster
+	//TODO: check if the line above is faster. The line above should be safer! (Junk!)
 	LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
 	//a solveInPlace with L.setIdentity() is not faster
 	L = LuuLu.triangularView<Eigen::Lower>().solve(
@@ -144,14 +144,14 @@ void FICGaussianProcess::update_alpha() {
 
 double FICGaussianProcess::log_likelihood_impl() {
 	size_t n = sampleset->size();
-	return Lu.diagonal().array().log().sum()
+	double llh = Lu.diagonal().array().log().sum()
 			+ (-beta.squaredNorm() + dg.array().log().sum() + r.squaredNorm()
 					+ n * log2pi) / 2;
+	return -llh;
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	//TODO: move stuff that is parameter independent to computeAlpha or something
-	//TODO: move allocations to constructor
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
 	const std::vector<double>& targets = sampleset->y();
@@ -255,6 +255,6 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above
-	return gradient;
+	return -gradient;
 }
 }
