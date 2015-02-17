@@ -135,6 +135,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 	gp->covf().set_loghyper(params);
+	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.");
 	libgp::RProp rprop;
 	if (nlhs == 2) {
 		plhs[1] = mxCreateDoubleMatrix(p + 1, iters, mxREAL);

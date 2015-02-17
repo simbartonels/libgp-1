@@ -8,15 +8,37 @@
 
 #include "rprop.h"
 #include "gp_utils.h"
-
-#include <sys/time.h>
+#define NOMINMAX //to prevent windows headers from introducing MIN MAX macros
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
+	#include "winsock2.h"
+#else
+	#include <sys/time.h>
+#endif
 #include <cmath>
 
+#ifdef _MSC_VER
+#include <float.h>
+#define INFINITY (DBL_MAX+DBL_MAX)
+#define NAN (INFINITY-INFINITY)
+#endif
+
+static bool isnan(double d){
+#ifdef _MSC_VER
+	return _isnan(d);
+#else
+	return std::isnan(d);
+#endif
+}
+
 static double tic() {
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
+	return GetTickCount() / 1000.0;
+#else
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	double time_in_seconds = now.tv_sec + now.tv_usec / 1000000.0;
 	return time_in_seconds;
+#endif
 }
 
 namespace libgp {
@@ -43,7 +65,7 @@ void RProp::maximize(AbstractGaussianProcess * gp, size_t n, bool verbose)
 
   for (size_t i=0; i<n; ++i) {
 	  double lik = step(gp, best, Delta, grad_old, params, best_params);
-	  if(std::isnan(lik))
+	  if(isnan(lik))
 		  break;
 	  if (verbose) std::cout << i << " " << -lik << std::endl;
   }
@@ -65,7 +87,7 @@ void RProp::maximize(AbstractGaussianProcess * gp, Eigen::MatrixXd & param_histo
 	  for (size_t i=0; i<n; ++i){
 		  double lik = step(gp, best, Delta, grad_old, params, best_params);
 		  double t = tic() - start;
-		  if(std::isnan(lik))
+		  if(isnan(lik))
 			  break;
 		  std::cout << i << " " << -lik << std::endl;
 		  param_history.col(i).tail(param_dim) = params;
