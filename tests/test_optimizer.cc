@@ -46,6 +46,7 @@ TEST_F(OptimizerTest, Rprop)
   Eigen::VectorXd params(param_dim);
   params << -1, -1, -1;
   gp->covf().set_loghyper(params);
+  double llh_old = gp->log_likelihood();
 
   libgp::RProp rprop;
   rprop.init();
@@ -53,6 +54,8 @@ TEST_F(OptimizerTest, Rprop)
 
   ASSERT_NEAR(0, gp->covf().get_loghyper()(0), 0.2);
   ASSERT_NEAR(0, gp->covf().get_loghyper()(1), 0.2);
+
+  ASSERT_GE(gp->log_likelihood(), llh_old);
 }
 
 TEST_F(OptimizerTest, CG) 
