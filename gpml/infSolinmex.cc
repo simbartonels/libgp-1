@@ -40,10 +40,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	plhs[1] = mxCreateDoubleMatrix(M, M, mxREAL);
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[1]), M, M) = gp.getL();
 	if(nlhs >= 3){
-		double nlZ = gp.log_likelihood();
+		double nlZ = -gp.log_likelihood();
 		plhs[2] = mxCreateDoubleScalar(nlZ);
 		if(nlhs >= 4){
-			Eigen::VectorXd grads = gp.log_likelihood_gradient();
+			Eigen::VectorXd grads = -gp.log_likelihood_gradient();
 			size_t params = grads.size();
 			plhs[3] = mxCreateDoubleMatrix(params, 1, mxREAL); /* allocate space for output */
 			Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), params) = grads;
