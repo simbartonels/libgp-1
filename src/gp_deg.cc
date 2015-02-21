@@ -81,7 +81,7 @@ libgp::DegGaussianProcess::~DegGaussianProcess() {
 
 double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 	temp = L.triangularView<Eigen::Lower>().solve(k_star);
-	return squared_noise * temp.squaredNorm();
+	return squared_noise * temp.squaredNorm() + squared_noise;
 }
 
 double libgp::DegGaussianProcess::log_likelihood_impl() {
