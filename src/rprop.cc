@@ -20,11 +20,12 @@
 #include <float.h>
 #define INFINITY (DBL_MAX+DBL_MAX)
 #define NAN (INFINITY-INFINITY)
-#endif
-
-#ifdef _MSC_VER
 static bool isnan(double d){
 	return _isnan(d);
+}
+#else
+static bool isnan(double d){
+	return std::isnan(d);
 }
 #endif
 
@@ -91,6 +92,65 @@ void RProp::maximize(AbstractGaussianProcess * gp, Eigen::MatrixXd & param_histo
 		  param_history.col(i).tail(param_dim) = params;
 		  param_history(0, i) = t;
 	  }
+	  gp->covf().set_loghyper(best_params);
+}
+
+void RProp::maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX,
+		Eigen::VectorXd & times, Eigen::MatrixXd & param_history, Eigen::MatrixXd & meanY,
+		Eigen::MatrixXd & varY, Eigen::VectorXd & nllh, Eigen::MatrixXd & train_meanY){
+	  int param_dim = gp->covf().get_param_dim();
+	  size_t iters = times.size();
+	  size_t input_dim = gp->get_input_dim();
+	  size_t n = gp->get_sampleset_size();
+	  size_t n_test = testX.rows();
+	  assert(testX.cols() == input_dim);
+	  assert(param_history.rows() == param_dim);
+	  assert(param_history.cols() == iters);
+	  assert(meanY.rows() == n_test);
+	  assert(meanY.cols() == iters);
+	  assert(varY.size() == meanY.size());
+	  assert(nllh.size() == iters);
+	  assert(train_meanY.rows() == testX.rows());
+	  assert(train_meanY.cols() == iters);
+	  Eigen::VectorXd Delta = Eigen::VectorXd::Ones(param_dim) * Delta0;
+	  Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
+	  Eigen::VectorXd params = gp->covf().get_loghyper();
+	  Eigen::VectorXd best_params = params;
+	  double best = log(0.0);
+
+	  std::cout << "rprop X(0): " << gp->get_input_pattern(0).transpose() << std::endl;
+
+	  Eigen::VectorXd testx(input_dim);
+	  double start = tic();
+	  for (size_t i=0; i<iters; ++i){
+		  double lik = step(gp, best, Delta, grad_old, params, best_params);
+		  double t = tic() - start;
+		  if(isnan(lik))
+			  break;
+		  std::cout << i << " " << -lik << std::endl;
+		  param_history.col(i) = params;
+		  times(i) = t;
+		  nllh(i) = -best; //best has been updated in step
+		  if(lik == best){
+			  //compute mean and variance for all test inputs
+			  for(size_t j = 0; j < testX.rows(); j++){
+				  meanY(j, i) = gp->f(testX.row(j));
+				  varY(j, i) = gp->var(testX.row(j));
+			  }
+			  for(size_t j = 0; j < n; j++){
+				  std::cout << gp->f(gp->get_input_pattern(j)) << " ";
+				  train_meanY(j, i) = gp->f(gp->get_input_pattern(j));
+			  }
+		  }
+		  else{
+			  //just copy results from last prediction
+			  meanY.col(i) = meanY.col(i-1);
+			  varY.col(i) = varY.col(i-1);
+			  train_meanY.col(i) = train_meanY.col(i-1);
+		  }
+	  }
+//	  std::cout << "rprop: f(X(0)): " << gp->f(gp->get_input_pattern(0)) << std::endl;
+//	  std::cout << "rprop: train_mean: " << train_meanY.transpose() << std::endl;
 	  gp->covf().set_loghyper(best_params);
 }
 
