@@ -43,11 +43,13 @@ namespace libgp {
      *  @param x input vector
      *  @return predicted value */
     double f(const double x[]);
+    double f(const Eigen::VectorXd & x);
 
     /** Predict variance of prediction for given input.
      *  @param x input vector
      *  @return predicted variance */
     double var(const double x[]);
+    double var(const Eigen::VectorXd & x);
 
     /**
      * Returns the POSITIVE log-likelihood.
@@ -63,6 +65,8 @@ namespace libgp {
      */
     void add_pattern(const double x[], double y);
     void add_pattern(const Eigen::VectorXd & x, double y);
+
+    const Eigen::VectorXd & get_input_pattern(size_t i);
 
 
     bool set_y(size_t i, double y);

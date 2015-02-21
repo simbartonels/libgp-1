@@ -112,24 +112,36 @@ void AbstractGaussianProcess::write(const char * filename)
   outfile.close();
 }
 
+const Eigen::VectorXd & AbstractGaussianProcess::get_input_pattern(size_t i){
+	return sampleset->x(i);
+}
+
 
 double AbstractGaussianProcess::f(const double x[])
 {
-  if (sampleset->empty()) return 0;
   Eigen::Map<const Eigen::VectorXd> x_star(x, input_dim);
+  return f(x_star);
+}
+
+double AbstractGaussianProcess::f(const Eigen::VectorXd & x){
+  if (sampleset->empty()) return 0;
   compute();
-  update_k_star(x_star);
+  update_k_star(x);
   return k_star.dot(alpha);
 }
 
 
 double AbstractGaussianProcess::var(const double x[])
 {
-  if (sampleset->empty()) return 0;
   Eigen::Map<const Eigen::VectorXd> x_star(x, input_dim);
+  return var(x_star);
+}
+
+double AbstractGaussianProcess::var(const Eigen::VectorXd & x){
+  if (sampleset->empty()) return 0;
   compute();
-  update_k_star(x_star);
-  return var_impl(x_star);
+  update_k_star(x);
+  return var_impl(x);
 }
 
 double AbstractGaussianProcess::log_likelihood()
