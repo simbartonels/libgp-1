@@ -1,4 +1,4 @@
-//TODO: copy&paste code! write a base class!
+#include "gp_solin.h"
 #include "gp_deg.h"
 
 #include "mex.h"
@@ -21,7 +21,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	//std::cout << "number of basis function: " << M << std::endl;
 	//std::cout << "number of points: " << n << std::endl;
 	p = mxGetM(prhs[1]);
-	libgp::DegGaussianProcess gp(D, "CovSum ( CovSEard, CovNoise)", M,
+	libgp::SolinGaussianProcess gp(D, "CovSum ( CovSEard, CovNoise)", M,
 			"Solin");
 	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[1]),
 			p);
