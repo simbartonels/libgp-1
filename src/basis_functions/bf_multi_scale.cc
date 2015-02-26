@@ -166,17 +166,13 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 					/ temp.array()).square() - temp.cwiseInverse().array();
 			dSigmadp.col(m).array() *= (Uell(m, d) - ell(d) / 2)
 					* UpsiCol.array() / 2;
-			//TODO: can this be more efficient?
-			temp = dSigmadp.col(m);
-			dSigmadp.row(m) = temp;
+			dSigmadp.row(m).array() = dSigmadp.col(m).transpose().array();
 			dSigmadp(m, m) *= 2;
 		} else {
 			//derivatives for inducing inputs
 			dSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
 					* UpsiCol.array() / temp.array();
-			//TODO: can this be more efficient?
-			temp = dSigmadp.col(m);
-			dSigmadp.row(m) = temp;
+			dSigmadp.row(m).array() = dSigmadp.col(m).transpose().array();
 		}
 	}
 }
