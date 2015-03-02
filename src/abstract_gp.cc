@@ -112,10 +112,6 @@ void AbstractGaussianProcess::write(const char * filename)
   outfile.close();
 }
 
-const Eigen::VectorXd & AbstractGaussianProcess::get_input_pattern(size_t i){
-	return sampleset->x(i);
-}
-
 
 double AbstractGaussianProcess::f(const double x[])
 {

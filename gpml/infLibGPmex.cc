@@ -20,7 +20,7 @@
 #define P_HYP 5
 #define P_M 6
 #define P_BF_NAME 7
-#define USAGE "Usage: [alpha, L, nlZ, mF, s2F, mFtrain] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)"
+#define USAGE "Usage: [alpha, L, nlZ, mF, s2F] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)"
 
 std::stringstream ss;
 
@@ -43,7 +43,7 @@ int getBufferLength(const mxArray *prhs[], size_t param_number) {
 bool checkStatus(int status, const std::string & varName) {
 	if (status != 0) {
 		std::stringstream ss;
-		ss << "rpropmex: Could not read " << varName << ". Status: " << status;
+		ss << "inflibgp: Could not read " << varName << ". Status: " << status;
 		mexErrMsgTxt(ss.str().c_str());
 		return false;
 	}
@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int status;
 	char * gp_name_buf;
 	char * cov_name_buf;
-	if (nlhs > 6 || nrhs < 6) /* check the input */
+	if (nlhs > 5 || nrhs < 6) /* check the input */
 		mexErrMsgTxt(USAGE);
 	n = mxGetM(prhs[P_X]);
 	//M will be overwritten later. It's just easier to define the output that way.
@@ -124,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			D);
 	if (mxGetM(prhs[P_y]) != n) {
 		std::stringstream ss;
-		ss << "rpropmex: The number of training locations " << n
+		ss << "inflibgp: The number of training locations " << n
 				<< " does not match the number of training observations "
 				<< mxGetM(prhs[P_y]);
 		mexErrMsgTxt(ss.str().c_str());
@@ -136,7 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (D != mxGetN(prhs[P_Xtest])) {
 		std::stringstream ss;
-		ss << "rpropmex: The dimension of training locations " << D
+		ss << "inflibgp: The dimension of training locations " << D
 				<< " does not match the dimension of test locations "
 				<< mxGetN(prhs[P_Xtest]);
 		mexErrMsgTxt(ss.str().c_str());
@@ -158,23 +158,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt(ss.str().c_str());
 		return;
 	}
-	mexPrintf("rpropmex: Initializating GP.\n");
+	mexPrintf("inflibgp: Initializating GP.\n");
 	gp->covf().set_loghyper(params);
 	mexPrintf(
-			"rpropmex: GP initialization complete.\n");
+			"inflibgp: GP initialization complete.\n");
 	Eigen::VectorXd meanY(test_n);
 	Eigen::VectorXd varY(test_n);
-	Eigen::VectorXd train_meanY(n);
 	for(size_t i = 0; i < test_n; i++){
 		meanY(i) = gp->f(testX.row(i));
 		varY(i) = gp->var(testX.row(i));
 	}
-	for(size_t i = 0; i < n; i++)
-		train_meanY(i) = gp->f(X.row(i));
-	std::cout << "rpropmex: results: " << std::endl;
-	std::cout << meanY.transpose() << std::endl;
-	std::cout << varY.transpose() << std::endl;
-	std::cout << train_meanY.transpose() << std::endl;
+
 	plhs[0] = mxCreateDoubleMatrix(M, 1, mxREAL); /* allocate space for output */
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), M) = gp->getAlpha();
 	plhs[1] = mxCreateDoubleMatrix(M, M, mxREAL);
@@ -185,8 +179,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), test_n) = meanY;
 	plhs[4] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), test_n) = varY;
-	plhs[5] = mxCreateDoubleMatrix(n, 1, mxREAL);
-	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[5]), n) = train_meanY;
 
 	delete gp;
 }

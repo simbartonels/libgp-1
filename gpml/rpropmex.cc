@@ -59,9 +59,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char * gp_name_buf;
 	char * cov_name_buf;
 
-	if (nlhs < 5 || nrhs < 8) /* check the input */
+	if (nlhs != 5 || nrhs < 8) /* check the input */
 		mexErrMsgTxt(
-				"Usage: [times, theta_over_time, meanY, varY, nlZ, trainMean] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)");
+				"Usage: [times, theta_over_time, meanY, varY, nlZ] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)");
 	seed = (size_t) mxGetScalar(prhs[0]);
 	iters = (size_t) mxGetScalar(prhs[1]);
 	n = mxGetM(prhs[2]);
@@ -166,11 +166,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::MatrixXd meanY(test_n, iters);
 	Eigen::MatrixXd varY(test_n, iters);
 	Eigen::VectorXd nlZ(iters);
-	Eigen::MatrixXd train_meanY(n, iters);
-	rprop.maximize(gp, testX, times, theta_over_time, meanY, varY, nlZ,
-			train_meanY);
-	std::cout << "rpropmex: results: " << std::endl;
-	std::cout << train_meanY.transpose() << std::endl;
+	rprop.maximize(gp, testX, times, theta_over_time, meanY, varY, nlZ);
 	plhs[0] = mxCreateDoubleMatrix(iters, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), iters) = times;
 	plhs[1] = mxCreateDoubleMatrix(p, iters, mxREAL);
@@ -181,16 +177,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[3]), test_n, iters) = varY;
 	plhs[4] = mxCreateDoubleMatrix(iters, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), iters) = nlZ;
-	plhs[5] = mxCreateDoubleMatrix(n, iters, mxREAL);
-	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[5]), n, iters) = train_meanY;
-//	if (nlhs >= 7) {
-//		plhs[6] = mxCreateDoubleMatrix(p, 1, mxREAL);
-//		Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[6]), p) =
-//				gp->covf().get_loghyper();
-//	}
 
 	//TODO: this is problem if gp=full. Why?
-//	delete (gp);
+	delete (gp);
 	mexPrintf("Hyper-parameter optimization finished.");
 }
 

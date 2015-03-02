@@ -66,8 +66,6 @@ namespace libgp {
     void add_pattern(const double x[], double y);
     void add_pattern(const Eigen::VectorXd & x, double y);
 
-    const Eigen::VectorXd & get_input_pattern(size_t i);
-
 
     bool set_y(size_t i, double y);
 

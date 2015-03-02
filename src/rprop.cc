@@ -97,7 +97,7 @@ void RProp::maximize(AbstractGaussianProcess * gp, Eigen::MatrixXd & param_histo
 
 void RProp::maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX,
 		Eigen::VectorXd & times, Eigen::MatrixXd & param_history, Eigen::MatrixXd & meanY,
-		Eigen::MatrixXd & varY, Eigen::VectorXd & nllh, Eigen::MatrixXd & train_meanY){
+		Eigen::MatrixXd & varY, Eigen::VectorXd & nllh){
 	  int param_dim = gp->covf().get_param_dim();
 	  size_t iters = times.size();
 	  size_t input_dim = gp->get_input_dim();
@@ -110,17 +110,12 @@ void RProp::maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX
 	  assert(meanY.cols() == iters);
 	  assert(varY.size() == meanY.size());
 	  assert(nllh.size() == iters);
-	  assert(train_meanY.rows() == testX.rows());
-	  assert(train_meanY.cols() == iters);
 	  Eigen::VectorXd Delta = Eigen::VectorXd::Ones(param_dim) * Delta0;
 	  Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
 	  Eigen::VectorXd params = gp->covf().get_loghyper();
 	  Eigen::VectorXd best_params = params;
 	  double best = log(0.0);
 
-	  std::cout << "rprop X(0): " << gp->get_input_pattern(0).transpose() << std::endl;
-
-	  Eigen::VectorXd testx(input_dim);
 	  double start = tic();
 	  for (size_t i=0; i<iters; ++i){
 		  double lik = step(gp, best, Delta, grad_old, params, best_params);
@@ -137,20 +132,13 @@ void RProp::maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX
 				  meanY(j, i) = gp->f(testX.row(j));
 				  varY(j, i) = gp->var(testX.row(j));
 			  }
-			  for(size_t j = 0; j < n; j++){
-				  std::cout << gp->f(gp->get_input_pattern(j)) << " ";
-				  train_meanY(j, i) = gp->f(gp->get_input_pattern(j));
-			  }
 		  }
 		  else{
 			  //just copy results from last prediction
 			  meanY.col(i) = meanY.col(i-1);
 			  varY.col(i) = varY.col(i-1);
-			  train_meanY.col(i) = train_meanY.col(i-1);
 		  }
 	  }
-//	  std::cout << "rprop: f(X(0)): " << gp->f(gp->get_input_pattern(0)) << std::endl;
-//	  std::cout << "rprop: train_mean: " << train_meanY.transpose() << std::endl;
 	  gp->covf().set_loghyper(best_params);
 }
 

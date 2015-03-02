@@ -38,12 +38,11 @@ public:
 	 * Param_history MUST have #parameters rows.
 	 * Further this method will write the negative log-likelihood, test mean and test variance
 	 * into the	respective matrices for the currently best parameter. Please make sure these
-	 * matrices are of appropriate size: number of test inputs x iters. TestX MUST have size:
-	 * number of test inputs x dimension.
+	 * matrices are of appropriate size: number of test inputs x iters.
 	 */
 	void maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX,
 			Eigen::VectorXd & times, Eigen::MatrixXd & param_history, Eigen::MatrixXd & meanY,
-			Eigen::MatrixXd & varY, Eigen::VectorXd & nllh, Eigen::MatrixXd & test_meanY);
+			Eigen::MatrixXd & varY, Eigen::VectorXd & nllh);
 private:
 
 	/**
