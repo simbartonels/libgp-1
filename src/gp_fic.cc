@@ -75,7 +75,6 @@ void FICGaussianProcess::computeCholesky() {
 	V = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>().solve(
 			Phi);
 	//noise is already added in k
-	//TODO: symmetric matrix multiplication = potential for speed up
 	dg = k - (V.transpose() * V).diagonal();
 	//the line below is not faster
 //	dg.array() = k.array() - V.array().square().colwise().sum().transpose();
@@ -99,7 +98,11 @@ void FICGaussianProcess::computeCholesky() {
 	 */
 //	LuuLu = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>() * Lu.triangularView<Eigen::Lower>();
 	//TODO: check if the line above is faster. The line above should be safer! (Junk!)
-	LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
+	if(!bf->sigmaIsDiagonal())
+		LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
+	else
+		//TODO: check if this is indeed faster
+		LuuLu = bf->getCholeskyOfInvertedSigma().diagonal().asDiagonal() * Lu;
 	//a solveInPlace with L.setIdentity() is not faster
 	L = LuuLu.triangularView<Eigen::Lower>().solve(
 			Eigen::MatrixXd::Identity(M, M));
