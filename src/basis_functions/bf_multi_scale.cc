@@ -47,6 +47,7 @@ bool MultiScale::real_init() {
 	factors.resize(M);
 	delta.resize(input_dim);
 	Delta.resize(M, input_dim);
+	two_PI_to_the_D_over_2 = pow(2*M_PI, input_dim/2.);
 	//this assures that previous_p can not correspond to a parameter number
 	previous_p = get_param_dim() + 2;
 	return true;
@@ -259,9 +260,8 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	factors.array() = factors.array().sqrt();
 	c = exp(loghyper(2 * M * input_dim + input_dim));
 	double ell_determinant_factor = 1;
-	for (size_t i = 0; i < input_dim; i++) {
+	for (size_t i = 0; i < input_dim; i++)
 		ell_determinant_factor *= 2 * M_PI * ell(i);
-	}
 	ell_determinant_factor = sqrt(ell_determinant_factor);
 	c_over_ell_det = c / ell_determinant_factor;
 
@@ -291,7 +291,6 @@ void MultiScale::initializeMatrices() {
 	//LUpsi = LUpsi / c;
 
 	LUpsi = Upsi.selfadjointView<Eigen::Lower>().llt().matrixL();
-//	halfLogDetiUpsi = -log(LUpsi.diagonal().prod());
 	halfLogDetiUpsi = -LUpsi.diagonal().array().log().sum();
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
 			LUpsi.Identity(M, M));
@@ -305,23 +304,10 @@ std::string MultiScale::to_string() {
 
 inline double MultiScale::g(const Eigen::VectorXd& x1,
 		const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
-	//TODO: can we make this numerically more stable?
-	/*
-	 * idea:
-	 * - compute s1+s2-s in advance (make matrix)
-	 * - compute log of that matrix
-	 * - then the division becomes a sum in the exp call below
-	 * - however: need to call exp() on sigma!
-	 * -> safe this implementation as naive?
-	 */
 	delta = x1 - x2;
 	double z = delta.cwiseQuotient(sigma).transpose() * delta;
 	z = exp(-0.5 * z);
-	double p = 1;
-	for (size_t i = 0; i < input_dim; i++) {
-		p *= 2 * M_PI * sigma(i);
-	}
-	p = sqrt(p);
+	double p = sqrt(sigma.array().prod()) * two_PI_to_the_D_over_2;
 	return z / p;
 }
 

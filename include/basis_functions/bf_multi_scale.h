@@ -73,6 +73,11 @@ public:
 	    		bool lengthScaleDerivative);
 
 	    /**
+	     * Contains (2PI)^(D/2).
+	     */
+	    double two_PI_to_the_D_over_2;
+
+	    /**
 	     * Signal variance factor.
 	     */
 	    double c;
