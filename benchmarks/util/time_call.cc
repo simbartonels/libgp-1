@@ -3,17 +3,17 @@
 #include <sys/time.h>
 #include <cmath>
 
-static timestamp_t mytime ()
+static double mytime ()
 {
   struct timeval now;
   gettimeofday (&now, NULL);
-  return  now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
+  return  now.tv_usec / 1000.0 + now.tv_sec * 1000.0;
 }
 
 void compare_time(void (*f1)(), void (*f2)(), size_t calls){
-	timestamp_t fast = 0;
-	timestamp_t naive = 0;
-	timestamp_t t = 0;
+	double fast = 0;
+	double naive = 0;
+	double t = 0;
 
 	t = mytime();
 	(*f1)();
@@ -41,11 +41,11 @@ void compare_time(void (*f1)(), void (*f2)(), size_t calls){
 	std::cout << "f2: " << naive << std::endl;
 }
 
-static timestamp_t last_stop = mytime();
+static double last_stop = mytime();
 
-timestamp_t stop_watch(){
-	timestamp_t now = mytime();
-	timestamp_t ret = now - last_stop;
+double stop_watch(){
+	double now = mytime();
+	double ret = now - last_stop;
 	last_stop = now;
 	return ret;
 }

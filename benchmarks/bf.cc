@@ -11,147 +11,183 @@
 #include "cov_factory.h"
 #include "cov.h"
 #include "sampleset.h"
-
+#include "util/time_call.h"
+#include <unistd.h>
 
 using namespace libgp;
 
-	static IBasisFunction * impl;
-	static IBasisFunction * naive;
+static IBasisFunction * impl;
+static IBasisFunction * naive;
 
-	static Eigen::VectorXd x;
+static Eigen::VectorXd x;
 
-	void f1bf(){
-		impl->computeBasisFunctionVector(x);
+void f1bf() {
+	impl->computeBasisFunctionVector(x);
+}
+
+void f2bf() {
+	naive->computeBasisFunctionVector(x);
+}
+
+void testSpeedOfBasisFunction() {
+	Eigen::VectorXd diff = impl->computeBasisFunctionVector(x)
+			- naive->computeBasisFunctionVector(x);
+	diff.array() = diff.array().abs();
+	diff.array() /= (impl->computeBasisFunctionVector(x).array().abs() + 1e-30);
+
+	compare_time(f1bf, f2bf, 20);
+
+	assert(diff.array().abs().maxCoeff() < 1e-5);
+}
+
+static SampleSet * sampleSet;
+static Eigen::MatrixXd Phi;
+static Eigen::MatrixXd Grad;
+static Eigen::VectorXd temp;
+static size_t p;
+
+void f1gradbf() {
+	impl->gradBasisFunction(sampleSet, Phi, p, Grad);
+}
+
+void f1gradbf_naive() {
+	naive->gradBasisFunction(sampleSet, Phi, p, Grad);
+}
+
+void f2gradbf() {
+	size_t n = sampleSet->size();
+	for (size_t i = 0; i < n; i++) {
+		naive->gradBasisFunction(sampleSet->x(i), Phi.col(i), p, temp);
+		Grad.col(i) = temp;
 	}
+}
 
-	void f2bf(){
-		naive->computeBasisFunctionVector(x);
+void testSpeedOfGradBasisFunction() {
+	// add training patterns
+	size_t n = 2000;
+	size_t M = impl->getNumberOfBasisFunctions();
+	size_t D = x.size();
+
+	Phi.resize(M, n);
+	Grad.resize(M, n);
+	temp.resize(M);
+	sampleSet = new SampleSet(D);
+	for (int i = 0; i < n; ++i) {
+		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
+		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
+		sampleSet->add(x, y);
+		Phi.col(i) = impl->computeBasisFunctionVector(sampleSet->x(i));
 	}
-
-	void testSpeedOfBasisFunction(){
-		Eigen::VectorXd diff = impl->computeBasisFunctionVector(x) - naive->computeBasisFunctionVector(x);
-		diff.array() = diff.array().abs();
-		diff.array() /= (impl->computeBasisFunctionVector(x).array().abs() + 1e-30);
-
-		compare_time(f1bf, f2bf, 20);
-
-		assert(diff.array().abs().maxCoeff() < 1e-5);
+	size_t param_dim = impl->get_param_dim();
+	for (size_t i = 0; p < param_dim; i++) {
+		p = i * M * D + D - 1;
+//    		p = i;
+		std::cout << "param: " << p << std::endl;
+		compare_time(f1gradbf_naive, f1gradbf, 10);
 	}
+}
 
-	static SampleSet * sampleSet;
-	static Eigen::MatrixXd Phi;
-	static Eigen::MatrixXd Grad;
-	static Eigen::VectorXd temp;
-	static size_t p;
+static Eigen::MatrixXd diSigmadp;
 
+void gradiSigma_baseline() {
+	naive->gradiSigma(p, diSigmadp);
+}
 
-	void f1gradbf(){
-		impl->gradBasisFunction(sampleSet, Phi, p, Grad);
-	}
+void gradiSigma_impl() {
+	impl->gradiSigma(p, diSigmadp);
+}
 
-	void f1gradbf_naive(){
-		naive->gradBasisFunction(sampleSet, Phi, p, Grad);
-	}
+void testSpeedOfGradiSigma() {
+	// add training patterns
+	size_t M = impl->getNumberOfBasisFunctions();
+	diSigmadp.resize(M, M);
 
-	void f2gradbf(){
-		size_t n = sampleSet->size();
-		for(size_t i = 0; i<n;i++){
-			naive->gradBasisFunction(sampleSet->x(i), Phi.col(i), p, temp);
-			Grad.col(i) = temp;
-		}
-	}
-
-	void testSpeedOfGradBasisFunction(){
-    	// add training patterns
-		size_t n = 2000;
-		size_t M = impl->getNumberOfBasisFunctions();
-		size_t D = x.size();
-
-		Phi.resize(M, n);
-		Grad.resize(M, n);
-		temp.resize(M);
-		sampleSet = new SampleSet(D);
-    	for (int i = 0; i < n; ++i) {
-    		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
-    		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
-    		sampleSet->add(x, y);
-    		Phi.col(i) = impl->computeBasisFunctionVector(sampleSet->x(i));
-    	}
-
-    	size_t param_dim = impl->get_param_dim();
-    	for(size_t i = 0; i < param_dim; i++){
+	size_t param_dim = impl->get_param_dim();
+	for (size_t i = 0; i < param_dim; i++) {
 //    		p = i*M*D+D-1;
-    		p = i;
-    		compare_time(f1gradbf_naive, f1gradbf, 10);
-    	}
+		p = i;
+		compare_time(gradiSigma_baseline, gradiSigma_impl, 10);
 	}
+}
 
-	static Eigen::MatrixXd diSigmadp;
+void initFastFood() {
+	((FastFood *) impl)->setPIs(((FastFoodNaive *) naive)->getPIs());
+	((FastFood *) impl)->setB(((FastFoodNaive *) naive)->getB());
+	((FastFood *) impl)->setG(((FastFoodNaive *) naive)->getG());
+	((FastFood *) impl)->setS(((FastFoodNaive *) naive)->getS());
+}
 
-	void gradiSigma_baseline(){
-		naive->gradiSigma(p, diSigmadp);
-	}
+void init(size_t D, size_t M) {
+	CovFactory f;
+	CovarianceFunction * cov;
+	cov = f.create(D, "CovSum ( CovSEard, CovNoise)");
+	x.resize(D);
+	x.setRandom();
 
-	void gradiSigma_impl(){
-		impl->gradiSigma(p, diSigmadp);
-	}
-
-	void testSpeedOfGradiSigma(){
-    	// add training patterns
-		size_t M = impl->getNumberOfBasisFunctions();
-		diSigmadp.resize(M, M);
-
-    	size_t param_dim = impl->get_param_dim();
-    	for(size_t i = 0; i < param_dim; i++){
-//    		p = i*M*D+D-1;
-    		p = i;
-    		compare_time(gradiSigma_baseline, gradiSigma_impl, 10);
-    	}
-	}
-
-
-	void initFastFood(){
-		((FastFood *)impl)->setPIs(((FastFoodNaive *) naive)->getPIs());
-		((FastFood *)impl)->setB(((FastFoodNaive *) naive)->getB());
-		((FastFood *)impl)->setG(((FastFoodNaive *) naive)->getG());
-		((FastFood *)impl)->setS(((FastFoodNaive *) naive)->getS());
-	}
-
-	int main(int argc, char const *argv[]) {
-		size_t D = 3;
-		size_t M = 8000;
-
-		CovFactory f;
-		CovarianceFunction * cov;
-		cov = f.create(D, "CovSum ( CovSEard, CovNoise)");
-		x.resize(D);
-		x.setRandom();
-
-//		impl = new MultiScale();
-//		naive = new MultiScaleNaive();
-		naive = new FastFoodNaive();
-		impl = new FastFood();
+	impl = new MultiScale();
+	naive = new MultiScaleNaive();
+//		naive = new FastFoodNaive();
+//		impl = new FastFood();
 //		impl = new Solin();
 //		naive = new SolinNaive();
 
-		impl->init(M, cov);
-		std::cout << "initialization of impl complete" << std::endl;
-		naive->init(M, cov);
-		std::cout << "initialization complete" << std::endl;
+	impl->init(M, cov);
+	std::cout << "initialization of impl complete" << std::endl;
+	naive->init(M, cov);
+	std::cout << "initialization complete" << std::endl;
 
+	Eigen::VectorXd p(impl->get_param_dim());
+	p.setRandom();
+	std::cout << "setting loghyper" << std::endl;
+	impl->set_loghyper(p);
+	std::cout << "impl complete" << std::endl;
+	naive->set_loghyper(p);
+	std::cout << "naive complete" << std::endl;
+
+//		initFastFood();
+}
+
+void measureBFcomputationTime() {
+	size_t D = 4;
+	size_t num_execs = 100;
+	std::cout << "D is " << D << std::endl;
+	CovFactory f;
+	CovarianceFunction * cov;
+	cov = f.create(D, "CovSum ( CovSEard, CovNoise)");
+	x.resize(D);
+	x.setRandom();
+	while (true) {
+		std::cout << "Choose M: ";
+		size_t M;
+		std::cin >> M;
+		std::cout << "initializing BF" << std::endl;
+		impl->init(M, cov);
 		Eigen::VectorXd p(impl->get_param_dim());
 		p.setRandom();
 		impl->set_loghyper(p);
-		naive->set_loghyper(p);
+		std::cout << "done" << std::endl;
+		stop_watch();
+		for (size_t i = 0; i < num_execs; i++) {
+			impl->computeBasisFunctionVector(x);
+		}
+		double tic = stop_watch() / num_execs;
+		std::cout << tic << std::endl;
+	}
+}
 
-		initFastFood();
+int main(int argc, char const *argv[]) {
+	size_t D = 3;
+	size_t M = 800;
+
+	init(D, M);
+	measureBFcomputationTime();
 
 //		testSpeedOfGradiSigma();
-//		testSpeedOfGradBasisFunction();
-		testSpeedOfBasisFunction();
+//	testSpeedOfGradBasisFunction();
+//		testSpeedOfBasisFunction();
 
-		delete impl;
-		delete naive;
-		return 0;
-	}
+	delete impl;
+	delete naive;
+	return 0;
+}
 
