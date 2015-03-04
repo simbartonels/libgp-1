@@ -23,10 +23,10 @@
 static bool isnan(double d){
 	return _isnan(d);
 }
-#else
-static bool isnan(double d){
-	return std::isnan(d);
-}
+//#else
+//static bool isnan(double d){
+//	return std::isnan(d);
+//}
 #endif
 
 static double tic() {
