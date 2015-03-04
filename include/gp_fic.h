@@ -66,6 +66,7 @@ namespace libgp {
     Eigen::MatrixXd Lu;
     Eigen::VectorXd dg;
 	Eigen::VectorXd al;
+	Eigen::VectorXd alSqrd;
     Eigen::VectorXd isqrtgamma;
     Eigen::MatrixXd V;
     Eigen::MatrixXd B;

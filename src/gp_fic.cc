@@ -155,7 +155,6 @@ double FICGaussianProcess::log_likelihood_impl() {
 }
 
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
-	//TODO: move stuff that is parameter independent to computeAlpha or something
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
 	const std::vector<double>& targets = sampleset->y();
@@ -164,6 +163,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	//TODO: move to extra function
 	if (n > al.size()) {
 		al.resize(n);
+		alSqrd.resize(n);
 		W.resize(M, n);
 		Wdg.resize(M, n);
 		B.resize(M, n);
@@ -186,13 +186,9 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	BWdg.selfadjointView<Eigen::Lower>().rankUpdate(Phi * isqrtgamma.asDiagonal());
 	BWdg+=bf->getInverseOfSigma();
 	W = BWdg.selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
-//	W =
-//			(Phi * dg.cwiseInverse().asDiagonal() * Phi.transpose()
-//					+ bf->getInverseOfSigma()).selfadjointView<Eigen::Lower>().llt().matrixL().solve(
-//					Phi);
-
 	//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
 	al = (y - W.transpose() * (W * (y.cwiseQuotient(dg)))).cwiseQuotient(dg);
+	alSqrd.array() = al.array().square();
 //    B = iKuu*Ku;
 	B = bf->getSigma() * Phi;
 //    % = Upsi^(-1)*Uvx
@@ -211,7 +207,6 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 			bf->gradiSigma(i, dKuui);
 			wdKuuiw = (w.transpose() * dKuui * w).sum();
 		} else {
-//			dKuui.setZero();
 			wdKuuiw = 0;
 		}
 
@@ -223,16 +218,15 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 			if(!gradiSigmaIsNull)
 				R = 2 * dKui - dKuui * B;
 			else
-				//TODO: do we want to compute that?!
+				//this is quite bad but optimizing this case makes the code unreadable
 				R = 2 * dKui;
 		} else {
 			//this branch will be entered only for two parameters (in case of MultiScale)
 			if(!gradiSigmaIsNull)
 				R = -dKuui * B;
 			else
-				//TODO: can we avoid that?
+				//optimizing this case makes the code unreadable
 				R.setZero();
-//			dKui.setZero();
 			wdKuial = 0;
 		}
 
@@ -247,13 +241,9 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 			v = -R.cwiseProduct(B).colwise().sum();
 		}
 
-//      dnlZ.cov(i) = (ddiagKi'*(1./dg) +w'*(dKuui*w-2*(dKui*al)) -al'*(v.*al) ...
-//                         - sum(Wdg.*Wdg,1)*v - sum(sum((R*Wdg').*(B*Wdg'))) )/2;
 		gradient(i) = ddiagK_idg
-		//TODO: line below can be optimized (if either dKuui or dKui are 0)
 				+ wdKuuiw - wdKuial
-				//TODO: save al^2?
-				- (v.array() * al.array().square()).sum()
+				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
 				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum();
 	}
