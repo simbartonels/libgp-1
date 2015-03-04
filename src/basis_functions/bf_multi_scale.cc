@@ -47,7 +47,7 @@ bool MultiScale::real_init() {
 	factors.resize(M);
 	delta.resize(input_dim);
 	Delta.resize(M, input_dim);
-	two_PI_to_the_D_over_2 = pow(2*M_PI, input_dim/2.);
+	two_PI_to_the_D_over_2 = pow(2 * M_PI, input_dim / 2.);
 	//this assures that previous_p can not correspond to a parameter number
 	previous_p = get_param_dim() + 2;
 	return true;
@@ -72,7 +72,7 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 	if (p < input_dim) {
 		size_t d = p;
 		temp.array() = Uell.col(d).array().cwiseInverse();
-		double t = ell(d)/4;
+		double t = ell(d) / 4;
 		for (size_t i = 0; i < n; i++) {
 			//TODO: computing this gradient is quite slow!
 			//derivative with respect to the length scales
@@ -82,11 +82,16 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 			 */
 
 			Grad.col(i).array() = (U.col(d).array() - (sampleSet->x(i))(d))
-								/ Uell.col(d).array();
-			Grad.col(i).array() = t * (Grad.col(i).array().square() - temp.array()) * Phi.col(i).array();
+					* temp.array();
+			Grad.col(i).array() = t
+					* (Grad.col(i).array().square() - temp.array())
+					* Phi.col(i).array();
 			//the line below is not faster
 //			Grad.col(i).array() = t * (((U.col(d).array() - (sampleSet->x(i))(d))
-//					/ Uell.col(d).array()).square() - temp.array()) * Phi.col(i).array();
+//					* temp.array()).square() - temp.array()) * Phi.col(i).array();
+			//this is also not faster
+//			Grad.col(i).array() = (U.col(d).array() - (sampleSet->x(i))(d)).square() * temp.array() - 1;
+//			Grad.col(i).array() = t * temp.array() * Grad.col(i).array() * Phi.col(i).array();
 
 		}
 	} else if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
@@ -148,7 +153,8 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 	} else if (p == 2 * M * input_dim + input_dim) {
 		//amplitude derivatives
 		//we need to subtract the inducing input noise since it is not affected by the amplitude
-		dSigmadp = -Upsi + snu2 * Eigen::MatrixXd::Identity(M, M);
+		dSigmadp = -Upsi; // + snu2 * Eigen::MatrixXd::Identity(M, M);
+		dSigmadp.diagonal().array()+=snu2;
 	} else {
 		//derivatives with respect to inducing inputs or inducing length scales
 		//don't call setPrevious...() here. it breaks things in gradBasisFunction()
