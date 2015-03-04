@@ -9,6 +9,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 
+std::stringstream ss;
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	libgp::BasisFFactory bfactory;
 	libgp::IBasisFunction * bf;
@@ -20,7 +22,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t p;
 	libgp::CovFactory cfactory;
 	if (nrhs < 5 || nlhs != 1) /* check the input */
-		mexErrMsgTxt("Usage: k = bfmex(bf_name, seed, M, unwrap(hyp), z, i)");
+		mexErrMsgTxt("Usage: k = bfmex(bf_name, seed, M, unwrap(hyp), D, z)");
 
 	/* Input must be a string. */
 	if (!mxIsChar(prhs[0]))
@@ -49,40 +51,50 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 //	std::cout << "bfmex: Using basis function: " << bf_name << std::endl;
 	seed = (size_t) mxGetScalar(prhs[1]);
 	M = (size_t) mxGetScalar(prhs[2]);
-	if(M == 0){
-		std::cout << "bfmex: M must be greater 0!" << std::endl;
-		exit(-1);
+	if (M == 0) {
+		mexErrMsgTxt("bfmex: M must be greater 0!");
+		return;
 	}
-	p = mxGetM(prhs[3]);
-	n = mxGetM(prhs[4]);
-	D = mxGetN(prhs[4]);
+	D = (size_t) mxGetScalar(prhs[4]);
 	libgp::CovarianceFunction * ardse = cfactory.create(D,
 			"CovSum ( CovSEard, CovNoise)");
 	bf = bfactory.createBasisFunction(bf_name, M, ardse, seed);
 	mxFree(input_buf);
+	p = mxGetM(prhs[3]);
+	if(p != bf->get_param_dim()){
+		std::stringstream ss;
+		ss << "The desired basis function " << bf->to_string() << " requires " << bf->get_param_dim()
+				<< " parameters but received only " << p;
+		mexErrMsgTxt(ss.str().c_str());
+		return;
+	}
 	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[3]),
 			p);
-//	std::cout << "bf_multi_scale: params" << std::endl << params << std::endl;
-
 	bf->set_loghyper(params);
 
-	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[4]), n,
-			D);
+	if (nrhs >= 6) {
+		//compute basis function
+		n = mxGetM(prhs[5]);
+		if(D != mxGetN(prhs[5])){
+			mexErrMsgTxt("The 2nd dimension of X disagrees with D. Aborting! Call without arguments to see the correct usage.");
+			return;
+		}
 
-	plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
+		Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[5]),
+				n, D);
 
-	Eigen::MatrixXd Phi(M, n);
-	for (size_t i = 0; i < n; i++)
-		Phi.col(i) = bf->computeBasisFunctionVector(X.row(i));
+		plhs[0] = mxCreateDoubleMatrix(M, n, mxREAL); /* allocate space for output */
 
-	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, n) = Phi;
-	if (nrhs > 5) {
-		//we want the gradients
-		std::cout << "gradients not implemented" << std::endl;
-		Phi.setZero();
-//		for (size_t i = 0; i < n; i++)
-//			Phi.col(i) = bf->gradBasisFunction(X.col(i));
+		Eigen::MatrixXd Phi(M, n);
+		for (size_t i = 0; i < n; i++)
+			Phi.col(i) = bf->computeBasisFunctionVector(X.row(i));
+
 		Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, n) = Phi;
+	}
+	else {
+		//return Sigma
+		plhs[0] = mxCreateDoubleMatrix(M, M, mxREAL);
+		Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[0]), M, M) = bf->getSigma();
 	}
 }
 
