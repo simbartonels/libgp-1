@@ -2,11 +2,14 @@
 
 #include "gp_deg.h"
 #include "naive/gp_deg_naive.h"
+#include "gp_solin.h"
 #include "gp_utils.h"
 #include "util/time_call.h"
 
 using namespace libgp;
     static DegGaussianProcess * gp;
+
+    static SolinGaussianProcess * gpsolin;
 
     static DegGaussianProcessNaive * gpnaive;
 
@@ -51,12 +54,28 @@ using namespace libgp;
     	gp->log_likelihood_gradient();
     }
 
+    void compCholSolin(){
+    	gpsolin->covf().loghyper_changed = true;
+		gpsolin->getL();
+    }
+
+    void llhGradSolin(){
+    	gpsolin->log_likelihood_gradient();
+    }
+
+    void compareSolinAndDeg(){
+    	compare_time(compChol_fast, compCholSolin, 10);
+    	compare_time(llhGradFast, llhGradSolin, 10);
+    }
+
 int main(int argc, char const *argv[]) {
 	size_t input_dim = 3;
 	size_t M = 200;
 	size_t n = 2000;
 	//fast food is not such a good idea since there are some random effects
 	gp = new DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
+			"Solin");
+	gpsolin = new SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"Solin");
 
 	// initialize hyper parameter vector
@@ -75,15 +94,15 @@ int main(int argc, char const *argv[]) {
 		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
 		gp->add_pattern(x, y);
 		gpnaive->add_pattern(x, y);
+		gpsolin->add_pattern(x, y);
 	}
-
+	gp->log_likelihood();
+	gpnaive->log_likelihood();
+	gpsolin->log_likelihood();
 //	testSpeedOfLogLikelihood();
 //	testSpeedOfCholeskyComputation2();
-	Eigen::VectorXd grad = gpnaive->log_likelihood_gradient();
-	grad.array()=(grad.array()-gp->log_likelihood_gradient().array())/grad.array();
-	std::cout << grad << std::endl;
-	assert(grad.array().abs().maxCoeff() < 1e-5);
-	compare_time(llhGradBaseline, llhGradFast, 15);
+//	compare_time(llhGradBaseline, llhGradFast, 15);
+	compareSolinAndDeg();
 
 	delete gp;
 	delete gpnaive;
