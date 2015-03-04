@@ -74,10 +74,10 @@ void FICGaussianProcess::computeCholesky() {
 	 */
 	V = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>().solve(
 			Phi);
-	//noise is already added in k
-	dg = k - (V.transpose() * V).diagonal();
 	//the line below is not faster
 //	dg.array() = k.array() - V.array().square().colwise().sum().transpose();
+	//noise is already added in k
+	dg = k - (V.transpose() * V).diagonal();
 
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
 	//TODO: first occurence of dg.cwiseInverse() should we save that result? O(n) Operation!
@@ -97,17 +97,18 @@ void FICGaussianProcess::computeCholesky() {
 	 * lower matrices.
 	 */
 //	LuuLu = bf->getCholeskyOfInvertedSigma().triangularView<Eigen::Lower>() * Lu.triangularView<Eigen::Lower>();
-	//TODO: check if the line above is faster. The line above should be safer! (Junk!)
 	if(!bf->sigmaIsDiagonal())
-		LuuLu = bf->getCholeskyOfInvertedSigma() * Lu;
+		LuuLu = (bf->getCholeskyOfInvertedSigma()).triangularView<Eigen::Lower>() * Lu;
 	else
-		//TODO: check if this is indeed faster
 		LuuLu = bf->getCholeskyOfInvertedSigma().diagonal().asDiagonal() * Lu;
 	//a solveInPlace with L.setIdentity() is not faster
 	L = LuuLu.triangularView<Eigen::Lower>().solve(
 			Eigen::MatrixXd::Identity(M, M));
 	LuuLu.transpose().triangularView<Eigen::Upper>().solveInPlace(L);
-	L = L - bf->getSigma();
+	if(!bf->sigmaIsDiagonal())
+		L = L - bf->getSigma();
+	else
+		L.diagonal()-=bf->getSigma().diagonal();
 }
 
 void FICGaussianProcess::updateCholesky(const double x[], double y) {
