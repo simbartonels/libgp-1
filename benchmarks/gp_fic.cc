@@ -155,6 +155,9 @@ using namespace libgp;
     }
 
     static Eigen::MatrixXd V;
+    static Eigen::MatrixXd Sigma1;
+    static Eigen::MatrixXd Sigma2;
+    static Eigen::MatrixXd Sigma3;
     static Eigen::VectorXd dg;
 
     void f1CholComp(){
@@ -167,9 +170,19 @@ using namespace libgp;
     	dg = (V.transpose() * V).diagonal();
     }
 
+    void f3CholComp(){
+//    	Sigma1.setZero();
+    	Sigma1.selfadjointView<Eigen::Lower>().rankUpdate(V);
+    	dg = Sigma1.diagonal();
+    }
+
 
     void testSpeedOfCholeskyComputation1(){
     	compare_time(f1CholComp, f2CholComp, 100);
+    }
+
+    void testSpeedOfCholeskyComputation11(){
+    	compare_time(f1CholComp, f3CholComp, 100);
     }
 
     void f1CholComp2(){
@@ -194,13 +207,31 @@ using namespace libgp;
     	gp->log_likelihood_gradient();
     }
 
+    void LuuLu_base(){
+    	Sigma3 = Sigma1 * Sigma2;
+    }
+
+    void LuuLu_2(){
+    	Sigma3 = Sigma1.triangularView<Eigen::Lower>() * Sigma2;
+    }
+
+    void testSpeedOfLuuLu(){
+        	compare_time(LuuLu_base, LuuLu_2, 10);
+        }
+
+
 int main(int argc, char const *argv[]) {
 	size_t input_dim = 3;
 	size_t M = 200;
 	size_t n = 2000;
 	V.resize(M, n);
 	V.setRandom();
-
+	Sigma1.resize(M, M);
+	Sigma2.resize(M, M);
+	Sigma3.resize(M, M);
+	Sigma1.setRandom();
+	Sigma2.setRandom();
+	Sigma3.setRandom();
 	gp = new FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"SparseMultiScaleGP");
 
@@ -225,7 +256,10 @@ int main(int argc, char const *argv[]) {
 //	testSpeedOfLogLikelihood();
 //	testSpeedOfCholeskyComputation2();
 
-	compare_time(llhGradBaseline, llhGradFast, 1);
+//	compare_time(llhGradBaseline, llhGradFast, 1);
+
+//	testSpeedOfCholeskyComputation11();
+	testSpeedOfLuuLu();
 
 	delete gp;
 	delete gpnaive;
