@@ -154,7 +154,7 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 		//amplitude derivatives
 		//we need to subtract the inducing input noise since it is not affected by the amplitude
 		dSigmadp = -Upsi; // + snu2 * Eigen::MatrixXd::Identity(M, M);
-		dSigmadp.diagonal().array()+=snu2;
+		dSigmadp.diagonal().array() += snu2;
 	} else {
 		//derivatives with respect to inducing inputs or inducing length scales
 		//don't call setPrevious...() here. it breaks things in gradBasisFunction()
@@ -306,6 +306,23 @@ void MultiScale::initializeMatrices() {
 
 std::string MultiScale::to_string() {
 	return "MultiScale";
+}
+
+void MultiScale::grad_input(const Eigen::VectorXd & x,
+		const Eigen::VectorXd & z, Eigen::VectorXd & grad) {
+	if (&x == &z)
+		grad.setZero();
+	else
+		grad.array() = (z.array() - x.array()) / ell.array() * g(x, z, ell);
+}
+
+void MultiScale::compute_dkdx(const Eigen::VectorXd & x,
+		const Eigen::VectorXd & kstar, SampleSet * sampleSet,
+		Eigen::MatrixXd & JT) {
+	for (size_t m = 0; m < M; m++) {
+		JT.col(m).array() = (U.row(m).array() - x.array()) / Uell.row(m).array()
+				* kstar(m);
+	}
 }
 
 inline double MultiScale::g(const Eigen::VectorXd& x1,

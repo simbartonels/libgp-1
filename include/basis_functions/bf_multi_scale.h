@@ -49,6 +49,11 @@ public:
 
 	    std::string to_string();
 
+	    void grad_input(const Eigen::VectorXd & x, const Eigen::VectorXd & z, Eigen::VectorXd & grad);
+
+	    void compute_dkdx(const Eigen::VectorXd & x,
+				const Eigen::VectorXd & kstar, SampleSet * sampleSet, Eigen::MatrixXd & JT);
+
 
 	protected:
 	    virtual bool real_init();

@@ -39,6 +39,8 @@ namespace libgp {
   protected:
     double var_impl(const Eigen::VectorXd &x_star);
 
+    void var_grad_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad);
+
     double log_likelihood_impl();
 
     Eigen::VectorXd log_likelihood_gradient_impl();

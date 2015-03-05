@@ -30,6 +30,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	M = bf->getNumberOfBasisFunctions();
 	alpha.resize(M);
 	L.resize(M, M);
+	JT.resize(input_dim, M);
 	Lu.resize(M, M);
 	BWdg.resize(M, M);
 	w.resize(M);
@@ -46,6 +47,11 @@ FICGaussianProcess::~FICGaussianProcess() {
 double FICGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 	return bf->getWrappedKernelValue(x_star, x_star)
 			+ k_star.transpose() * L * k_star;
+}
+
+void FICGaussianProcess::var_grad_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad){
+	bf->grad_input(x, x, grad);
+	grad -= JT * L * JT.transpose();
 }
 
 void FICGaussianProcess::computeCholesky() {
