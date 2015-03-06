@@ -18,7 +18,7 @@ using ::testing::Values;
 class BFGradientTest: public TestWithParam<std::string> {
 protected:
 	virtual void SetUp() {
-		n = 3;
+		n = 5;
 		M = 13;
 		e = 1e-8;
 		wrappedCovarianceFunction = covFactory.create(n,
@@ -211,7 +211,7 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 TEST_P(BFGradientTest, dkdx) {
 	size_t M = covf->getNumberOfBasisFunctions();
 	Eigen::MatrixXd grad(n, M);
-
+	grad.setZero();
 	covf->compute_dkdx(x1, phix1, sampleset, grad);
 	for (int i = 0; i < n; ++i) {
 		Eigen::VectorXd num_grad = numerical_gradient_k(i);
