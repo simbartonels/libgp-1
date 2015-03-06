@@ -161,6 +161,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mexPrintf(
 			"rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
 	libgp::RProp rprop;
+	rprop.init(1e-12);
 	Eigen::VectorXd times(iters);
 	Eigen::MatrixXd theta_over_time(p, iters);
 	Eigen::MatrixXd meanY(test_n, iters);
@@ -178,8 +179,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	plhs[4] = mxCreateDoubleMatrix(iters, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), iters) = nlZ;
 
-	//TODO: this is problem if gp=full. Why?
 	delete (gp);
-	mexPrintf("Hyper-parameter optimization finished.");
+	mexPrintf("Hyper-parameter optimization finished.\n");
 }
 
