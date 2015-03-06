@@ -71,30 +71,6 @@ void RProp::maximize(AbstractGaussianProcess * gp, size_t n, bool verbose)
   gp->covf().set_loghyper(best_params);
 }
 
-void RProp::maximize(AbstractGaussianProcess * gp, Eigen::MatrixXd & param_history){
-	  int param_dim = gp->covf().get_param_dim();
-	  assert(param_history.rows() == param_dim + 1);
-	  param_history.fill(-1);
-	  size_t n = param_history.cols();
-	  Eigen::VectorXd Delta = Eigen::VectorXd::Ones(param_dim) * Delta0;
-	  Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
-	  Eigen::VectorXd params = gp->covf().get_loghyper();
-	  Eigen::VectorXd best_params = params;
-	  double best = log(0.0);
-
-	  double start = tic();
-	  for (size_t i=0; i<n; ++i){
-		  double lik = step(gp, best, Delta, grad_old, params, best_params);
-		  double t = tic() - start;
-		  if(isnan(lik))
-			  break;
-		  std::cout << i << " " << -lik << std::endl;
-		  param_history.col(i).tail(param_dim) = params;
-		  param_history(0, i) = t;
-	  }
-	  gp->covf().set_loghyper(best_params);
-}
-
 void RProp::maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX,
 		Eigen::VectorXd & times, Eigen::MatrixXd & param_history, Eigen::MatrixXd & meanY,
 		Eigen::MatrixXd & varY, Eigen::VectorXd & nllh){

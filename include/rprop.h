@@ -25,14 +25,6 @@ public:
 
 	/**
 	 * Maximizes the log-likelihood of the Gaussian process and writes the sequence of parameters
-	 * found in param_history. Param_history MUST have #parameters + 1 rows. The number of columns
-	 * is the maximal number of RProp steps. Param_history will be initialized -1.
-	 */
-	void maximize(AbstractGaussianProcess * gp,
-			Eigen::MatrixXd & param_history);
-
-	/**
-	 * Maximizes the log-likelihood of the Gaussian process and writes the sequence of parameters
 	 * found in param_history. The size of times will be interpreted as number of rprop steps. Thus
 	 * each of the next matrices and vectors MUST have these as number of columns.
 	 * Param_history MUST have #parameters rows.
