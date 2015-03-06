@@ -28,7 +28,7 @@ namespace libgp {
     n = inputs.size();
   }
   
-  void SampleSet::add(const Eigen::VectorXd x, double y)
+  void SampleSet::add(const Eigen::VectorXd & x, double y)
   {
     Eigen::VectorXd * v = new Eigen::VectorXd(x);
     inputs.push_back(v);
