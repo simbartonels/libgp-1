@@ -320,7 +320,7 @@ void MultiScale::compute_dkdx(const Eigen::VectorXd & x,
 		const Eigen::VectorXd & kstar, SampleSet * sampleSet,
 		Eigen::MatrixXd & JT) {
 	for (size_t m = 0; m < M; m++) {
-		JT.col(m).array() = (U.row(m).array() - x.array()) / Uell.row(m).array()
+		JT.col(m).array() = (U.row(m).array() - x.transpose().array()) / Uell.row(m).array()
 				* kstar(m);
 	}
 }
