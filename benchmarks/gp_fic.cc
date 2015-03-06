@@ -219,6 +219,42 @@ using namespace libgp;
         	compare_time(LuuLu_base, LuuLu_2, 10);
         }
 
+    void measureBFcomputationTime() {
+    	size_t D = 4;
+    	size_t n = 2000;
+    	size_t num_execs = 100;
+    	std::cout << "D is " << D << std::endl;
+    	Eigen::VectorXd grad(D);
+    	Eigen::VectorXd x(D);
+    	x.setRandom();
+    	Eigen::MatrixXd X(n, D);
+    	X.setRandom();
+    	Eigen::VectorXd y(n);
+    	y.setRandom();
+    	while (true) {
+    		std::cout << "Choose M: ";
+    		size_t M;
+    		std::cin >> M;
+    		std::cout << "initializing GP" << std::endl;
+    		gp = new FICGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
+    				"SparseMultiScaleGP");
+    		for (int i = 0; i < n; ++i) {
+    			gp->add_pattern(X.row(i), y(i));
+    		}
+    		gp->log_likelihood();
+    		std::cout << "done" << std::endl;
+    		stop_watch();
+    		for (size_t i = 0; i < num_execs; i++) {
+    			gp->f(x);
+    			gp->var(x);
+    			gp->grad_f(x, grad);
+    			gp->grad_var(x, grad);
+    		}
+    		double tic = stop_watch() / num_execs;
+    		std::cout << tic << std::endl;
+    	}
+    }
+
 
 int main(int argc, char const *argv[]) {
 	size_t input_dim = 3;
@@ -259,7 +295,8 @@ int main(int argc, char const *argv[]) {
 //	compare_time(llhGradBaseline, llhGradFast, 1);
 
 //	testSpeedOfCholeskyComputation11();
-	testSpeedOfLuuLu();
+//	testSpeedOfLuuLu();
+	measureBFcomputationTime();
 
 	delete gp;
 	delete gpnaive;
