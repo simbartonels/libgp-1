@@ -35,6 +35,9 @@ protected:
 		grad.resize(1);
 		k.resize(1);
 		k(0) = covf->getWrappedKernelValue(x1, x1);
+		phix1 = Eigen::MatrixXd(M, sampleset->size());
+		for (size_t i = 0; i < sampleset->size(); i++)
+			phix1.col(i) = covf->computeBasisFunctionVector(sampleset->x(i));
 	}
 	virtual void TearDown() {
 		delete covf;
@@ -53,6 +56,7 @@ protected:
 	Eigen::VectorXd x2;
 	Eigen::VectorXd grad;
 	Eigen::VectorXd k;
+	Eigen::MatrixXd phix1;
 	libgp::SampleSet * sampleset;
 
 	Eigen::VectorXd gradient() {
@@ -67,10 +71,42 @@ protected:
 		return grad;
 	}
 
-	double gradient_diag(size_t p){
+	double gradient_diag(size_t p) {
 		covf->gradDiagWrapped(sampleset, k, p, grad);
 		//grad is a vector of size n=1
 		return grad(0);
+	}
+
+	Eigen::VectorXd gradient_input() {
+		Eigen::VectorXd grad(x1.size());
+		covf->grad_input(x1, x2, grad);
+		return grad;
+	}
+
+	Eigen::VectorXd gradient_input_diag() {
+		Eigen::VectorXd grad(x1.size());
+		covf->grad_input(x1, x1, grad);
+		return grad;
+	}
+
+	double numerical_gradient_input(size_t i) {
+		double theta = x1(i);
+		x1(i) = theta - e;
+		double j1 = covf->get(x1, x2);
+		x1(i) = theta + e;
+		double j2 = covf->get(x1, x2);
+		x1(i) = theta;
+		return (j2 - j1) / 2 / e;
+	}
+
+	double numerical_gradient_input_diag(size_t i) {
+		double theta = x1(i);
+		x1(i) = theta - e;
+		double j1 = covf->get(x1, x1);
+		x1(i) = theta + e;
+		double j2 = covf->get(x1, x1);
+		x1(i) = theta;
+		return (j2 - j1) / 2 / e;
 	}
 
 	double numerical_gradient(int i) {
@@ -97,17 +133,17 @@ protected:
 		return (j2 - j1) / (2 * e);
 	}
 
-    Eigen::MatrixXd numerical_gradient_of_isigma(size_t i){
-        double theta = params(i);
-        params(i) = theta - e;
-        covf->set_loghyper(params);
-        Eigen::MatrixXd j1 = covf->getInverseOfSigma();
-        params(i) = theta + e;
-        covf->set_loghyper(params);
-        Eigen::MatrixXd j2 = covf->getInverseOfSigma();
-        params(i) = theta;
-        return ((j2.array()-j1.array())/(2*e)).matrix();
-    }
+	Eigen::MatrixXd numerical_gradient_of_isigma(size_t i) {
+		double theta = params(i);
+		params(i) = theta - e;
+		covf->set_loghyper(params);
+		Eigen::MatrixXd j1 = covf->getInverseOfSigma();
+		params(i) = theta + e;
+		covf->set_loghyper(params);
+		Eigen::MatrixXd j2 = covf->getInverseOfSigma();
+		params(i) = theta;
+		return ((j2.array() - j1.array()) / (2 * e)).matrix();
+	}
 
 	Eigen::VectorXd numerical_basis_function_gradient(size_t i) {
 		double theta = params(i);
@@ -119,7 +155,19 @@ protected:
 		Eigen::VectorXd j2 = covf->computeBasisFunctionVector(x1);
 //		std::cout << "j1 - j2:" << ((j1-j2)/2/e).transpose().array() << std::endl;
 		params(i) = theta;
-		return (j2 - j1)/2/e;
+		return (j2 - j1) / 2 / e;
+	}
+
+	Eigen::VectorXd numerical_gradient_k(size_t i) {
+		double theta = x1(i);
+		Eigen::VectorXd j1(x1.size());
+		Eigen::VectorXd j2(x1.size());
+		x1(i) = theta - e;
+		j1 = covf->computeBasisFunctionVector(x1);
+		x1(i) = theta + e;
+		j2 = covf->computeBasisFunctionVector(x1);
+		x1(i) = theta;
+		return (j2 - j1) / (2 * e);
 	}
 };
 
@@ -139,7 +187,6 @@ TEST_P(BFGradientTest, EqualToNumerical) {
 	}
 }
 
-
 //TODO: refactor. copy&paste code!
 TEST_P(BFGradientTest, DiagEqualToNumerical) {
 	Eigen::VectorXd grad = gradient_diag();
@@ -148,8 +195,8 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 		double comp_grad2 = gradient_diag(i);
 
 		if (grad(i) == 0.0) {
-			ASSERT_NEAR(grad(i), comp_grad2, 1e-7) << "Parameter number: " << i;
-						ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			ASSERT_NEAR(grad(i), comp_grad2, 1e-7)<< "Parameter number: " << i;
+			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
 		else {
@@ -161,25 +208,45 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 	}
 }
 
+TEST_P(BFGradientTest, dkdx) {
+	size_t M = covf->getNumberOfBasisFunctions();
+	Eigen::MatrixXd grad(n, M);
+
+	covf->compute_dkdx(x1, phix1, sampleset, grad);
+	for (int i = 0; i < n; ++i) {
+		Eigen::VectorXd num_grad = numerical_gradient_k(i);
+		for (size_t j = 0; j < M; j++) {
+			if (num_grad(j) == 0.0)
+				ASSERT_NEAR(grad(i, j), 0.0, 1e-2);
+			else
+				ASSERT_NEAR((num_grad(j)-grad(i, j))/num_grad(j), 0.0, 1e-2)<< "dimension: " << i
+				<< std::endl << "numerical gradient: " << num_grad(j)
+				<< std::endl << "computed gradient: " << grad(i, j)
+				<< std::endl << "basis function: " << j << std::endl;
+			}
+		}
+	}
+
 TEST_P(BFGradientTest, GradientOfiSigmaEqualToNumerical) {
 	size_t M = covf->getNumberOfBasisFunctions();
-  Eigen::MatrixXd grad(M, M);
-  grad.setZero();
-  for (int i=0; i<param_dim; ++i) {
-	covf->gradiSigma(i, grad);
-	Eigen::MatrixXd numeric_gradient = numerical_gradient_of_isigma(i);
-	for(size_t j=0; j < M; j++){
-		for(size_t k = 0; k < M; k++){
-			if (grad(j, k) == 0.0) ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2);
-			else ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2)
-					<< "Parameter number: " << i
+	Eigen::MatrixXd grad(M, M);
+	grad.setZero();
+	for (int i = 0; i < param_dim; ++i) {
+		covf->gradiSigma(i, grad);
+		Eigen::MatrixXd numeric_gradient = numerical_gradient_of_isigma(i);
+		for (size_t j = 0; j < M; j++) {
+			for (size_t k = 0; k < M; k++) {
+				if (grad(j, k) == 0.0)
+					ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2);
+				else
+					ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2)<< "Parameter number: " << i
 					<< std::endl << "numerical gradient: " << numeric_gradient(j, k)
 					<< std::endl << "computed gradient: " << grad(j, k)
 					<< std::endl << "index: " << j << "," << k;
+				}
+			}
 		}
 	}
-  }
-}
 
 TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 	size_t M = covf->getNumberOfBasisFunctions();
@@ -192,11 +259,11 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 		for (size_t j = 0; j < M; j++) {
 			if (grad(j) == 0.0) {
 				ASSERT_NEAR(numeric_gradient(j), 0.0, 1e-2)<< "parameter: " << i<< std::endl
-						<< "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
+				<< "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
 			}
 			else {
 				ASSERT_NEAR((numeric_gradient(j)-grad(j))/grad(j), 0.0, 1e-2)<< "parameter: "
-						<< i<< std::endl << "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
+				<< i<< std::endl << "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
 			}
 		}
 	}
@@ -207,8 +274,8 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 	double det = covf->getLogDeterminantOfSigma();
 	double det2 = -log(covf->getCholeskyOfInvertedSigma().diagonal().prod());
 
-	if(covf->sigmaIsDiagonal()){
-		double det_true = log(covf->getSigma().diagonal().prod())/2;
+	if (covf->sigmaIsDiagonal()) {
+		double det_true = log(covf->getSigma().diagonal().prod()) / 2;
 		//make sure the test values agree
 		ASSERT_NEAR(det_true, det2, 1e-5);
 
@@ -221,20 +288,51 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 TEST_P(BFGradientTest, CholeskyCorrect) {
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
-	L.array() = (iSigma - L*L.transpose()).array().abs();
-	L.array()=L.array()/(iSigma.array()+1e-15);
-	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)
-		<< "diff: " << std::endl << iSigma << std::endl
-		<< "L: " << std::endl << L << std::endl;
+	L.array() = (iSigma - L * L.transpose()).array().abs();
+	L.array() = L.array() / (iSigma.array() + 1e-15);
+	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)<< "diff: " << std::endl << iSigma << std::endl
+	<< "L: " << std::endl << L << std::endl;
 }
 
 TEST_P(BFGradientTest, InverseCorrect) {
 	Eigen::MatrixXd Sigma = covf->getSigma();
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd shouldBeI = iSigma * Sigma;
-	shouldBeI.diagonal().array()-=1;
+	shouldBeI.diagonal().array() -= 1;
 	ASSERT_TRUE(shouldBeI.isZero(1e-10));
 }
+
+//TEST_P(GradientTest, EqualToNumerical_input) {
+//	Eigen::VectorXd grad = gradient_input();
+//	for (int i = 0; i < grad.size(); ++i) {
+//		double num_grad = numerical_gradient_input(i);
+//		if (grad(i) == 0.0) {
+//			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad;
+//		}
+//		else {
+//			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad
+//			<< std::endl << "computed gradient: " << grad(i);
+//		}
+//	}
+//}
+
+//TEST_P(GradientTest, DiagEqualToNumerical_input) {
+//	Eigen::VectorXd grad = gradient_input_diag();
+//	for (int i = 0; i < grad.size(); ++i) {
+//		double num_grad = numerical_gradient_input_diag(i);
+//
+//		if (grad(i) == 0.0) {
+//			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad;
+//		}
+//		else {
+//			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad;
+//		}
+//	}
+//}
 
 #ifdef BUILD_FAST_FOOD
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
