@@ -6,6 +6,7 @@
 
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
+#include "sampleset.h"
 
 #if GTEST_HAS_PARAM_TEST
 
@@ -23,6 +24,7 @@ class GradientTest : public TestWithParam<std::string> {
       x1 = Eigen::VectorXd::Random(n);
       x2 = Eigen::VectorXd::Random(n);
       covf->set_loghyper(params);
+
     }
     virtual void TearDown() {
       delete covf;
@@ -34,11 +36,25 @@ class GradientTest : public TestWithParam<std::string> {
     Eigen::VectorXd params;
     Eigen::VectorXd x1;
     Eigen::VectorXd x2; 
+
     Eigen::VectorXd gradient() {
       Eigen::VectorXd grad(param_dim);
       covf->grad(x1, x2, grad);
       return grad;
     }
+
+	Eigen::VectorXd gradient_input() {
+		Eigen::VectorXd grad(x1.size());
+		covf->grad_input(x1, x2, grad);
+		return grad;
+	}
+
+	Eigen::VectorXd gradient_input_diag() {
+		Eigen::VectorXd grad(x1.size());
+		covf->grad_input(x1, x1, grad);
+		return grad;
+	}
+
     double numerical_gradient(int i) {
       double theta = params(i);
       params(i) = theta - e;
@@ -50,6 +66,26 @@ class GradientTest : public TestWithParam<std::string> {
       params(i) = theta;
       return (j2-j1)/(2*e);
     }
+
+	double numerical_gradient_input(size_t i){
+		double theta = x1(i);
+		x1(i) = theta - e;
+		double j1 = covf->get(x1, x2);
+		x1(i) = theta + e;
+		double j2 = covf->get(x1, x2);
+		x1(i) = theta;
+		return (j2 - j1)/2/e;
+	}
+
+	double numerical_gradient_input_diag(size_t i){
+		double theta = x1(i);
+		x1(i) = theta - e;
+		double j1 = covf->get(x1, x1);
+		x1(i) = theta + e;
+		double j2 = covf->get(x1, x1);
+		x1(i) = theta;
+		return (j2 - j1)/2/e;
+	}
 };
 
 TEST_P(GradientTest, EqualToNumerical) {
@@ -58,6 +94,38 @@ TEST_P(GradientTest, EqualToNumerical) {
     if (grad(i) == 0.0) ASSERT_NEAR(numerical_gradient(i), 0.0, 1e-2);
     else ASSERT_NEAR((numerical_gradient(i)-grad(i))/grad(i), 0.0, 1e-2);
   }
+}
+
+TEST_P(GradientTest, EqualToNumerical_input) {
+	Eigen::VectorXd grad = gradient_input();
+	for (int i = 0; i < grad.size(); ++i) {
+		double num_grad = numerical_gradient_input(i);
+		if (grad(i) == 0.0) {
+			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad;
+		}
+		else {
+			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad
+			<< std::endl << "computed gradient: " << grad(i);
+		}
+	}
+}
+
+TEST_P(GradientTest, DiagEqualToNumerical_input) {
+	Eigen::VectorXd grad = gradient_input_diag();
+	for (int i = 0; i < grad.size(); ++i) {
+		double num_grad = numerical_gradient_input_diag(i);
+
+		if (grad(i) == 0.0) {
+			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad;
+		}
+		else {
+			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad;
+		}
+	}
 }
 
 INSTANTIATE_TEST_CASE_P(CovarianceFunction, GradientTest, Values(
