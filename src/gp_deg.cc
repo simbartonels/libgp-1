@@ -30,6 +30,7 @@ libgp::DegGaussianProcess::DegGaussianProcess(size_t input_dim,
 	squared_noise = exp(2 * log_noise);
 	M = bf->getNumberOfBasisFunctions();
 	alpha.resize(M);
+	JT.resize(input_dim, M);
 	Phiy.resize(M);
 	L.resize(M, M);
 	k_star.resize(M);
@@ -82,6 +83,12 @@ libgp::DegGaussianProcess::~DegGaussianProcess() {
 double libgp::DegGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 	temp = L.triangularView<Eigen::Lower>().solve(k_star);
 	return squared_noise * temp.squaredNorm() + squared_noise;
+}
+
+
+void DegGaussianProcess::grad_var_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad){
+	L.triangularView<Eigen::Lower>().solveInPlace(JT);
+	grad = squared_noise * JT*JT.transpose();
 }
 
 double libgp::DegGaussianProcess::log_likelihood_impl() {

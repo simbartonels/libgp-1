@@ -35,6 +35,8 @@ public:
 protected:
 	double var_impl(const Eigen::VectorXd &x_star);
 
+	void grad_var_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad);
+
 	double log_likelihood_impl();
 
 	Eigen::VectorXd log_likelihood_gradient_impl();

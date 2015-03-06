@@ -49,9 +49,9 @@ double FICGaussianProcess::var_impl(const Eigen::VectorXd &x_star) {
 			+ k_star.transpose() * L * k_star;
 }
 
-void FICGaussianProcess::var_grad_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad){
+void FICGaussianProcess::grad_var_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad){
 	bf->grad_input(x, x, grad);
-	grad -= JT * L * JT.transpose();
+	grad += 2 * (JT * (L * k_star));
 }
 
 void FICGaussianProcess::computeCholesky() {
