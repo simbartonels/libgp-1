@@ -7,190 +7,198 @@
 
 #include "IBasisFunction.h"
 extern "C" {
-	#include "spiral_wht.h"
+#include "spiral_wht.h"
 }
 #include <vector>
 
-
-namespace libgp{
-class FastFood : public IBasisFunction{
+namespace libgp {
+class FastFood: public IBasisFunction {
 public:
-		virtual ~FastFood();
+	virtual ~FastFood();
 
-		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
+	Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-		const Eigen::MatrixXd & getInverseOfSigma();
+	const Eigen::MatrixXd & getInverseOfSigma();
 
-		const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
+	const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
 
-		const Eigen::MatrixXd & getSigma();
+	const Eigen::MatrixXd & getSigma();
 
-		double getLogDeterminantOfSigma();
+	double getLogDeterminantOfSigma();
 
-	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
+	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
+			Eigen::VectorXd &grad);
 
-	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad);
+	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
+			double kernel_value, Eigen::VectorXd &grad);
 
-		bool gradDiagWrappedIsNull(size_t parameter);
+	bool gradDiagWrappedIsNull(size_t parameter);
 
-		void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::MatrixXd &Grad);
+	void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi,
+			size_t p, Eigen::MatrixXd &Grad);
 
-		bool gradBasisFunctionIsNull(size_t p);
+	bool gradBasisFunctionIsNull(size_t p);
 
-		void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
+	void compute_dkdx(const Eigen::VectorXd & x, const Eigen::VectorXd & kstar,
+			SampleSet * sampleSet, Eigen::MatrixXd & JT);
 
-		bool gradiSigmaIsNull(size_t p);
+	void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
 
-		bool sigmaIsDiagonal(){
-			return true;
-		};
+	bool gradiSigmaIsNull(size_t p);
 
-	    std::string to_string();
+	bool sigmaIsDiagonal() {
+		return true;
+	}
+	;
 
-	    /**
-	     * Returns the sampled scaling matrices.
-	     */
-		Eigen::MatrixXd getS();
+	std::string to_string();
 
-		/**
-		 * Returns the sampled Gaussian matrices.
-		 */
-		Eigen::MatrixXd getG();
+	/**
+	 * Returns the sampled scaling matrices.
+	 */
+	Eigen::MatrixXd getS();
 
-		/**
-		 * Returns the sampled binary matrices.
-		 */
-		Eigen::MatrixXd getB();
+	/**
+	 * Returns the sampled Gaussian matrices.
+	 */
+	Eigen::MatrixXd getG();
 
-		/**
-		 * Returns the sampled permutation matrices.
-		 */
-		Eigen::MatrixXd getPI();
+	/**
+	 * Returns the sampled binary matrices.
+	 */
+	Eigen::MatrixXd getB();
 
-		/**
-		 * Returns a pointer to the permutation matrix storage.
-		 */
-		std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> getPIs();
+	/**
+	 * Returns the sampled permutation matrices.
+	 */
+	Eigen::MatrixXd getPI();
 
-		void setS(const Eigen::MatrixXd& S);
+	/**
+	 * Returns a pointer to the permutation matrix storage.
+	 */
+	std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> getPIs();
 
-		void setG(const Eigen::MatrixXd& G);
+	void setS(const Eigen::MatrixXd& S);
 
-		void setB(const Eigen::MatrixXd& B);
+	void setG(const Eigen::MatrixXd& G);
 
-		void setPIs(std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs);
+	void setB(const Eigen::MatrixXd& B);
 
-	protected:
-		void log_hyper_updated(const Eigen::VectorXd &p);
+	void setPIs(
+			std::vector<
+					Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs);
 
-	    virtual bool real_init();
+protected:
+	void log_hyper_updated(const Eigen::VectorXd &p);
 
-	    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
+	virtual bool real_init();
 
-	private:
+	size_t get_param_dim_without_noise(size_t input_dim,
+			size_t num_basis_functions);
 
-	    /**
-	     * Deletes all permutation matrices.
-	     */
-	    void deletePIs();
+private:
 
-	    /**
-	     * Initializes the matrices B,G,S,Pi and He.
-	     */
-	    inline void initializeMatrices();
+	/**
+	 * Deletes all permutation matrices.
+	 */
+	void deletePIs();
 
-	    /**
-	     * Signal amplitude.
-	     */
-	    double sf2;
+	/**
+	 * Initializes the matrices B,G,S,Pi and He.
+	 */
+	inline void initializeMatrices();
 
-	    /**
-	     * The length scales.
-	     */
-	    Eigen::VectorXd ell;
+	/**
+	 * Signal amplitude.
+	 */
+	double sf2;
 
-	    /**
-	     * The weight prior.
-	     */
-	    Eigen::MatrixXd Sigma;
+	/**
+	 * The length scales.
+	 */
+	Eigen::VectorXd ell;
 
-	    /**
-	     * The inverse weight prior.
-	     */
-	    Eigen::MatrixXd iSigma;
+	/**
+	 * The weight prior.
+	 */
+	Eigen::MatrixXd Sigma;
 
-	    /**
-	     * The Cholesky of the weight prior.
-	     */
-	    Eigen::MatrixXd choliSigma;
+	/**
+	 * The inverse weight prior.
+	 */
+	Eigen::MatrixXd iSigma;
 
-	    /**
-	     * Log of half of the determinant of Sima.
-	     */
-	    double logDetSigma;
+	/**
+	 * The Cholesky of the weight prior.
+	 */
+	Eigen::MatrixXd choliSigma;
 
-	    /**
-	     * The smallest power of two s.t. input_dim <= 2^next_pow.
-	     */
-	    size_t next_pow;
+	/**
+	 * Log of half of the determinant of Sima.
+	 */
+	double logDetSigma;
 
-	    /**
-	     * The smallest number that is a power of 2 and larger than input dim.
-	     */
-	    size_t next_input_dim;
+	/**
+	 * The smallest power of two s.t. input_dim <= 2^next_pow.
+	 */
+	size_t next_pow;
 
-	    /**
-	     * Tree for fast hadamard multiplications.
-	     */
-	    Wht * wht_tree;
+	/**
+	 * The smallest number that is a power of 2 and larger than input dim.
+	 */
+	size_t next_input_dim;
 
-	    /**
-	     * Concatenated diagonal random binary matrices.
-	     * NOTE: Double matrix because Eigen refuses to mix types... -.-
-	     */
-	    Eigen::MatrixXd b;
+	/**
+	 * Tree for fast hadamard multiplications.
+	 */
+	Wht * wht_tree;
 
-	    /**
-	     * Concatenated diagonal Gaussian random matrices.
-	     */
-	    Eigen::MatrixXd g;
+	/**
+	 * Concatenated diagonal random binary matrices.
+	 * NOTE: Double matrix because Eigen refuses to mix types... -.-
+	 */
+	Eigen::MatrixXd b;
 
-	    /**
-	     * Concatenated diagonal random scaling matrices.
-	     */
-	    Eigen::MatrixXd s;
+	/**
+	 * Concatenated diagonal Gaussian random matrices.
+	 */
+	Eigen::MatrixXd g;
 
-	    /**
-	     * Random permutation matrix.
-	     */
-	    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs;
+	/**
+	 * Concatenated diagonal random scaling matrices.
+	 */
+	Eigen::MatrixXd s;
 
-	    /**
-	     * Temporary structure used in multiplyW().
-	     */
-		Eigen::VectorXd x;
+	/**
+	 * Random permutation matrix.
+	 */
+	std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> *> PIs;
 
-		/**
-	     * Temporary structure used in multiplyW().
-	     */
-		Eigen::VectorXd temp;
+	/**
+	 * Temporary structure used in multiplyW().
+	 */
+	Eigen::VectorXd x;
 
-		/**
-		 * Matrix that contains the results of HGPiHBe_d where d in [1, ..., D].
-		 */
-		Eigen::MatrixXd He;
+	/**
+	 * Temporary structure used in multiplyW().
+	 */
+	Eigen::VectorXd temp;
 
-		/**
-		 * Contains log(|Sigma|)/2.
-		 */
-		double log_determinant_sigma;
+	/**
+	 * Matrix that contains the results of HGPiHBe_d where d in [1, ..., D].
+	 */
+	Eigen::MatrixXd He;
 
-		/**
-		 * The number of different matrices V.
-		 */
-		size_t M_intern;
+	/**
+	 * Contains log(|Sigma|)/2.
+	 */
+	double log_determinant_sigma;
+
+	/**
+	 * The number of different matrices V.
+	 */
+	size_t M_intern;
 };
 }
-
 
 #endif /* INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_ */

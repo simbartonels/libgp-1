@@ -44,11 +44,10 @@ Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
 		temp = s.col(m).cwiseProduct(temp);
-		phi.segment((M_intern + m) * input_dim,
-				input_dim).array() = temp.head(
+		phi.segment((M_intern + m) * input_dim, input_dim).array() = temp.head(
 				input_dim).array().sin();
-		phi.segment(m * input_dim, input_dim).array() = temp.head(
-				input_dim).array().cos();
+		phi.segment(m * input_dim, input_dim).array() =
+				temp.head(input_dim).array().cos();
 	}
 	return phi;
 }
@@ -76,7 +75,25 @@ void libgp::FastFood::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 
 void libgp::FastFood::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		double kernel_value, Eigen::VectorXd& grad) {
+	grad.setZero();
+	std::cerr << "not implemented" << std::endl;
 	//TODO: implement!
+}
+
+void FastFood::compute_dkdx(const Eigen::VectorXd & x,
+		const Eigen::VectorXd & kstar, SampleSet * sampleSet,
+		Eigen::MatrixXd & JT) {
+	for (size_t i = 0; i < input_dim; i++) {
+		double c = -1. / ell(i);
+		JT.row(i).head(M_intern * input_dim) = c*
+				He.col(i).array()
+						* kstar.segment(M_intern * input_dim,
+								M_intern * input_dim).array();
+		JT.row(i).segment(M_intern * input_dim, M_intern * input_dim) = c * He.col(
+				i).array() * -kstar.head(M_intern * input_dim).array();
+		//can we assume here that the rest of the gradient is already set to zero? yes
+//		JT.row(i).tail(M - 2 * M_intern * input_dim).setZero();
+	}
 }
 
 bool FastFood::gradDiagWrappedIsNull(size_t parameter) {
@@ -87,7 +104,7 @@ void libgp::FastFood::gradBasisFunction(SampleSet * sampleSet,
 		const Eigen::MatrixXd& Phi, size_t p, Eigen::MatrixXd& Grad) {
 	assert(Grad.size() == Phi.size());
 	if (p < input_dim) {
-		size_t n = sampleSet->size();
+		size_t n = Phi.cols();
 		for (size_t i = 0; i < n; i++) {
 			double c = (sampleSet->x(i))(p) / ell(p);
 			Grad.col(i).head(M_intern * input_dim) = c
@@ -117,7 +134,8 @@ void libgp::FastFood::gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp) {
 		//we may assume that diSigmadp is initialized with 0s before the first call
 //		diSigmadp.setIdentity();
 //		dSigmadp.diagonal().fill(2 * sf2 / M_intern / input_dim);
-		diSigmadp.diagonal().head(2 * M_intern * input_dim).fill(-2. * M_intern * input_dim / sf2);
+		diSigmadp.diagonal().head(2 * M_intern * input_dim).fill(
+				-2. * M_intern * input_dim / sf2);
 //		diSigmadp.diagonal().tail(M - 2 * M_intern * input_dim).setZero();
 	} else {
 		//in an efficient implementation this function will not be called in this case
@@ -164,9 +182,8 @@ bool libgp::FastFood::real_init() {
 	CovarianceFunction * expectedCov;
 	expectedCov = f.create(input_dim, "CovSum ( CovSEard, CovNoise)");
 	if (cov->to_string() != expectedCov->to_string()) {
-		std::cerr
-				<< "This implementation of FastFood"
-						" is only applicable for covariance function: "
+		std::cerr << "This implementation of FastFood"
+				" is only applicable for covariance function: "
 				<< expectedCov->to_string() << std::endl;
 		return false;
 	}
@@ -231,8 +248,8 @@ inline void FastFood::initializeMatrices() {
 	s /= sqrt(next_input_dim);
 
 	Eigen::VectorXd result(M_intern * input_dim);
+	x.setZero();
 	for (size_t d = 0; d < input_dim; d++) {
-		x.setZero();
 		x(d) = 1;
 		for (size_t m = 0; m < M_intern; m++) {
 			temp.array() = b.col(m).array() * x.array();
@@ -242,6 +259,7 @@ inline void FastFood::initializeMatrices() {
 			temp = s.col(m).cwiseProduct(temp);
 			He.col(d).segment(m * input_dim, input_dim) = temp.head(input_dim);
 		}
+		x(d) = 0;
 	}
 }
 
