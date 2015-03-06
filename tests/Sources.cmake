@@ -7,4 +7,5 @@ SET(LIBGP_TESTS
   test_basis_functions.cc
   test_gp_utils.cc
   test_cov_factory.cc
+  gp_derivative_tests.cc
 )
