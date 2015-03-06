@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <vector>
+#include "sampleset.h"
 
 #include <Eigen/Dense>
 
@@ -78,23 +79,25 @@ public:
 	;
 
 	/**
-	 * Computes dk(x,z)/dx.
+	 * Computes dk(x,z)/dx. NOTE: implementations have to check for the case x=z!
 	 */
 	virtual void grad_input(const Eigen::VectorXd & x, const Eigen::VectorXd & z, Eigen::VectorXd & grad){
 		//TODO: make this method abstract and implement it for every cov function
 		std::cerr << "grad_input not implemented!" << std::endl;
-		exit(-1);
+//		exit(-1);
 		grad.setZero();
 	};
 
 	/**
-	 * Writes the derivative of k(x, X) w.r.t. x into J^T where J^T is D times n.
+	 * Writes the derivative of k(x, X) w.r.t. x into J^T where J^T is D times size(k(x,X)).
+	 * NOTE: The result MAY NOT be comparable to grad_input. Basis functions may divert.
+	 * NOTE: The size of kstar is not necessarily n.
 	 */
 	virtual void compute_dkdx(const Eigen::VectorXd & x,
 			const Eigen::VectorXd & kstar, SampleSet * sampleSet, Eigen::MatrixXd & JT){
 		//TODO: make this method abstract and implement it for every cov function
 		std::cerr << "dkdx not implemented!" << std::endl;
-		exit(-1);
+//		exit(-1);
 		JT.setZero();
 	};
 
