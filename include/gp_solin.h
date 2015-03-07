@@ -46,6 +46,11 @@ namespace libgp {
     bool newDataPoints;
 
     Eigen::MatrixXd PhiPhi;
+
+    /**
+     * Boundaries.
+     */
+    Eigen::VectorXd Lv;
   };
 }
 

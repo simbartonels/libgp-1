@@ -3,6 +3,7 @@
 // All rights reserved.
 
 #include "gp_solin.h"
+#include "basis_functions/bf_solin.h"
 namespace libgp {
 
 libgp::SolinGaussianProcess::SolinGaussianProcess(size_t input_dim,
@@ -10,6 +11,8 @@ libgp::SolinGaussianProcess::SolinGaussianProcess(size_t input_dim,
 		DegGaussianProcess(input_dim, covf_def, num_basisf, basisf_def) {
 	newDataPoints = true;
 	PhiPhi.resize(M, M);
+	Lv.resize(input_dim);
+	Lv.setZero();
 }
 
 libgp::SolinGaussianProcess::~SolinGaussianProcess() {
@@ -17,6 +20,10 @@ libgp::SolinGaussianProcess::~SolinGaussianProcess() {
 
 void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	newDataPoints = true;
+	//set L to max(X)
+	for(size_t i = 0; i < input_dim; i++)
+		if(Lv(i) < abs(x[i]))
+			Lv(i) = abs(x[i]);
 	//recompute_yy is updated in the parent method
 	DegGaussianProcess::updateCholesky(x, y);
 }
@@ -38,6 +45,7 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 	DegGaussianProcess::update_internal_variables();
 	if (newDataPoints) {
 		newDataPoints = false;
+		((libgp::Solin *) bf)->setL(4 * Lv / 3);
 		if (n > Phi.cols())
 			Phi.resize(M, n);
 		for (size_t i = 0; i < n; i++)

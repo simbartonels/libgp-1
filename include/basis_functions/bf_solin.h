@@ -52,6 +52,8 @@ public:
 	;
 
 	std::string to_string();
+
+	void setL(const Eigen::VectorXd & L);
 protected:
 	void log_hyper_updated(const Eigen::VectorXd &p);
 
@@ -82,18 +84,18 @@ private:
 
 	/**
 	 * Computes the basis function vector for one dimension.
-	 * @param xd The d-th entry of a vector x.
+	 * @param x A vector x.
+	 * @param d The dimension.
 	 * @param phi Where to write the output to.
 	 */
-	inline void phi1D(const double & xd, Eigen::VectorXd & phi);
+	inline void phi1D(const Eigen::VectorXd & x, size_t d, Eigen::VectorXd & phi);
 
 	/**
-	 * Contains the borders of the input domain. We will assume the input domain is
-	 * standardized to length 1.
+	 * Contains the borders of the input domain.
 	 */
-	//TODO: make this static const
-	const double L;
-	const double sqrtL;
+	Eigen::VectorXd L;
+	Eigen::VectorXd sqrtL;
+	Eigen::VectorXd squaredL;
 
 	/**
 	 * Contains the length scales.
@@ -111,9 +113,9 @@ private:
 	double c;
 
 	/**
-	 * (PI/L/2)^2.
+	 * (PI/2)^2.
 	 */
-	double piOverLOver2Sqrd;
+	const double piOver2Sqrd;
 
 	/**
 	 * This will be the matrix Gamma from the paper.
@@ -132,7 +134,7 @@ private:
 	size_t M_intern;
 
 	/**
-	 * Contains the numbers from 1 to M_intern multiplied with pi/L/2.
+	 * Contains the numbers from 1 to M_intern multiplied with pi/2.
 	 */
 	Eigen::VectorXd m;
 

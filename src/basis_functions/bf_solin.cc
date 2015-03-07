@@ -9,14 +9,18 @@
 
 namespace libgp {
 
-libgp::Solin::Solin():
-		//since our input data is normalized we can fix L:=1.2
-		//FIXME: that is not true!!! there could still be data points going beyond [-1,1]
-		//or wait: do they not because they are divided by the standard deviation?
-		L(1.2), sqrtL(sqrt(1.2)) {
+Solin::Solin():piOver2Sqrd((M_PI/2)*(M_PI/2)){
+
 }
 
 libgp::Solin::~Solin() {
+}
+
+void libgp::Solin::setL(const Eigen::VectorXd & L){
+	this->L = L;
+	this->sqrtL.array() = L.array().sqrt();
+	this->squaredL.array() = L.array().square();
+	std::cerr << "bf_solin: INFO: L has been initialized." << std::endl;
 }
 
 Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
@@ -24,11 +28,11 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 	Eigen::VectorXd phi(M);
 	phi.tail(M - input_dim * M_intern).setZero();
 	//for this call it needs to be phi and not phi_1D
-	phi1D(x(0), phi);
+	phi1D(x, 0, phi);
 	size_t Md = M_intern;
 	for (size_t d = 1; d < input_dim; d++) {
 		//it's not faster to compute phi_1D(j) in the next loop
-		phi1D(x(d), phi_1D);
+		phi1D(x, d, phi_1D);
 		//we need to start at 1 as we do not want to overwrite phi.head(Md)
 		for (size_t j = 1; j < M_intern; j++)
 			phi.segment(j * Md, Md) = phi.head(Md) * phi_1D(j);
@@ -39,8 +43,8 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 	return phi;
 }
 
-inline void Solin::phi1D(const double & xd, Eigen::VectorXd & phi) {
-	phi.head(M_intern).array() = (m.array() * (xd + L)).sin() / sqrtL;
+inline void Solin::phi1D(const Eigen::VectorXd & x, size_t d, Eigen::VectorXd & phi) {
+	phi.head(M_intern).array() = (L(d) * m.array() * (x(d) + L(d))).sin() / sqrtL(d);
 }
 
 const Eigen::MatrixXd & libgp::Solin::getInverseOfSigma() {
@@ -82,7 +86,7 @@ bool libgp::Solin::gradBasisFunctionIsNull(size_t p) {
 
 void libgp::Solin::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
 	if (p < input_dim) {
-		diSigmadp.diagonal().head(MToTheD) = (ell(p) * piOverLOver2Sqrd
+		diSigmadp.diagonal().head(MToTheD).array() = (ell(p) * piOver2Sqrd / squaredL(p)
 				* indices.col(p).array().square().cast<double>() - 1.)
 				* iSigma.diagonal().head(MToTheD).array();
 	} else if (p == input_dim) {
@@ -111,17 +115,14 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 
 	//initialize spectral density constants
 	c = sf2 * pow(2 * M_PI, 0.5 * input_dim) * exp(p.head(input_dim).sum());
-	double temp = M_PI / L / 2;
-	temp *= temp;
-	piOverLOver2Sqrd = temp;
 
 	//create Sigma and associated fields
 	Eigen::VectorXd lambdaSquared(input_dim);
 	logDetSigma = 0;
 
 	for (size_t i = 0; i < MToTheD; i++) {
-		lambdaSquared.array() = piOverLOver2Sqrd
-				* indices.row(i).array().square().cast<double>();
+		lambdaSquared.array() = piOver2Sqrd
+				* indices.row(i).array().square().cast<double>() / squaredL.transpose().array();
 		double value = spectralDensity(lambdaSquared);
 		Sigma.diagonal()(i) = value;
 		iSigma.diagonal()(i) = 1 / value;
@@ -184,7 +185,7 @@ bool libgp::Solin::real_init() {
 	phi_1D.resize(M_intern);
 	m.resize(M_intern);
 	for (size_t i = 1; i <= M_intern; i++)
-		m(i - 1) = M_PI * i / L / 2;
+		m(i - 1) = M_PI * i / 2;
 	assert(MToTheD <= M);
 	Sigma.resize(M, M);
 	Sigma.setZero();
@@ -195,6 +196,14 @@ bool libgp::Solin::real_init() {
 	choliSigma.resize(M, M);
 	choliSigma.setZero();
 	choliSigma.diagonal().tail(M - MToTheD).fill(1);
+
+	L.resize(input_dim);
+	L.fill(4);
+	std::cerr << "bf_solin: WARNING: L is initialized to default value " << L.transpose() << std::endl;
+	sqrtL.resize(input_dim);
+	sqrtL.array() = L.array().sqrt();
+	squaredL.resize(input_dim);
+	squaredL.array() = L.array().square();
 	return true;
 }
 
