@@ -37,7 +37,6 @@ void genericPredictionGradientTest(libgp::AbstractGaussianProcess * gp,
 
 	Eigen::VectorXd x(input_dim);
 	x.setRandom();
-
 	Eigen::VectorXd grad_mean(input_dim);
 	Eigen::VectorXd grad_var(input_dim);
 	gp->grad_f(x, grad_mean);
@@ -73,14 +72,14 @@ TEST(DerivativeTest, CheckGradientsFICGP) {
 	genericPredictionGradientTest(gp, input_dim);
 }
 
-//#ifdef BUILD_FAST_FOOD
-//TEST(DerivativeTest, CheckGradientsDegGPFastFood) {
-//	int input_dim = 3;
-//	libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim,
-//			"CovSum ( CovSEard, CovNoise)", 20, "FastFood");
-//	genericPredictionGradientTest(gp, input_dim);
-//}
-//#endif
+#ifdef BUILD_FAST_FOOD
+TEST(DerivativeTest, CheckGradientsDegGPFastFood) {
+	int input_dim = 3;
+	libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim,
+			"CovSum ( CovSEard, CovNoise)", 20, "FastFood");
+	genericPredictionGradientTest(gp, input_dim);
+}
+#endif
 //
 //TEST(DerivativeTest, CheckGradientsDegGP) {
 //	int input_dim = 3;

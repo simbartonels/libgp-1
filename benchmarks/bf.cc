@@ -147,44 +147,15 @@ void init(size_t D, size_t M) {
 //		initFastFood();
 }
 
-void measureBFcomputationTime() {
-	size_t D = 4;
-	size_t num_execs = 100;
-	std::cout << "D is " << D << std::endl;
-	CovFactory f;
-	CovarianceFunction * cov;
-	cov = f.create(D, "CovSum ( CovSEard, CovNoise)");
-	x.resize(D);
-	x.setRandom();
-	while (true) {
-		std::cout << "Choose M: ";
-		size_t M;
-		std::cin >> M;
-		std::cout << "initializing BF" << std::endl;
-		impl->init(M, cov);
-		Eigen::VectorXd p(impl->get_param_dim());
-		p.setRandom();
-		impl->set_loghyper(p);
-		std::cout << "done" << std::endl;
-		stop_watch();
-		for (size_t i = 0; i < num_execs; i++) {
-			impl->computeBasisFunctionVector(x);
-		}
-		double tic = stop_watch() / num_execs;
-		std::cout << tic << std::endl;
-	}
-}
-
 int main(int argc, char const *argv[]) {
 	size_t D = 3;
 	size_t M = 800;
 
 	init(D, M);
-	measureBFcomputationTime();
 
 //		testSpeedOfGradiSigma();
 //	testSpeedOfGradBasisFunction();
-//		testSpeedOfBasisFunction();
+	testSpeedOfBasisFunction();
 
 	delete impl;
 	delete naive;
