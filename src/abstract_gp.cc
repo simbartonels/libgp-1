@@ -175,10 +175,7 @@ void AbstractGaussianProcess::add_pattern(const double x[], double y) {
 }
 
 void AbstractGaussianProcess::add_pattern(const Eigen::VectorXd & x, double y) {
-	//std::cout<< L.rows() << std::endl;
-	sampleset->add(x, y);
-	alpha_needs_update = true;
-	updateCholesky(x.data(), y);
+	add_pattern(x.data(), y);
 }
 
 bool AbstractGaussianProcess::set_y(size_t i, double y) {
