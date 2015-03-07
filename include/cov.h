@@ -125,6 +125,10 @@ public:
 	 *  @return string containing the name of this covariance function */
 	virtual std::string to_string() = 0;
 
+	virtual std::string pretty_print_parameters(){
+		return "pretty printing parameters not implemented";
+	};
+
 	/** Draw random target values from this covariance function for input X. */
 	virtual Eigen::VectorXd draw_random_sample(Eigen::MatrixXd &X);
 

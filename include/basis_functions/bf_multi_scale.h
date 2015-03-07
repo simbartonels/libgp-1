@@ -49,6 +49,8 @@ public:
 
 	    std::string to_string();
 
+	    std::string pretty_print_parameters();
+
 	    void grad_input(const Eigen::VectorXd & x, const Eigen::VectorXd & z, Eigen::VectorXd & grad);
 
 	    void compute_dkdx(const Eigen::VectorXd & x,

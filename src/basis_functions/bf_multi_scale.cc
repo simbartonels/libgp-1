@@ -308,6 +308,15 @@ std::string MultiScale::to_string() {
 	return "MultiScale";
 }
 
+std::string MultiScale::pretty_print_parameters() {
+	Eigen::IOFormat fmt(4, 0, ", ", "\n", "[", "]");
+	size_t D = input_dim;
+	std::stringstream ss;
+	ss << ell.format(fmt) << " " << Uell.format(fmt) << " " << U << " " << c
+			<< " " << sn2;
+	return ss.str();
+}
+
 void MultiScale::grad_input(const Eigen::VectorXd & x,
 		const Eigen::VectorXd & z, Eigen::VectorXd & grad) {
 	if (&x == &z)
@@ -320,13 +329,14 @@ void MultiScale::compute_dkdx(const Eigen::VectorXd & x,
 		const Eigen::VectorXd & kstar, SampleSet * sampleSet,
 		Eigen::MatrixXd & JT) {
 	for (size_t m = 0; m < M; m++) {
-		JT.col(m).array() = (U.row(m).array() - x.transpose().array()) / Uell.row(m).array()
-				* kstar(m);
+		JT.col(m).array() = (U.row(m).array() - x.transpose().array())
+				/ Uell.row(m).array() * kstar(m);
 	}
 }
 
 inline double MultiScale::g(const Eigen::VectorXd& x1,
 		const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
+//	assert(sigma.minCoeff() >= 0.0);
 	delta = x1 - x2;
 	double z = delta.cwiseQuotient(sigma).transpose() * delta;
 	z = exp(-0.5 * z);
