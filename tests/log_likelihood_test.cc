@@ -7,9 +7,6 @@
 #include "gp_deg.h"
 #include "gp_solin.h"
 #include "gp_utils.h"
-#ifdef BUILD_BENCHMARK
-#include "gp_fic_naive.h"
-#endif
 #include <cmath>
 #include <iostream>
 #include <gtest/gtest.h>
