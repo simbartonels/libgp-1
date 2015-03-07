@@ -6,6 +6,7 @@
 #include "rprop.h"
 
 #include "mex.h"
+#include "util/util.cc"
 #include <math.h>
 #include <string.h>
 #include <Eigen/Dense>
@@ -20,31 +21,6 @@
 
 std::stringstream ss;
 
-/**
- * This function performs consistency checks on the input string and retuns the length of the string.
- */
-int getBufferLength(const mxArray *prhs[], size_t param_number) {
-	/* Input must be a string. */
-	if (!mxIsChar(prhs[param_number]))
-		mexErrMsgTxt("GP name must be a string.");
-
-	/* Input must be a row vector. */
-	if (mxGetM(prhs[param_number]) != 1)
-		mexErrMsgTxt("GP name must be a row vector.");
-
-	/* Get the length of the basis function name. */
-	return mxGetN(prhs[param_number]) + 1;
-}
-
-bool checkStatus(int status, const std::string & varName) {
-	if (status != 0) {
-		std::stringstream ss;
-		ss << "rpropmex: Could not read " << varName << ". Status: " << status;
-		mexErrMsgTxt(ss.str().c_str());
-		return false;
-	}
-	return true;
-}
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	libgp::AbstractGaussianProcess * gp;
@@ -90,34 +66,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		char * bf_name_buf;
 		size_t M = mxGetScalar(prhs[P_M]);
-		if (M <= 0) {
-			mexErrMsgTxt("rpropmex: M must be greater 0!");
-			return;
-		}
 		buflen = getBufferLength(prhs, P_BF_NAME);
 		bf_name_buf = (char *) mxCalloc(buflen, sizeof(char));
 		status = mxGetString(prhs[P_BF_NAME], bf_name_buf, buflen);
 		if (!checkStatus(status, "Basis function name"))
 			return;
 		std::string bf_name(bf_name_buf);
-		if (gp_name.compare("degenerate") == 0) {
-			gp = new libgp::DegGaussianProcess(D, cov_name, M, bf_name, seed);
-		} else if (gp_name.compare("FIC") == 0) {
-			gp = new libgp::FICGaussianProcess(D, cov_name, M, bf_name);
-		} else if (gp_name.compare("Solin") == 0) {
-			gp = new libgp::SolinGaussianProcess(D, cov_name, M, bf_name);
-		} else {
-			std::stringstream ss;
-			ss << "rpropmex: The GP name " << gp_name
-					<< " is unknown. Options are full, degenerate, Solin and FIC.";
-			mexErrMsgTxt(ss.str().c_str());
-			return;
-		}
+		gp = constructGP(gp_name, D, cov_name, M, bf_name, seed);
 		mxFree(bf_name_buf);
 	}
 	mxFree(gp_name_buf);
 	mxFree(cov_name_buf);
-
+	std::cout << "rpropmex: GP instantiated." << std::endl;
 	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[2]), n,
 			D);
 	if (mxGetM(prhs[3]) != n) {
@@ -143,23 +103,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t test_n = mxGetM(prhs[4]);
 	Eigen::MatrixXd testX = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[4]),
 			test_n, D);
-
+	std::cout << "rpropmex: Data sets transferred." << std::endl;
 	p = mxGetM(prhs[P_HYP]);
-	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(
-			mxGetPr(prhs[P_HYP]), p);
 	if (p != gp->covf().get_param_dim()) {
 		std::stringstream ss;
-		ss << "The length of the initial parameter vector "
-				<< params.transpose()
+		ss << "The length of the initial parameter vector " << p
 				<< " does not match the number of parameters of the covariance function: "
 				<< gp->covf().get_param_dim();
 		mexErrMsgTxt(ss.str().c_str());
 		return;
 	}
-	mexPrintf("rpropmex: Initializating GP.\n");
+	Eigen::Map<const Eigen::VectorXd> params(mxGetPr(prhs[P_HYP]), p);
+
+//	mexPrintf("rpropmex: Initializating GP with hyper-parameters.\n");
 	gp->covf().set_loghyper(params);
-	mexPrintf(
-			"rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
+//	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
 	libgp::RProp rprop;
 	rprop.init(1e-12);
 	Eigen::VectorXd times(iters);
@@ -167,6 +125,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::MatrixXd meanY(test_n, iters);
 	Eigen::MatrixXd varY(test_n, iters);
 	Eigen::VectorXd nlZ(iters);
+	std::cout << "starting optimization" << std::endl;
 	rprop.maximize(gp, testX, times, theta_over_time, meanY, varY, nlZ);
 	plhs[0] = mxCreateDoubleMatrix(iters, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), iters) = times;

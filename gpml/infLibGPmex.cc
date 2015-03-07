@@ -12,6 +12,8 @@
 
 #include <sstream>
 
+#include "util/util.cc"
+
 #define P_X 0
 #define P_y 1
 #define P_Xtest 2
@@ -23,33 +25,6 @@
 #define USAGE "Usage: [alpha, L, nlZ, mF, s2F] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)"
 
 std::stringstream ss;
-
-/**
- * This function performs consistency checks on the input string and retuns the length of the string.
- */
-int getBufferLength(const mxArray *prhs[], size_t param_number) {
-	/* Input must be a string. */
-	if (!mxIsChar(prhs[param_number]))
-		mexErrMsgTxt("GP name must be a string.");
-
-	/* Input must be a row vector. */
-	if (mxGetM(prhs[param_number]) != 1)
-		mexErrMsgTxt("GP name must be a row vector.");
-
-	/* Get the length of the basis function name. */
-	return mxGetN(prhs[param_number]) + 1;
-}
-
-bool checkStatus(int status, const std::string & varName) {
-	if (status != 0) {
-		std::stringstream ss;
-		ss << "inflibgp: Could not read " << varName << ". Status: " << status;
-		mexErrMsgTxt(ss.str().c_str());
-		return false;
-	}
-	return true;
-}
-
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	libgp::AbstractGaussianProcess * gp;
@@ -92,7 +67,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		char * bf_name_buf;
 		M = mxGetScalar(prhs[P_M]);
 		if (M <= 0) {
-			mexErrMsgTxt("rpropmex: M must be greater 0!");
+			mexErrMsgTxt("inflibgp: M must be greater 0!");
 			return;
 		}
 		buflen = getBufferLength(prhs, P_BF_NAME);
@@ -101,20 +76,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (!checkStatus(status, "Basis function name"))
 			return;
 		std::string bf_name(bf_name_buf);
-		if (gp_name.compare("degenerate") == 0) {
-			//TODO: do we need a seed as argument?
-			gp = new libgp::DegGaussianProcess(D, cov_name, M, bf_name, 0);
-		} else if (gp_name.compare("FIC") == 0) {
-			gp = new libgp::FICGaussianProcess(D, cov_name, M, bf_name);
-		} else if (gp_name.compare("Solin") == 0) {
-			gp = new libgp::SolinGaussianProcess(D, cov_name, M, bf_name);
-		} else {
-			std::stringstream ss;
-			ss << "rpropmex: The GP name " << gp_name
-					<< " is unknown. Options are full, degenerate, Solin and FIC.";
-			mexErrMsgTxt(ss.str().c_str());
-			return;
-		}
+		//TODO: request seed?
+		size_t seed = 0;
+		gp = constructGP(gp_name, D, cov_name, M, bf_name, seed);
 		mxFree(bf_name_buf);
 	}
 	mxFree(gp_name_buf);
