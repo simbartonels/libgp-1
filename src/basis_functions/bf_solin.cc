@@ -143,7 +143,9 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 }
 
 inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared) {
-	return c * exp(-lambdaSquared.cwiseProduct(ell).sum() / 2);
+//	return c * exp(-lambdaSquared.cwiseProduct(ell).sum() / 2);
+	//this is numerically more stable (especially for higher M)
+	return c * (-lambdaSquared.array() * ell.array() / 2).exp().prod();
 }
 
 inline void Solin::incCounter(Eigen::VectorXi & counter) {
