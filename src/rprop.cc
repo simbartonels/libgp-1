@@ -20,13 +20,9 @@
 #include <float.h>
 #define INFINITY (DBL_MAX+DBL_MAX)
 #define NAN (INFINITY-INFINITY)
-static bool isnan(double d){
-	return _isnan(d);
-}
-//#else
-//static bool isnan(double d){
-//	return std::isnan(d);
-//}
+#define ISNAN(D) _isnan(D)
+#else
+#define ISNAN(D) std::isnan(D)
 #endif
 
 static double tic() {
@@ -64,7 +60,7 @@ void RProp::maximize(AbstractGaussianProcess * gp, size_t n, bool verbose)
 
   for (size_t i=0; i<n; ++i) {
 	  double lik = step(gp, best, Delta, grad_old, params, best_params);
-	  if(isnan(lik))
+	  if(ISNAN(lik))
 		  break;
 	  if (verbose) std::cout << i << " " << -lik << std::endl;
   }
@@ -96,7 +92,7 @@ void RProp::maximize(AbstractGaussianProcess * gp, const Eigen::MatrixXd & testX
 	  for (size_t i=0; i<iters; ++i){
 		  double lik = step(gp, best, Delta, grad_old, params, best_params);
 		  double t = tic() - start;
-		  if(isnan(lik))
+		  if(ISNAN(lik))
 			  break;
 		  std::cout << i << " " << -lik << std::endl;
 		  param_history.col(i) = params;
