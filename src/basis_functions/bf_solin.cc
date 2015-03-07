@@ -10,7 +10,7 @@
 
 namespace libgp {
 
-Solin::Solin():piOver2Sqrd((M_PI/2)*(M_PI/2)){
+Solin::Solin():piOver2Sqrd(M_PI*M_PI/4){
 
 }
 
@@ -46,7 +46,7 @@ Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
 }
 
 inline void Solin::phi1D(const Eigen::VectorXd & x, size_t d, Eigen::VectorXd & phi) {
-	phi.head(M_intern).array() = (L(d) * m.array() * (x(d) + L(d))).sin() / sqrtL(d);
+	phi.head(M_intern).array() = (m.array() * (x(d) + L(d)) / L(d)).sin() / sqrtL(d);
 }
 
 const Eigen::MatrixXd & libgp::Solin::getInverseOfSigma() {
@@ -107,6 +107,13 @@ bool libgp::Solin::gradiSigmaIsNull(size_t p) {
 
 std::string libgp::Solin::to_string() {
 	return BF_SOLIN_NAME;
+}
+
+std::string Solin::pretty_print_parameters(){
+	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	std::stringstream ss;
+	ss << (2*loghyper.array().exp()).format(CleanFmt);
+	return ss.str();
 }
 
 void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {

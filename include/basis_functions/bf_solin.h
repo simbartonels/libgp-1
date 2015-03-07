@@ -55,6 +55,8 @@ public:
 
 	std::string to_string();
 
+	std::string pretty_print_parameters();
+
 	void setL(Eigen::VectorXd L);
 protected:
 	void log_hyper_updated(const Eigen::VectorXd &p);
