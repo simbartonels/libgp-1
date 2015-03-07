@@ -107,8 +107,8 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 			}
 		} else {
 			//just copy results from last prediction
-			meanY.col(i) = meanY.col(i - 1);
-			varY.col(i) = varY.col(i - 1);
+			meanY.col(i).array() = meanY.col(i - 1).array();
+			varY.col(i).array() = varY.col(i - 1).array();
 		}
 	}
 	gp->covf().set_loghyper(best_params);
@@ -136,6 +136,8 @@ inline double RProp::step(AbstractGaussianProcess * gp, double & best,
 	double lik = gp->log_likelihood();
 	if(ISNAN(lik)){
 		std::cerr << "rprop: Computed likelihood is NaN! Returning -Infty." << std::endl;
+		std::cerr << "rprop: parameters are " << std::endl;
+		std::cerr << gp->covf().pretty_print_parameters() << std::endl;
 		return log(0.0);
 	}
 	if (lik > best) {
