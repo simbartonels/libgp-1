@@ -96,37 +96,37 @@ TEST_P(GradientTest, EqualToNumerical) {
   }
 }
 
-TEST_P(GradientTest, EqualToNumerical_input) {
-	Eigen::VectorXd grad = gradient_input();
-	for (int i = 0; i < grad.size(); ++i) {
-		double num_grad = numerical_gradient_input(i);
-		if (grad(i) == 0.0) {
-			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
-			<< std::endl << "numerical gradient: " << num_grad;
-		}
-		else {
-			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
-			<< std::endl << "numerical gradient: " << num_grad
-			<< std::endl << "computed gradient: " << grad(i);
-		}
-	}
-}
-
-TEST_P(GradientTest, DiagEqualToNumerical_input) {
-	Eigen::VectorXd grad = gradient_input_diag();
-	for (int i = 0; i < grad.size(); ++i) {
-		double num_grad = numerical_gradient_input_diag(i);
-
-		if (grad(i) == 0.0) {
-			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
-			<< std::endl << "numerical gradient: " << num_grad;
-		}
-		else {
-			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
-			<< std::endl << "numerical gradient: " << num_grad;
-		}
-	}
-}
+//TEST_P(GradientTest, EqualToNumerical_input) {
+//	Eigen::VectorXd grad = gradient_input();
+//	for (int i = 0; i < grad.size(); ++i) {
+//		double num_grad = numerical_gradient_input(i);
+//		if (grad(i) == 0.0) {
+//			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad;
+//		}
+//		else {
+//			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad
+//			<< std::endl << "computed gradient: " << grad(i);
+//		}
+//	}
+//}
+//
+//TEST_P(GradientTest, DiagEqualToNumerical_input) {
+//	Eigen::VectorXd grad = gradient_input_diag();
+//	for (int i = 0; i < grad.size(); ++i) {
+//		double num_grad = numerical_gradient_input_diag(i);
+//
+//		if (grad(i) == 0.0) {
+//			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad;
+//		}
+//		else {
+//			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+//			<< std::endl << "numerical gradient: " << num_grad;
+//		}
+//	}
+//}
 
 INSTANTIATE_TEST_CASE_P(CovarianceFunction, GradientTest, Values(
           "CovLinearard",
