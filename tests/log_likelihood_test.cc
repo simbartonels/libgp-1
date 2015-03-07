@@ -27,9 +27,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	  Eigen::VectorXd y(n);
 	  y.setRandom();
 	  for(size_t i = 0; i < n; ++i) {
-	    double x[input_dim];
-	    for(int j = 0; j < input_dim; ++j) x[j] = X(i,j);
-	    gp->add_pattern(x, y(i));
+	    gp->add_pattern(X.row(i), y(i));
 	  }
 
 	  double e = 1e-4;
@@ -84,6 +82,6 @@ TEST(LogLikelihoodTest, CheckGradientsDegGP)
 TEST(LogLikelihoodTest, CheckGradientsSolinGP)
 {
   int input_dim = 3;
-  libgp::SolinGaussianProcess * gp = new libgp::SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "Solin");
+  libgp::SolinGaussianProcess * gp = new libgp::SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20);
   genericGradientTest(gp, input_dim);
 }

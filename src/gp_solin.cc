@@ -7,8 +7,8 @@
 namespace libgp {
 
 libgp::SolinGaussianProcess::SolinGaussianProcess(size_t input_dim,
-		std::string covf_def, size_t num_basisf, std::string basisf_def) :
-		DegGaussianProcess(input_dim, covf_def, num_basisf, basisf_def) {
+		std::string covf_def, size_t num_basisf) :
+		DegGaussianProcess(input_dim, covf_def, num_basisf, BF_SOLIN_NAME) {
 	newDataPoints = true;
 	PhiPhi.resize(M, M);
 	Lv.resize(input_dim);
@@ -22,17 +22,8 @@ void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	newDataPoints = true;
 	//set L to max(X)
 	for(size_t i = 0; i < input_dim; i++)
-		if(Lv(i) < std::fabs(x[i])){
+		if(Lv(i) < std::fabs(x[i]))
 			Lv(i) = std::fabs(x[i]);
-			/*
-			 * If there is a set_log_hyper call before we update the Cholesky we are in trouble.
-			 * That's why we call the setL here.
-			 * TODO: this might still be problematic.
-			 */
-			((libgp::Solin *) bf)->setL(4 * Lv / 3);
-			//called anyway in the super method
-//			bf->loghyper_changed = true;
-		}
 	//recompute_yy is updated in the parent method
 	DegGaussianProcess::updateCholesky(x, y);
 }
@@ -53,6 +44,7 @@ void libgp::SolinGaussianProcess::update_alpha() {
 void libgp::SolinGaussianProcess::computeCholesky() {
 	DegGaussianProcess::update_internal_variables();
 	if (newDataPoints) {
+		((libgp::Solin *) bf)->setL(4 * Lv / 3);
 		newDataPoints = false;
 		if (n > Phi.cols())
 			Phi.resize(M, n);

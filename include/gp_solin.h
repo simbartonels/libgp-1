@@ -24,7 +24,7 @@ namespace libgp {
 
     /** Create and instance of GaussianProcess with given input dimensionality
      *  and covariance function. */
-	  SolinGaussianProcess (size_t input_dim, std::string covf_def, size_t num_basisf, std::string basisf_def);
+	  SolinGaussianProcess (size_t input_dim, std::string covf_def, size_t num_basisf);
 	  virtual ~SolinGaussianProcess();
 
 	  virtual void updateCholesky(const double x[], double y);
