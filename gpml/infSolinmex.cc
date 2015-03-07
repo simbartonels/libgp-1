@@ -21,8 +21,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	//std::cout << "number of basis function: " << M << std::endl;
 	//std::cout << "number of points: " << n << std::endl;
 	p = mxGetM(prhs[1]);
-	libgp::SolinGaussianProcess gp(D, "CovSum ( CovSEard, CovNoise)", M,
-			"Solin");
+	libgp::SolinGaussianProcess gp(D, "CovSum ( CovSEard, CovNoise)", M);
 	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[1]),
 			p);
 
