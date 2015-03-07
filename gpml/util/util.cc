@@ -5,12 +5,18 @@
  */
 int getBufferLength(const mxArray *prhs[], size_t param_number) {
 	/* Input must be a string. */
-	if (!mxIsChar(prhs[param_number]))
-		mexErrMsgTxt("GP name must be a string.");
-
+	if (!mxIsChar(prhs[param_number])){
+		std::stringstream ss;
+		ss << "Input " << param_number << "must be a string.";
+		mexErrMsgTxt(ss.str().c_str());
+	}
 	/* Input must be a row vector. */
-	if (mxGetM(prhs[param_number]) != 1)
-		mexErrMsgTxt("GP name must be a row vector.");
+	if (mxGetM(prhs[param_number]) != 1){
+		std::stringstream ss;
+		ss << "Input " << param_number << "must be a row vector.";
+		mexErrMsgTxt(ss.str().c_str());
+
+	}
 
 	/* Get the length of the basis function name. */
 	return mxGetN(prhs[param_number]) + 1;
@@ -19,7 +25,7 @@ int getBufferLength(const mxArray *prhs[], size_t param_number) {
 bool checkStatus(int status, const std::string & varName) {
 	if (status != 0) {
 		std::stringstream ss;
-		ss << "rpropmex: Could not read " << varName << ". Status: " << status;
+		ss << "Could not read " << varName << ". Status: " << status;
 		mexErrMsgTxt(ss.str().c_str());
 		return false;
 	}
@@ -42,7 +48,7 @@ libgp::AbstractGaussianProcess * constructGP(const std::string & gp_name, size_t
 		gp = new libgp::SolinGaussianProcess(D, cov_name, M);
 	} else {
 		std::stringstream ss;
-		ss << "rpropmex: The GP name " << gp_name
+		ss << "The GP name " << gp_name
 				<< " is unknown. Options are full, degenerate, Solin and FIC.";
 		mexErrMsgTxt(ss.str().c_str());
 //			return;
