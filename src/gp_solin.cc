@@ -24,6 +24,12 @@ void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	for(size_t i = 0; i < input_dim; i++)
 		if(Lv(i) < std::fabs(x[i])){
 			Lv(i) = std::fabs(x[i]);
+			/*
+			 * If there is a set_log_hyper call before we update the Cholesky we are in trouble.
+			 * That's why we call the setL here.
+			 * TODO: this might still be problematic.
+			 */
+			((libgp::Solin *) bf)->setL(4 * Lv / 3);
 			//called anyway in the super method
 //			bf->loghyper_changed = true;
 		}
@@ -48,7 +54,6 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 	DegGaussianProcess::update_internal_variables();
 	if (newDataPoints) {
 		newDataPoints = false;
-		((libgp::Solin *) bf)->setL(4 * Lv / 3);
 		if (n > Phi.cols())
 			Phi.resize(M, n);
 		for (size_t i = 0; i < n; i++)
