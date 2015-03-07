@@ -22,8 +22,11 @@ void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	newDataPoints = true;
 	//set L to max(X)
 	for(size_t i = 0; i < input_dim; i++)
-		if(Lv(i) < abs(x[i]))
-			Lv(i) = abs(x[i]);
+		if(Lv(i) < std::fabs(x[i])){
+			Lv(i) = std::fabs(x[i]);
+			//called anyway in the super method
+//			bf->loghyper_changed = true;
+		}
 	//recompute_yy is updated in the parent method
 	DegGaussianProcess::updateCholesky(x, y);
 }
@@ -56,7 +59,7 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 
 	L.triangularView<Eigen::Lower>() = PhiPhi.triangularView<Eigen::Lower>();
 	L.diagonal() += squared_noise * bf->getInverseOfSigma().diagonal();
-	L.triangularView<Eigen::Lower>() =
+	L =
 			L.selfadjointView<Eigen::Lower>().llt().matrixL();
 }
 
