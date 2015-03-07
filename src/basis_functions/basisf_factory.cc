@@ -18,7 +18,7 @@ namespace libgp {
 BasisFFactory::BasisFFactory () {
 	//TODO: these hard coded names ain't nice. use getName for that
 	registry["SparseMultiScaleGP"] = & create_func<MultiScale>;
-	registry["Solin"] = & create_func<Solin>;
+	registry[BF_SOLIN_NAME] = & create_func<Solin>;
 	#ifdef BUILD_FAST_FOOD
 	registry["FastFood"] = & create_func<FastFood>;
 	#endif
