@@ -7,6 +7,7 @@
 #include "cov_factory.h"
 #include "cov.h"
 
+
 namespace libgp {
 
 Solin::Solin():piOver2Sqrd((M_PI/2)*(M_PI/2)){
@@ -16,11 +17,12 @@ Solin::Solin():piOver2Sqrd((M_PI/2)*(M_PI/2)){
 libgp::Solin::~Solin() {
 }
 
-void libgp::Solin::setL(const Eigen::VectorXd & L){
+void libgp::Solin::setL(Eigen::VectorXd L){
 	this->L = L;
 	this->sqrtL.array() = L.array().sqrt();
 	this->squaredL.array() = L.array().square();
-	std::cerr << "bf_solin: INFO: L has been initialized." << std::endl;
+	std::cerr << "bf_solin: INFO: L has been initialized. (L=" << L.transpose() << std::endl;
+	log_hyper_updated(loghyper);
 }
 
 Eigen::VectorXd libgp::Solin::computeBasisFunctionVector(
@@ -104,7 +106,7 @@ bool libgp::Solin::gradiSigmaIsNull(size_t p) {
 }
 
 std::string libgp::Solin::to_string() {
-	return "Solin";
+	return BF_SOLIN_NAME;
 }
 
 void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {

@@ -5,6 +5,8 @@
 #ifndef INCLUDE_BASIS_FUNCTIONS_BF_SOLIN_H_
 #define INCLUDE_BASIS_FUNCTIONS_BF_SOLIN_H_
 
+#define BF_SOLIN_NAME "Solin"
+
 #include "IBasisFunction.h"
 
 namespace libgp {
@@ -53,7 +55,7 @@ public:
 
 	std::string to_string();
 
-	void setL(const Eigen::VectorXd & L);
+	void setL(Eigen::VectorXd L);
 protected:
 	void log_hyper_updated(const Eigen::VectorXd &p);
 
