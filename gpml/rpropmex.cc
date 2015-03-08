@@ -78,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mxFree(gp_name_buf);
 	mxFree(cov_name_buf);
 	std::cout << "rpropmex: GP instantiated." << std::endl;
-	Eigen::MatrixXd X = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[2]), n,
+	Eigen::Map<const Eigen::MatrixXd> X(mxGetPr(prhs[2]), n,
 			D);
 	if (mxGetM(prhs[3]) != n) {
 		std::stringstream ss;
@@ -88,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt(ss.str().c_str());
 		return;
 	}
-	Eigen::VectorXd y = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[3]), n);
+	Eigen::Map<const Eigen::VectorXd> y(mxGetPr(prhs[3]), n);
 	for (size_t i = 0; i < n; i++)
 		gp->add_pattern(X.row(i), y(i));
 
@@ -101,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 	size_t test_n = mxGetM(prhs[4]);
-	Eigen::MatrixXd testX = Eigen::Map<const Eigen::MatrixXd>(mxGetPr(prhs[4]),
+	Eigen::Map<const Eigen::MatrixXd> testX(mxGetPr(prhs[4]),
 			test_n, D);
 	std::cout << "rpropmex: Data sets transferred." << std::endl;
 	p = mxGetM(prhs[P_HYP]);
