@@ -103,6 +103,11 @@ protected:
 	/** Update test input and cache kernel vector. */
 	virtual void update_k_star(const Eigen::VectorXd &x_star) = 0;
 
+	/**
+	 * Checks if calls to update_k_star are really necessary.
+	 */
+	virtual void update_k_star_preprocessing(const Eigen::VectorXd & x_star, bool gradient);
+
 	virtual void update_alpha() = 0;
 
 	/** Compute covariance matrix and perform cholesky decomposition. */
@@ -140,6 +145,16 @@ private:
 	void compute();
 
 	bool alpha_needs_update;
+
+	/**
+	 * Pointer to the last x that was used to update kstar.
+	 */
+	Eigen::VectorXd const * last_x;
+
+	/**
+	 * Flag signaling whether we already computed JT for kstar or not.
+	 */
+	bool gradient_computed;
 
 };
 }
