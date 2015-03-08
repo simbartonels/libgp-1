@@ -89,10 +89,12 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 	Eigen::VectorXd best_params = params;
 	double best = log(0.0);
 
-	double start = tic();
+	double t = 0;
 	for (size_t i = 0; i < iters; ++i) {
+		double diff = tic();
 		double lik = step(gp, best, Delta, grad_old, params, best_params);
-		double t = tic() - start;
+		diff = tic() - diff;
+		t += diff;
 		if (ISNAN(lik))
 			break;
 		std::cout << i << " " << -lik << std::endl;
