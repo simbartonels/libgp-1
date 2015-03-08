@@ -109,7 +109,8 @@ void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
 //	loghyper(cov_params_size - 1) = p(p.size() - 1);
 //	std::cout << loghyper.transpose() << std::endl;
 
-	cov_params.head(cov_params_size - 1) = loghyper.head(cov_params_size);
+	cov_params.head(cov_params_size - 1) = loghyper.head(cov_params_size - 1);
+	//TODO: strong assumption that noise parameter is the last
 	cov_params.tail(1) = loghyper.tail(1);
 	cov->set_loghyper(cov_params);
 	size_t idx = 0;
