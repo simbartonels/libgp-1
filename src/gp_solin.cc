@@ -55,7 +55,11 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 	}
 
 	L.triangularView<Eigen::Lower>() = PhiPhi.triangularView<Eigen::Lower>();
-	L.diagonal() += squared_noise * bf->getInverseOfSigma().diagonal();
+//	L.diagonal() += squared_noise * bf->getInverseOfSigma().diagonal();
+	//this is numerically more stable
+	L *= bf->getCholeskyOfInvertedSigma().diagonal().cwiseInverse().asDiagonal();
+	L.diagonal() += squared_noise * bf->getCholeskyOfInvertedSigma().diagonal();
+	L *= bf->getCholeskyOfInvertedSigma().diagonal().asDiagonal();
 	L =
 			L.selfadjointView<Eigen::Lower>().llt().matrixL();
 }
