@@ -123,8 +123,8 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	sf2 = exp(2 * p(input_dim));
 
 	//initialize spectral density constants
-	c = sf2 * pow(2 * M_PI, 0.5 * input_dim) * exp(p.head(input_dim).sum());
-
+//	c = sf2 * pow(2 * M_PI, 0.5 * input_dim) * exp(p.head(input_dim).sum());
+	log_c = 2 * p(input_dim) + input_dim * log(2. * M_PI) / 2 + p.head(input_dim).sum();
 	//create Sigma and associated fields
 	Eigen::VectorXd lambdaSquared(input_dim);
 	logDetSigma = 0;
@@ -132,20 +132,24 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 	for (size_t i = 0; i < MToTheD; i++) {
 		lambdaSquared.array() = piOver2Sqrd
 				* indices.row(i).array().square().cast<double>() / squaredL.transpose().array();
-		double value = spectralDensity(lambdaSquared);
-		Sigma.diagonal()(i) = value;
-		iSigma.diagonal()(i) = 1 / value;
-		choliSigma.diagonal()(i) = 1 / sqrt(value);
-		logDetSigma += log(value);
+		double value = logSpectralDensity(lambdaSquared);
+		logDetSigma += value;
+//		value = exp(value);
+//		if(value == 0.0)
+//			value = 1e-200;
+		choliSigma.diagonal()(i) = exp(-value/2);
+		//TODO: here things get messy
+		Sigma.diagonal()(i) = exp(value);
+		iSigma.diagonal()(i) = exp(-value);
 	}
 	//logDetSigma is supposed to contain half of the log determinant
 	logDetSigma /= 2;
 }
 
-inline double Solin::spectralDensity(const Eigen::VectorXd & lambdaSquared) {
+inline double Solin::logSpectralDensity(const Eigen::VectorXd & lambdaSquared) {
 //	return c * exp(-lambdaSquared.cwiseProduct(ell).sum() / 2);
-	//this is numerically more stable (especially for higher M)
-	return c * (-lambdaSquared.array() * ell.array() / 2).exp().prod();
+	//this is numerically more stable
+	return log_c - lambdaSquared.cwiseProduct(ell).sum() / 2;
 }
 
 inline void Solin::incCounter(Eigen::VectorXi & counter) {

@@ -71,11 +71,11 @@ private:
 	 * Function computing the spectral density of the ARD squared exponential kernel.
 	 *
 	 * @param lambdaSquared A vector of size input_dim. Should be lambda^2 (component-wise).
-	 * @returns The value of the spectral density.
+	 * @returns The log value of the spectral density.
 	 *
 	 * TODO: generalize by taking the spectral density from the covariance function where possible.
 	 */
-	inline double spectralDensity(const Eigen::VectorXd & lambdaSquared);
+	inline double logSpectralDensity(const Eigen::VectorXd & lambdaSquared);
 
 	/**
 	 * Increases the counter 'counter'. 'counter' is supposed to be a vector of size input_dim.
@@ -114,7 +114,7 @@ private:
 	/**
 	 * Factor for the spectral density. See log_hyper_updated for the definition.
 	 */
-	double c;
+	double log_c;
 
 	/**
 	 * (PI/2)^2.
