@@ -8,6 +8,7 @@
 #include "basis_functions/basisf_factory.h"
 #include "basis_functions/bf_multi_scale.h"
 #include "basis_functions/bf_solin.h"
+#include "basis_functions/bf_fic.h"
 //#ifdef INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_
 #ifdef BUILD_FAST_FOOD
 #	include "basis_functions/bf_fast_food.h"
@@ -19,6 +20,7 @@ BasisFFactory::BasisFFactory () {
 	//TODO: these hard coded names ain't nice. use getName for that
 	registry["SparseMultiScaleGP"] = & create_func<MultiScale>;
 	registry[BF_SOLIN_NAME] = & create_func<Solin>;
+	registry["FIC"] = & create_func<FIC>;
 	#ifdef BUILD_FAST_FOOD
 	registry["FastFood"] = & create_func<FastFood>;
 	#endif
@@ -46,7 +48,8 @@ BasisFFactory::BasisFFactory () {
 	    std::map<std::string , BasisFFactory::create_func_def>::iterator it = registry.find(key);
 	    if (it == registry.end()) {
 	      std::cerr << "fatal error while parsing basis function: " << key << " not found" << std::endl;
-	      exit(0);
+//	      exit(0);
+	      return 0; //better?
 	    }
 	    bf = registry.find(key)->second();
 	    return bf;

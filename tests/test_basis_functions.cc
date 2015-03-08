@@ -18,7 +18,7 @@ using ::testing::Values;
 class BFGradientTest: public TestWithParam<std::string> {
 protected:
 	virtual void SetUp() {
-		n = 5;
+		n = 3;
 		M = 13;
 		e = 1e-8;
 		wrappedCovarianceFunction = covFactory.create(n,
@@ -336,10 +336,10 @@ TEST_P(BFGradientTest, InverseCorrect) {
 
 #ifdef BUILD_FAST_FOOD
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
-		Values("SparseMultiScaleGP", "Solin", "FastFood"));
+		Values("SparseMultiScaleGP", "Solin", "FastFood", "FIC"));
 #else
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
-		Values("SparseMultiScaleGP", "Solin"));
+		Values("SparseMultiScaleGP", "Solin", "FIC"));
 #endif
 
 #else
