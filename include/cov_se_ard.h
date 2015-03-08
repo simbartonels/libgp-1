@@ -28,11 +28,13 @@ namespace libgp
     bool init(int n);
     double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2);
     void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
+    void grad_input(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
     void set_loghyper(const Eigen::VectorXd &p);
     virtual std::string to_string();
   private:
     Eigen::VectorXd ell;
     double sf2;
+    Eigen::VectorXd input_diff;
   };
   
 }

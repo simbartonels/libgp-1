@@ -18,6 +18,7 @@ namespace libgp
     param_dim = n+1;
     ell.resize(input_dim);
     loghyper.resize(param_dim);
+    input_diff.resize(input_dim);
     return true;
   }
   
@@ -35,6 +36,17 @@ namespace libgp
     grad(input_dim) = 2.0 * k;
   }
   
+  void CovSEard::grad_input(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad)
+  {
+    input_diff = x1-x2;
+    input_diff = input_diff.cwiseQuotient(ell);
+    double z = input_diff.squaredNorm();
+    double k = sf2*exp(-0.5*z);
+    if (grad.size() != input_dim)
+      grad.resize(input_dim);
+    grad = -k*input_diff.cwiseQuotient(ell);
+  }
+
   void CovSEard::set_loghyper(const Eigen::VectorXd &p)
   {
     CovarianceFunction::set_loghyper(p);

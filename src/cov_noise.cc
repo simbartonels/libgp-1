@@ -33,6 +33,11 @@ namespace libgp
     else grad(0) = 0.0;
   }
   
+  void CovNoise::grad_input(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad)
+  {
+    grad.setZero();
+  }
+
   void CovNoise::set_loghyper(const Eigen::VectorXd &p)
   {
     CovarianceFunction::set_loghyper(p);
