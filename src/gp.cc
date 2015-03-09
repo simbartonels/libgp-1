@@ -31,6 +31,7 @@ void GaussianProcess::grad_var_impl(const Eigen::VectorXd & x,
 	cf->grad_input(x, x, grad);
 	L.triangularView<Eigen::Lower>().solveInPlace(JT);
 	grad -= JT * JT.transpose();
+	//TODO: it might be possible to speed this up with rankUpdate
 }
 
 void GaussianProcess::computeCholesky() {
