@@ -22,8 +22,7 @@ public:
 	//IBasisFunction(const CovarianceFunction & cf){};
 
 	bool init(int input_dim) {
-		//TODO: give a signal that this is not the way to initialize basis functions
-		std::cout
+		std::cerr
 				<< "IBasisFunction: Wrong initialization method for basis functions!"
 				<< std::endl;
 		return false;
@@ -220,7 +219,7 @@ public:
 	 * This is necessary for hyper-parameter optimization for degenerate kernels.
 	 * Unfortunately, there seems to be no easy way to hide this parameter.
 	 */
-	double getLogNoise(){
+	virtual double getLogNoise(){
 		return loghyper(get_param_dim() - 1);
 	}
 
@@ -246,6 +245,7 @@ protected:
 	 * and the required number of basis functions.
 	 * The number of parameters should depend only on the two provided arguments. This function
 	 * is called before real_init.
+	 * Functions may assume that cov is already set and initialized.
 	 * @param input_dim The input dimensionality.
 	 * @param num_basis_functions The number of basis functions (M).
 	 * @return The number of hyper-parameters.
