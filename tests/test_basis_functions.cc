@@ -19,7 +19,7 @@ class BFGradientTest: public TestWithParam<std::string> {
 protected:
 	virtual void SetUp() {
 		n = 3;
-		M = 13;
+		M = 10;
 		e = 1e-8;
 		wrappedCovarianceFunction = covFactory.create(n,
 				"CovSum ( CovSEard, CovNoise)");
@@ -237,7 +237,8 @@ TEST_P(BFGradientTest, GradientOfiSigmaEqualToNumerical) {
 		for (size_t j = 0; j < M; j++) {
 			for (size_t k = 0; k < M; k++) {
 				if (grad(j, k) == 0.0)
-					ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2);
+					ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2)<< "Parameter number: " << i << std::endl
+					 << "index: " << j << "," << k;
 				else
 					ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2)<< "Parameter number: " << i
 					<< std::endl << "numerical gradient: " << numeric_gradient(j, k)
@@ -290,8 +291,8 @@ TEST_P(BFGradientTest, CholeskyCorrect) {
 	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
 	L.array() = (iSigma - L * L.transpose()).array().abs();
 	L.array() = L.array() / (iSigma.array() + 1e-15);
-	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)<< "diff: " << std::endl << iSigma << std::endl
-	<< "L: " << std::endl << L << std::endl;
+	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)<< "iSigma: " << std::endl << iSigma << std::endl
+	<< "diff: " << std::endl << L << std::endl;
 }
 
 TEST_P(BFGradientTest, InverseCorrect) {
