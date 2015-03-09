@@ -121,6 +121,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	libgp::RProp rprop;
 	rprop.init(1e-12);
 	Eigen::VectorXd times(iters);
+	times.fill(-1);
 	Eigen::MatrixXd theta_over_time(p, iters);
 	Eigen::MatrixXd meanY(test_n, iters);
 	Eigen::MatrixXd varY(test_n, iters);
