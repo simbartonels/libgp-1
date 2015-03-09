@@ -6,8 +6,8 @@ spiral_compiled = exist('../spiral_wht/transpose.h', 'file') == 2;
 %TODO: make Eigen include relative...
 if spiral_compiled
     files = [files  '../src/basis_functions/bf_fast_food.cc'];
-    eval(['mex -O bfmex.cc libwht.a -DBUILD_FAST_FOOD -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
+    eval(['mex -O bfmexgradient.cc libwht.a -DBUILD_FAST_FOOD -I../include -I../spiral_wht -I/usr/include/eigen3 ', files]);
 else
     %FastFoodFree version
-    eval(['mex -O bfmex.cc -I../include -I../eigen3 ', files]);
+    eval(['mex -O bfmexgradient.cc -I../include -I../eigen3 ', files]);
 end

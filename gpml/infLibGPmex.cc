@@ -1,10 +1,5 @@
-#include "abstract_gp.h"
-#include "gp_solin.h"
-#include "gp_deg.h"
-#include "gp_fic.h"
-#include "gp.h"
+#include "util/util.cc"
 
-#include "mex.h"
 #include <math.h>
 #include <string.h>
 #include <Eigen/Dense>
@@ -12,7 +7,6 @@
 
 #include <sstream>
 
-#include "util/util.cc"
 
 #define P_X 0
 #define P_y 1

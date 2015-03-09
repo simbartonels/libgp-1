@@ -1,4 +1,14 @@
 #include "mex.h"
+#include "basis_functions/basisf_factory.h"
+#include "basis_functions/IBasisFunction.h"
+#include "cov.h"
+#include "cov_factory.h"
+#include "abstract_gp.h"
+#include "gp_solin.h"
+#include "gp_deg.h"
+#include "gp_fic.h"
+#include "gp.h"
+
 
 /**
  * This function performs consistency checks on the input string and retuns the length of the string.
@@ -54,4 +64,56 @@ libgp::AbstractGaussianProcess * constructGP(const std::string & gp_name, size_t
 //			return;
 	}
 	return gp;
+}
+
+/**
+ * Function that initializes a basis function.
+ */
+libgp::IBasisFunction * bfmex(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
+	/* Input must be a string. */
+	if (!mxIsChar(prhs[0]))
+		mexErrMsgTxt("Basis function name must be a string.");
+
+	/* Input must be a row vector. */
+	if (mxGetM(prhs[0]) != 1)
+		mexErrMsgTxt("Basis function name must be a row vector.");
+
+	/* Get the length of the basis function name. */
+	int buflen = mxGetN(prhs[0]) + 1;
+
+	/* Allocate memory for basis function name. */
+	char * input_buf = (char *) mxCalloc(buflen, sizeof(char));
+
+	/* Copy the string data from prhs[0] into a C string
+	 * input_buf. If the string array contains several rows,
+	 * they are copied, one column at a time, into one long
+	 * string array. */
+	int status = mxGetString(prhs[0], input_buf, buflen);
+	checkStatus(status, "Basis Function Name");
+	std::string bf_name(input_buf);
+	size_t seed = (size_t) mxGetScalar(prhs[1]);
+	size_t M = (size_t) mxGetScalar(prhs[2]);
+	if (M == 0) {
+		mexErrMsgTxt("bfmex: M must be greater 0!");
+		return 0;
+	}
+	size_t D = (size_t) mxGetScalar(prhs[4]);
+	libgp::CovFactory cfactory;
+		libgp::CovarianceFunction * ardse = cfactory.create(D,
+			"CovSum ( CovSEard, CovNoise)");
+	libgp::BasisFFactory bfactory;
+	libgp::IBasisFunction * bf = bfactory.createBasisFunction(bf_name, M, ardse, seed);
+	mxFree(input_buf);
+	size_t p = mxGetM(prhs[3]);
+	if(p != bf->get_param_dim()){
+		std::stringstream ss;
+		ss << "The desired basis function " << bf->to_string() << " requires " << bf->get_param_dim()
+				<< " parameters but received only " << p;
+		mexErrMsgTxt(ss.str().c_str());
+		return 0;
+	}
+	Eigen::VectorXd params = Eigen::Map<const Eigen::VectorXd>(mxGetPr(prhs[3]),
+			p);
+	bf->set_loghyper(params);
+	return bf;
 }
