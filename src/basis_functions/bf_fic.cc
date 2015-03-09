@@ -38,6 +38,8 @@ void libgp::FIC::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	cov->grad(x1, x2, grad2);
 	grad.setZero();
 	grad.head(cov_params.size() - 1) = grad2.head(cov_params.size() - 1);
+//	if(&x1 == &x2)
+//		grad -= 2*sn2;
 	grad(loghyper.size() - 1) = grad2(cov_params.size() - 1);
 }
 
@@ -46,7 +48,7 @@ void libgp::FIC::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 //}
 
 bool libgp::FIC::gradDiagWrappedIsNull(size_t parameter) {
-	return (parameter >= cov_params.size() && parameter < loghyper.size() - 1);
+	return (parameter >= cov_params.size() - 1 && parameter < loghyper.size() - 1);
 }
 
 void libgp::FIC::gradBasisFunction(SampleSet* sampleSet,
@@ -77,7 +79,7 @@ void libgp::FIC::gradBasisFunction(SampleSet* sampleSet,
 }
 
 bool libgp::FIC::gradBasisFunctionIsNull(size_t p) {
-	return (p >= cov_params.size());
+	return (p == loghyper.size() - 1);
 }
 
 void libgp::FIC::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
@@ -111,7 +113,7 @@ void libgp::FIC::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
 }
 
 bool libgp::FIC::gradiSigmaIsNull(size_t p) {
-	return p < cov_params.size();
+	return false;
 }
 
 std::string libgp::FIC::to_string() {
@@ -126,23 +128,13 @@ std::string FIC::pretty_print_parameters() {
 }
 
 void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
-	//TODO: probably already done in IBasisFunction
-//	loghyper = p;
 	size_t cov_params_size = cov_params.size();
-	//exchange noise and last parameter
-//	loghyper.tail(loghyper.size() - cov_params_size) = p.segment(cov_params_size-1, loghyper.size() - cov_params_size);
-//	std::cout << "FIC: loghyper" << std::endl;
-//	std::cout << loghyper.transpose() << std::endl;
-//	loghyper.segment(cov_params_size, p.size() - cov_params_size - 1) =
-//			p.segment(cov_params_size - 1, p.size() - cov_params_size);
-//	loghyper(cov_params_size - 1) = p(p.size() - 1);
-//	std::cout << loghyper.transpose() << std::endl;
-
 	cov_params.head(cov_params_size - 1) = loghyper.head(cov_params_size - 1);
 	//TODO: strong assumption that noise parameter is the last
 	cov_params.tail(1) = loghyper.tail(1);
 	cov->set_loghyper(cov_params);
-	snu2 = 1e-6 * exp(2 * loghyper(loghyper.size() - 1));
+	double sn2 = exp(2 * loghyper(loghyper.size() - 1));
+	snu2 = 1e-6 * sn2;
 	size_t idx = 0;
 	/*
 	 * The loop needs to be like this as to read the parameters in the right order.
@@ -155,10 +147,13 @@ void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
 			idx++;
 		}
 	}
+	//	std::cout << "bf_fic: U" << std::endl << U << std::endl;
+
 	for (size_t m = 0; m < M; m++) {
 		for (size_t m2 = 0; m2 < m; m2++)
 			iSigma(m, m2) = cov->get(U.row(m), U.row(m2));
-		iSigma(m, m) = cov->get(U.row(m), U.row(m)) + snu2;
+		//is there noise on the diagonal?! seems not (seems like Eigen performs two copy operations!)
+		iSigma(m, m) = cov->get(U.row(m), U.row(m)) + snu2; //-sn2;
 	}
 	//TODO: is it possible to avoid that? Can we use views in general?
 	iSigma = iSigma.selfadjointView<Eigen::Lower>();
