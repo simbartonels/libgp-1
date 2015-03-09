@@ -24,7 +24,6 @@ size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M) {
 }
 
 bool MultiScale::real_init() {
-	//TODO: signal that Multiscale ignores the covariance function!
 	CovFactory f;
 	CovarianceFunction * expectedCov;
 	expectedCov = f.create(input_dim, "CovSum ( CovSEard, CovNoise)");
@@ -142,6 +141,7 @@ const Eigen::MatrixXd & MultiScale::getInverseOfSigma() {
 }
 
 void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
+	//TODO: use that FIC uses only lower half (i.e. dSigma is assumed self-adjoint)
 	dSigmadp.setZero();
 	if (p < input_dim) {
 		// length scale derivatives
