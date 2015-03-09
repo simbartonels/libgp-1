@@ -8,14 +8,6 @@
 #include "IBasisFunction.h"
 
 namespace libgp {
-/**
- * Implements "Hilbert Space Methods for Reduced Rank Gaussian Process Regression" by Solin
- * and S�rkk� from 2014. This implementation is taylored to the Squared Exponential but therefore
- * a bit more clever as it allows automatic relevance determination without sacrificing O(M^3)
- * hyper-parameter optimization. For a derivation see my thesis.
- *
- * @author Simon Bartels
- */
 class FIC: public IBasisFunction {
 public:
 	FIC();
@@ -84,6 +76,11 @@ private:
 	Eigen::VectorXd cov_params;
 
 	double half_log_det_sigma;
+
+	/**
+	 * Inducing input noise.
+	 */
+	double snu2;
 };
 }
 

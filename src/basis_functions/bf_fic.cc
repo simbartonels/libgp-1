@@ -34,14 +34,11 @@ double libgp::FIC::getLogDeterminantOfSigma() {
 void libgp::FIC::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		Eigen::VectorXd& grad) {
 	//TODO: highly inefficient
-	//TODO: remember that noise gradient is somewhere else!
 	Eigen::VectorXd grad2(cov_params.size());
 	cov->grad(x1, x2, grad2);
-	grad.head(cov_params.size()) = grad2;
-	grad.tail(grad.size()-cov_params.size()).setZero();
-//	grad.head(cov_params.size() - 1) = grad2.head(cov_params.size() - 1);
-//	grad.tail(grad.size() - cov_params.size() - 1).setZero();
-//	grad(loghyper.size() - 1) = grad2(cov_params.size() - 1);
+	grad.setZero();
+	grad.head(cov_params.size() - 1) = grad2.head(cov_params.size() - 1);
+	grad(loghyper.size() - 1) = grad2(cov_params.size() - 1);
 }
 
 //void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient){
@@ -49,7 +46,7 @@ void libgp::FIC::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 //}
 
 bool libgp::FIC::gradDiagWrappedIsNull(size_t parameter) {
-	return (parameter >= cov_params.size());
+	return (parameter >= cov_params.size() && parameter < loghyper.size() - 1);
 }
 
 void libgp::FIC::gradBasisFunction(SampleSet* sampleSet,
@@ -62,7 +59,6 @@ void libgp::FIC::gradBasisFunction(SampleSet* sampleSet,
 				cov->grad(sampleSet->x(i), U.row(j), grad);
 				Grad(j, i) = grad(p);
 			}
-			//					}
 		}
 	} else if (p < loghyper.size() - 1) {
 		Eigen::VectorXd grad(input_dim);
@@ -161,7 +157,6 @@ void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
 	}
 	for (size_t m = 0; m < M; m++) {
 		for (size_t m2 = 0; m2 < m; m2++)
-			//TODO: add inducing input noise and adapt gradients accordingly
 			iSigma(m, m2) = cov->get(U.row(m), U.row(m2));
 		iSigma(m, m) = cov->get(U.row(m), U.row(m)) + snu2;
 	}
