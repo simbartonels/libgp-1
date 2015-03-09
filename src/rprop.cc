@@ -102,6 +102,7 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 		times(i) = t;
 		nllh(i) = -best; //best has been updated in step
 		if (lik == best) {
+			//TODO: would that be faster using a sampleset?
 			//compute mean and variance for all test inputs
 			for (size_t j = 0; j < testX.rows(); j++) {
 				meanY(j, i) = gp->f(testX.row(j));
