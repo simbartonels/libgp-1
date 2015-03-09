@@ -5,6 +5,7 @@
 #include "gp_solin.h"
 #include "gp_utils.h"
 #include "util/time_call.h"
+#include "basis_functions/bf_solin.h"
 
 using namespace libgp;
     static DegGaussianProcess * gp;
@@ -69,14 +70,13 @@ using namespace libgp;
     }
 
 int main(int argc, char const *argv[]) {
-	size_t input_dim = 3;
-	size_t M = 200;
-	size_t n = 2000;
+	size_t input_dim = 2;
+	size_t M = 2048;
+	size_t n = 5000;
 	//fast food is not such a good idea since there are some random effects
 	gp = new DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"Solin");
-	gpsolin = new SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
-			"Solin");
+	gpsolin = new SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M);
 
 	// initialize hyper parameter vector
 	Eigen::VectorXd params(gp->covf().get_param_dim());
@@ -88,21 +88,40 @@ int main(int argc, char const *argv[]) {
 			M, "Solin");
 	gpnaive->covf().set_loghyper(params);
 
+	Eigen::MatrixXd X(n, input_dim);
+	X.setRandom();
+	Eigen::VectorXd y(n);
+	y.setRandom();
 	// add training patterns
 	for (int i = 0; i < n; ++i) {
-		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
-		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
-		gp->add_pattern(x, y);
-		gpnaive->add_pattern(x, y);
-		gpsolin->add_pattern(x, y);
+		//double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
+		//double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
+		//gp->add_pattern(x, y);
+		//gpnaive->add_pattern(x, y);
+		gpsolin->add_pattern(X.row(i), y(i));
 	}
-	gp->log_likelihood();
-	gpnaive->log_likelihood();
+	//gp->log_likelihood();
+	//gpnaive->log_likelihood();
 	gpsolin->log_likelihood();
 //	testSpeedOfLogLikelihood();
 //	testSpeedOfCholeskyComputation2();
 //	compare_time(llhGradBaseline, llhGradFast, 15);
-	compareSolinAndDeg();
+//	compareSolinAndDeg();
+	libgp::Solin * bf = (libgp::Solin *) &(gpsolin->covf());
+	std::cout << gpsolin->getL().diagonal().transpose() << std::endl;
+	std::cout << "phi(X(0)): " << gpsolin->f(X.row(0)) << std::endl;
+	std::cout << bf->computeBasisFunctionVector(X.row(0)).transpose() << std::endl;
+	std::cout << "Sigma: " << bf->getSigma().diagonal().transpose() << std::endl;
+	std::cout << "log(|Sigma|): " << bf->getLogDeterminantOfSigma() << std::endl;
+	std::cout << gpsolin->getL().diagonal().array().log().sum() << std::endl;
+	std::cout << log(gpsolin->getL().diagonal().array().prod()) << std::endl;
+	std::cout << "starting measurements" << std::endl;
+	stop_watch();
+	std::cout << gpsolin->log_likelihood() << std::endl;
+	std::cout << stop_watch() << std::endl;
+	std::cout << gpsolin->log_likelihood() << std::endl;
+	std::cout << stop_watch() << std::endl;
+
 
 	delete gp;
 	delete gpnaive;
