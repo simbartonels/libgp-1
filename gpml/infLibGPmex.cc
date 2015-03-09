@@ -16,7 +16,7 @@
 #define P_HYP 5
 #define P_M 6
 #define P_BF_NAME 7
-#define USAGE "Usage: [alpha, L, nlZ, mF, s2F] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)"
+#define USAGE "Usage: [alpha, L, nlZ, mF, s2F, dnlZ] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)"
 
 std::stringstream ss;
 
@@ -31,7 +31,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int status;
 	char * gp_name_buf;
 	char * cov_name_buf;
-	if (nlhs > 5 || nrhs < 6) /* check the input */
+	if (nlhs > 6 || nrhs < 6) /* check the input */
 		mexErrMsgTxt(USAGE);
 	n = mxGetM(prhs[P_X]);
 	//M will be overwritten later. It's just easier to define the output that way.
@@ -137,6 +137,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), test_n) = meanY;
 	plhs[4] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), test_n) = varY;
+
+	if(nlhs >= 5){
+		plhs[5] = mxCreateDoubleMatrix(p, 1, mxREAL);
+		Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[5]), p) = -gp->log_likelihood_gradient();
+	}
 
 	delete gp;
 }
