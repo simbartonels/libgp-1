@@ -252,13 +252,13 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
 				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum();
-
-		if(i == 0){
-		std::cout << "vals: " << ddiagK_idg << " " << wdKuuiw << " " << wdKuial
-				<< " " << (v.array() * alSqrd.array()).sum()
-				<< " " << WdgSum.cwiseProduct(v).sum()
-				<< " " << (R * Wdg.transpose()).cwiseProduct(BWdg).sum() << std::endl;
-		}
+		//TODO: remove
+//		if(i == 0){
+//		std::cout << "vals: " << ddiagK_idg << " " << wdKuuiw << " " << wdKuial
+//				<< " " << (v.array() * alSqrd.array()).sum()
+//				<< " " << WdgSum.cwiseProduct(v).sum()
+//				<< " " << (R * Wdg.transpose()).cwiseProduct(BWdg).sum() << std::endl;
+//		}
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above
