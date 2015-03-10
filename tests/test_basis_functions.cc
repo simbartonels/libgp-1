@@ -19,7 +19,7 @@ class BFGradientTest: public TestWithParam<std::string> {
 protected:
 	virtual void SetUp() {
 		n = 3;
-		M = 10;
+		M = 12;
 		e = 1e-8;
 		wrappedCovarianceFunction = covFactory.create(n,
 				"CovSum ( CovSEard, CovNoise)");
@@ -273,6 +273,10 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 TEST_P(BFGradientTest, LogDeterminantCorrect) {
 	//det = 0.5*log|Sigma|
 	double det = covf->getLogDeterminantOfSigma();
+	double nan_check = det;
+	if(nan_check != det){
+		FAIL() << "Log Determinant is NaN!";
+	}
 	double det2 = -log(covf->getCholeskyOfInvertedSigma().diagonal().prod());
 
 	if (covf->sigmaIsDiagonal()) {
@@ -288,7 +292,11 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 
 TEST_P(BFGradientTest, CholeskyCorrect) {
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
+	if(!iSigma.allFinite())
+		FAIL() << "iSigma contains Inf or NaN!";
 	Eigen::MatrixXd L = covf->getCholeskyOfInvertedSigma();
+	if(!L.allFinite())
+		FAIL() << "Cholesky contains Inf or NaN!";
 	L.array() = (iSigma - L * L.transpose()).array().abs();
 	L.array() = L.array() / (iSigma.array() + 1e-15);
 	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)<< "iSigma: " << std::endl << iSigma << std::endl
@@ -297,6 +305,8 @@ TEST_P(BFGradientTest, CholeskyCorrect) {
 
 TEST_P(BFGradientTest, InverseCorrect) {
 	Eigen::MatrixXd Sigma = covf->getSigma();
+	if(!Sigma.allFinite())
+			FAIL() << "Sigma contains Inf or NaN!";
 	Eigen::MatrixXd iSigma = covf->getInverseOfSigma();
 	Eigen::MatrixXd shouldBeI = iSigma * Sigma;
 	shouldBeI.diagonal().array() -= 1;
