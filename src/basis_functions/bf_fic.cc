@@ -33,43 +33,52 @@ double libgp::FIC::getLogDeterminantOfSigma() {
 
 void libgp::FIC::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 		Eigen::VectorXd& grad) {
-	//TODO: highly inefficient
-	Eigen::VectorXd grad2(cov_params.size());
-	cov->grad(x1, x2, grad2);
+	cov->grad(x1, x2, temp_cov_params_size);
 	grad.setZero();
-	grad.head(cov_params.size() - 1) = grad2.head(cov_params.size() - 1);
-//	if(&x1 == &x2)
-//		grad -= 2*sn2;
-	grad(loghyper.size() - 1) = grad2(cov_params.size() - 1);
+	grad.head(cov_params.size() - 1) = temp_cov_params_size.head(
+			cov_params.size() - 1);
+	grad(loghyper.size() - 1) = temp_cov_params_size(cov_params.size() - 1);
 }
 
-//void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient){
-//	//TODO: should I implement this? it can be much more efficient for stationary kernels
-//}
+void FIC::gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK,
+		size_t parameter, Eigen::VectorXd & gradient) {
+	/**
+	 * TODO: TO WHOMEVER ADAPTS THIS FUNCTION:
+	 * 1) Remove this function or adapt a more efficient of what the method in IBasisFunction.
+	 * 2) Note the function below: remove the if branch.
+	 */
+	if (parameter == input_dim || parameter == loghyper.size() - 1) {
+		//amplitude gradient or noise gradient
+		gradient.fill(2 * exp(2 * loghyper(parameter)));
+	} else {
+		gradient.setZero();
+	}
+}
 
 bool libgp::FIC::gradDiagWrappedIsNull(size_t parameter) {
-	return (parameter >= cov_params.size() - 1 && parameter < loghyper.size() - 1);
+	//TODO: remove
+	if (parameter < cov_params_size - 2)
+		return true;
+	return (parameter >= cov_params_size - 1
+			&& parameter < loghyper.size() - 1);
 }
 
 void libgp::FIC::gradBasisFunction(SampleSet* sampleSet,
 		const Eigen::MatrixXd& Phi, size_t p, Eigen::MatrixXd& Grad) {
-	//TODO: highly inefficient
-	if (p < cov_params.size() - 1) {
-		Eigen::VectorXd grad(cov_params.size());
+	if (p < cov_params_size - 1) {
 		for (size_t i = 0; i < sampleSet->size(); i++) {
 			for (size_t j = 0; j < M; j++) {
-				cov->grad(sampleSet->x(i), U.row(j), grad);
-				Grad(j, i) = grad(p);
+				cov->grad(sampleSet->x(i), U.row(j), temp_cov_params_size);
+				Grad(j, i) = temp_cov_params_size(p);
 			}
 		}
 	} else if (p < loghyper.size() - 1) {
-		Eigen::VectorXd grad(input_dim);
 		Grad.setZero();
 		size_t m = (p - cov_params.size() + 1) % M;
 		size_t d = (p - cov_params.size() + 1 - m) / M;
 		for (size_t i = 0; i < sampleSet->size(); i++) {
-			cov->grad_input(U.row(m), sampleSet->x(i), grad);
-			Grad(m, i) = grad(d);
+			cov->grad_input(U.row(m), sampleSet->x(i), temp_input_dim);
+			Grad(m, i) = temp_input_dim(d);
 		}
 		return;
 	} else {
@@ -83,30 +92,26 @@ bool libgp::FIC::gradBasisFunctionIsNull(size_t p) {
 }
 
 void libgp::FIC::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
-	//TODO: highly inefficient
-	if (p < cov_params.size() - 1) {
-		Eigen::VectorXd grad(cov_params.size());
+	if (p < cov_params_size - 1) {
+		//this could be a bit faster for the length scale gradient but since we iterate only over M...
 		for (size_t i = 0; i < M; i++) {
 			for (size_t j = 0; j <= i; j++) {
-				cov->grad(U.row(i), U.row(j), grad);
-				diSigmadp(i, j) = grad(p);
+				cov->grad(U.row(i), U.row(j), temp_cov_params_size);
+				diSigmadp(i, j) = temp_cov_params_size(p);
 			}
 		}
-		//TODO: can we avoid this copy?
 		diSigmadp = diSigmadp.selfadjointView<Eigen::Lower>();
 	} else if (p < loghyper.size() - 1) {
-		//TODO: use that FIC uses only lower half (i.e. dSigma is assumed self-adjoint)
 		diSigmadp.setZero();
-		Eigen::VectorXd grad(input_dim);
 		size_t m = (p - cov_params.size() + 1) % M;
 		size_t d = (p - cov_params.size() + 1 - m) / M;
 		for (size_t i = 0; i < M; i++) {
-			cov->grad_input(U.row(m), U.row(i), grad);
-			diSigmadp(i, m) = grad(d);
+			cov->grad_input(U.row(m), U.row(i), temp_input_dim);
+			diSigmadp(i, m) = temp_input_dim(d);
 		}
 		diSigmadp.row(m).array() = diSigmadp.col(m).transpose().array();
 	} else {
-		//TODO: inducing noise gradient
+		//TODO: is this correct? tests fail occasionally
 		diSigmadp.setZero();
 		diSigmadp.diagonal().fill(2 * snu2);
 	}
@@ -147,15 +152,12 @@ void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
 			idx++;
 		}
 	}
-	//	std::cout << "bf_fic: U" << std::endl << U << std::endl;
-
 	for (size_t m = 0; m < M; m++) {
 		for (size_t m2 = 0; m2 < m; m2++)
 			iSigma(m, m2) = cov->get(U.row(m), U.row(m2));
 		//is there noise on the diagonal?! seems not (seems like Eigen performs two copy operations!)
 		iSigma(m, m) = cov->get(U.row(m), U.row(m)) + snu2; //-sn2;
 	}
-	//TODO: is it possible to avoid that? Can we use views in general?
 	iSigma = iSigma.selfadjointView<Eigen::Lower>();
 	choliSigma = iSigma.selfadjointView<Eigen::Lower>().llt().matrixL();
 	Sigma = choliSigma.triangularView<Eigen::Lower>().solve(
@@ -165,13 +167,25 @@ void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
 }
 
 bool libgp::FIC::real_init() {
-	//TODO: somehow check that provided covariance function has a noise parameter!
+	if (cov->to_string().compare("CovSum(CovSEard, CovNoise)") != 0) {
+		std::cerr
+				<< "BF_FIC: Currently supporting only 'CovSum(CovSEard, CovNoise)'. "
+				<< std::endl;
+		std::cerr << "You tried '" << cov->to_string() << "'" << std::endl;
+		std::cerr
+				<< "BF_FIC: To change this look into the function gradDiagWrapped."
+				<< std::endl;
+		return false;
+	}
 	U.resize(M, input_dim);
 	Sigma.resize(M, M);
 	iSigma.resize(M, M);
 	iSigma.setZero();
 	choliSigma.resize(M, M);
-	cov_params.resize(cov->get_param_dim());
+	cov_params_size = cov->get_param_dim();
+	cov_params.resize(cov_params_size);
+	temp_cov_params_size.resize(cov_params.size());
+	temp_input_dim.resize(input_dim);
 	return true;
 }
 

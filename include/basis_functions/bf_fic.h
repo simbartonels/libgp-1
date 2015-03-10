@@ -27,6 +27,9 @@ public:
 	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
 			Eigen::VectorXd &grad);
 
+	void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK,
+			size_t parameter, Eigen::VectorXd & gradient);
+
 	bool gradDiagWrappedIsNull(size_t parameter);
 
 	void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi,
@@ -81,6 +84,21 @@ private:
 	 * Inducing input noise.
 	 */
 	double snu2;
+
+	/**
+	 * Contains cov_params.size().
+	 */
+	size_t cov_params_size;
+
+	/**
+	 * Temporary vector of the same size as cov_params.
+	 */
+	Eigen::VectorXd temp_cov_params_size;
+
+	/**
+	 * Temporary vector of size input_dim.
+	 */
+	Eigen::VectorXd temp_input_dim;
 };
 }
 
