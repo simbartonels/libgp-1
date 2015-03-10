@@ -53,6 +53,8 @@ public:
 
 	std::string to_string();
 
+	std::string pretty_print_parameters();
+
 	/**
 	 * Returns the sampled scaling matrices.
 	 */

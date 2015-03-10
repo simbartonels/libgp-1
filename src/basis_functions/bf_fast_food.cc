@@ -170,6 +170,13 @@ std::string libgp::FastFood::to_string() {
 	return "FastFood";
 }
 
+std::string libgp::FastFood::pretty_print_parameters(){
+	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	std::stringstream ss;
+	ss << (loghyper.transpose()).format(CleanFmt);
+	return ss.str();
+}
+
 size_t FastFood::get_param_dim_without_noise(size_t input_dim,
 		size_t num_basis_functions) {
 	//length scales + amplitude
