@@ -86,7 +86,7 @@ void FICGaussianProcess::computeCholesky() {
 	dg = k - (V.transpose() * V).diagonal();
 
 //	isqrtgamma = isqrtgamma.cwiseInverse().sqrt();
-	//TODO: first occurence of dg.cwiseInverse() should we save that result? O(n) Operation!
+	//first occurence of dg.cwiseInverse() should we save that result? O(n) Operation! not worth the trouble
 	isqrtgamma.array() = 1 / dg.array().sqrt();
 
 	//the line below would be faster here but not any longer in compute alpha
@@ -163,46 +163,7 @@ double FICGaussianProcess::log_likelihood_impl() {
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
-	const std::vector<double>& targets = sampleset->y();
-	size_t n = sampleset->size();
-	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
-	//TODO: move to extra function
-	if (n > al.size()) {
-		al.resize(n);
-		alSqrd.resize(n);
-		W.resize(M, n);
-		Wdg.resize(M, n);
-		B.resize(M, n);
-		ddiagK.resize(n);
-		dKui.resize(M, n);
-		R.resize(M, n);
-		v.resize(n);
-		WdgSum.resize(n);
-	}
-
-	dKui.setZero();
-	dKuui.setZero();
-	ddiagK.setZero();
-
-	//    W = Ku./repmat(sqrt(dg)',nu,1);
-	//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku;
-	//TODO: in the computation of V this step could be made faster
-	//we misuse BWdg as temporary variable here
-	BWdg.setZero();
-	BWdg.selfadjointView<Eigen::Lower>().rankUpdate(Phi * isqrtgamma.asDiagonal());
-	BWdg+=bf->getInverseOfSigma();
-	W = BWdg.selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
-	//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
-	al = (y - W.transpose() * (W * (y.cwiseQuotient(dg)))).cwiseQuotient(dg);
-	alSqrd.array() = al.array().square();
-//    B = iKuu*Ku;
-	B = bf->getSigma() * Phi;
-//    % = Upsi^(-1)*Uvx
-//    Wdg = W./repmat(dg',nu,1); w = B*al;
-	Wdg = W * dg.cwiseInverse().asDiagonal();
-	w = B * al;
-	BWdg = B * Wdg.transpose();
-	WdgSum = Wdg.array().square().matrix().colwise().sum();
+	log_likelihood_gradient_precomputations();
 	for (size_t i = 0; i < num_params; i++) {
 //      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);
 		bool gradiSigmaIsNull = bf->gradiSigmaIsNull(i);
@@ -252,16 +213,51 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
 				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum();
-		//TODO: remove
-//		if(i == 0){
-//		std::cout << "vals: " << ddiagK_idg << " " << wdKuuiw << " " << wdKuial
-//				<< " " << (v.array() * alSqrd.array()).sum()
-//				<< " " << WdgSum.cwiseProduct(v).sum()
-//				<< " " << (R * Wdg.transpose()).cwiseProduct(BWdg).sum() << std::endl;
-//		}
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above
 	return -gradient;
+}
+
+void FICGaussianProcess::log_likelihood_gradient_precomputations(){
+	const std::vector<double>& targets = sampleset->y();
+	size_t n = sampleset->size();
+	Eigen::Map<const Eigen::VectorXd> y(&targets[0], n);
+	if (n > al.size()) {
+		al.resize(n);
+		alSqrd.resize(n);
+		W.resize(M, n);
+		Wdg.resize(M, n);
+		B.resize(M, n);
+		ddiagK.resize(n);
+		dKui.resize(M, n);
+		R.resize(M, n);
+		v.resize(n);
+		WdgSum.resize(n);
+	}
+
+	dKui.setZero();
+	dKuui.setZero();
+	ddiagK.setZero();
+
+	//    W = Ku./repmat(sqrt(dg)',nu,1);
+	//    W = chol(Kuu+W*W'+snu2*eye(nu))'\Ku;
+	//TODO: in the computation of V this step could be made faster
+	//we misuse BWdg as temporary variable here
+	BWdg.setZero();
+	BWdg.selfadjointView<Eigen::Lower>().rankUpdate(Phi * isqrtgamma.asDiagonal());
+	BWdg+=bf->getInverseOfSigma();
+	W = BWdg.selfadjointView<Eigen::Lower>().llt().matrixL().solve(Phi);
+	//    al = (y-m - W'*(W*((y-m)./dg)))./dg;
+	al = (y - W.transpose() * (W * (y.cwiseQuotient(dg)))).cwiseQuotient(dg);
+	alSqrd.array() = al.array().square();
+//    B = iKuu*Ku;
+	B = bf->getSigma() * Phi;
+//    % = Upsi^(-1)*Uvx
+//    Wdg = W./repmat(dg',nu,1); w = B*al;
+	Wdg = W * dg.cwiseInverse().asDiagonal();
+	w = B * al;
+	BWdg = B * Wdg.transpose();
+	WdgSum = Wdg.array().square().matrix().colwise().sum();
 }
 }

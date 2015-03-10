@@ -15,72 +15,76 @@
 
 namespace libgp {
 
-  /**
-   * Approximate Gaussian process regression using FIC.
-   * See "Approximation Methods for Gaussian Processes" by Quinonero-Candela,
-   * Rasmussen and Williams from 2007. The implementation follows the framework written
-   * by Chalupka. See "A Framework for Evaluating Approximation Methods for Gaussian Process
-   * Regression" by Chalupka, Williams and Murray from 2013.
-   *
-   *  @author Manuel Blum, Simon Bartels
-   */
-  class FICGaussianProcess : public AbstractGaussianProcess
-  {
-  public:
+/**
+ * Approximate Gaussian process regression using FIC.
+ * See "Approximation Methods for Gaussian Processes" by Quinonero-Candela,
+ * Rasmussen and Williams from 2007. The implementation follows the framework written
+ * by Chalupka. See "A Framework for Evaluating Approximation Methods for Gaussian Process
+ * Regression" by Chalupka, Williams and Murray from 2013.
+ *
+ *  @author Manuel Blum, Simon Bartels
+ */
+class FICGaussianProcess: public AbstractGaussianProcess {
+public:
 
-    /** Create and instance of GaussianProcess with given input dimensionality
-     *  and covariance function. */
-	  FICGaussianProcess (size_t input_dim, std::string covf_def, size_t num_basisf, std::string basisf_def);// : AbstractGaussianProcess(input_dim, covf_def){};
-    /** Create and instance of GaussianProcess from file. */
+	/** Create and instance of GaussianProcess with given input dimensionality
+	 *  and covariance function. */
+	FICGaussianProcess(size_t input_dim, std::string covf_def,
+			size_t num_basisf, std::string basisf_def); // : AbstractGaussianProcess(input_dim, covf_def){};
+	/** Create and instance of GaussianProcess from file. */
 //    FICGaussianProcess (const char * filename) : AbstractGaussianProcess(filename) {};
+	virtual ~FICGaussianProcess();
 
-	  virtual ~FICGaussianProcess();
+protected:
+	double var_impl(const Eigen::VectorXd &x_star);
 
-  protected:
-    double var_impl(const Eigen::VectorXd &x_star);
+	void grad_var_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad);
 
-    void grad_var_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad);
+	double log_likelihood_impl();
 
-    double log_likelihood_impl();
+	Eigen::VectorXd log_likelihood_gradient_impl();
 
-    Eigen::VectorXd log_likelihood_gradient_impl();
+	/** Update test input and cache kernel vector. */
+	void update_k_star(const Eigen::VectorXd &x_star);
 
-    /** Update test input and cache kernel vector. */
-    void update_k_star(const Eigen::VectorXd &x_star);
+	void update_alpha();
 
-    void update_alpha();
+	/** Compute covariance matrix and perform cholesky decomposition. */
+	void computeCholesky();
 
-    /** Compute covariance matrix and perform cholesky decomposition. */
-    void computeCholesky();
+	void updateCholesky(const double x[], double y);
 
-    void updateCholesky(const double x[], double y);
+private:
+	/**
+	 * Initializes all the vectors and matrices used in the for loop.
+	 */
+	void log_likelihood_gradient_precomputations();
 
-  private:
 	/**
 	 * Corresponds to diagK in infFITC.
 	 */
-    Eigen::VectorXd k;
+	Eigen::VectorXd k;
 
 	/**
 	 * Corresponds to Ku in infFITC.
 	 */
 	Eigen::MatrixXd Phi;
-    Eigen::MatrixXd Lu;
-    Eigen::VectorXd dg;
+	Eigen::MatrixXd Lu;
+	Eigen::VectorXd dg;
 	Eigen::VectorXd al;
 	Eigen::VectorXd alSqrd;
-    Eigen::VectorXd isqrtgamma;
-    Eigen::MatrixXd V;
-    Eigen::MatrixXd B;
-    Eigen::MatrixXd W;
-    Eigen::VectorXd w;
-    Eigen::MatrixXd Wdg;
-    Eigen::MatrixXd R;
-    Eigen::VectorXd v;
-    Eigen::MatrixXd BWdg;
-    Eigen::VectorXd WdgSum;
+	Eigen::VectorXd isqrtgamma;
+	Eigen::MatrixXd V;
+	Eigen::MatrixXd B;
+	Eigen::MatrixXd W;
+	Eigen::VectorXd w;
+	Eigen::MatrixXd Wdg;
+	Eigen::MatrixXd R;
+	Eigen::VectorXd v;
+	Eigen::MatrixXd BWdg;
+	Eigen::VectorXd WdgSum;
 
-    Eigen::VectorXd ddiagK;
+	Eigen::VectorXd ddiagK;
 	Eigen::MatrixXd dKui;
 	Eigen::MatrixXd dKuui;
 
@@ -94,19 +98,16 @@ namespace libgp {
 	 */
 	Eigen::MatrixXd LuuLu;
 
-    /**
-     * Convenience pointer that just points to the covariance function cf in the super class.
-     */
-    IBasisFunction * bf;
+	/**
+	 * Convenience pointer that just points to the covariance function cf in the super class.
+	 */
+	IBasisFunction * bf;
 
-    /**
-     * Number of basis functions.
-     */
-    size_t M;
-  };
+	/**
+	 * Number of basis functions.
+	 */
+	size_t M;
+};
 }
-
-
-
 
 #endif /* SOURCE_DIRECTORY__SRC_GP_APPR_H_ */
