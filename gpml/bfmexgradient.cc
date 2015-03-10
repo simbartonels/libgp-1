@@ -32,6 +32,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		for (size_t i = 0; i < n; i++){
 			Eigen::VectorXd phi = bf->computeBasisFunctionVector(X.row(i));
 			Eigen::VectorXd grad(M);
+			grad.setZero();
 			bf->gradBasisFunction(X.row(i), phi, di, grad);
 			Phi.col(i) = grad;
 		}
