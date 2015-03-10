@@ -43,7 +43,7 @@ bool MultiScale::real_init() {
 	temp.resize(M);
 	temp_input_dim.resize(input_dim);
 	UpsiCol.resize(M);
-	factors.resize(M);
+	logfactors.resize(M);
 	delta.resize(input_dim);
 	Delta.resize(M, input_dim);
 	two_PI_to_the_D_over_2 = pow(2 * M_PI, input_dim / 2.);
@@ -59,9 +59,9 @@ void MultiScale::putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag) {
 Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
 	Delta = x.transpose().replicate(M, 1) - U;
-	Delta.array() = Delta.array().square() / Uell.array();
-	Eigen::VectorXd uvx = Delta.rowwise().sum();
-	uvx.array() = (-0.5 * uvx.array()).exp() / factors.array();
+//	Delta.array() = Delta.array().square() / Uell.array();
+	Eigen::VectorXd uvx = (Delta.array().square() / Uell.array()).rowwise().sum();
+	uvx.array() = (-0.5 * uvx.array() - logfactors.array()).exp();
 	return uvx;
 }
 
@@ -250,7 +250,7 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(loghyper(i));
 	size_t idx = input_dim;
-	factors.fill(1);
+	logfactors.fill(input_dim * log(2 * M_PI));
 	for (size_t d = 0; d < input_dim; d++) {
 		for (size_t m = 0; m < M; m++) {
 			/*
@@ -259,11 +259,11 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 			 */
 			Uell(m, d) = exp(loghyper(idx)) + ell(d) / 2;
 			U(m, d) = loghyper(idx + M * input_dim);
-			factors(m) *= 2 * M_PI * Uell(m, d);
+			logfactors(m) += log(Uell(m, d));
 			idx++;
 		}
 	}
-	factors.array() = factors.array().sqrt();
+	logfactors /= 2;
 	c = exp(loghyper(2 * M * input_dim + input_dim));
 	double ell_determinant_factor = 1;
 	for (size_t i = 0; i < input_dim; i++)
@@ -310,7 +310,6 @@ std::string MultiScale::to_string() {
 
 std::string MultiScale::pretty_print_parameters() {
 	Eigen::IOFormat fmt(4, 0, ", ", "\n", "[", "]");
-	size_t D = input_dim;
 	std::stringstream ss;
 	ss << ell.format(fmt) << " " << Uell.format(fmt) << " " << U << " " << c
 			<< " " << sn2;

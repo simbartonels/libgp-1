@@ -110,9 +110,9 @@ public:
 	    Eigen::MatrixXd Uell;
 
 	    /**
-	     * Contains the products of the length scales.
+	     * Contains the log of the products of the length scales.
 	     */
-	    Eigen::VectorXd factors;
+	    Eigen::VectorXd logfactors;
 
 	    /**
 	     * Temporary vector that contains x-z.
