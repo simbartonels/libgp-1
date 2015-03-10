@@ -123,7 +123,8 @@ double AbstractGaussianProcess::f(const Eigen::VectorXd & x) {
 	return k_star.dot(alpha);
 }
 
-void AbstractGaussianProcess::grad_f(const Eigen::VectorXd & x, Eigen::VectorXd &grad) {
+void AbstractGaussianProcess::grad_f(const Eigen::VectorXd & x,
+		Eigen::VectorXd &grad) {
 	if (sampleset->empty()) {
 		grad = Eigen::VectorXd::Zero(input_dim);
 		return;
@@ -158,17 +159,19 @@ void AbstractGaussianProcess::grad_var(const Eigen::VectorXd & x,
 	grad_var_impl(x, grad);
 }
 
-void AbstractGaussianProcess::update_k_star_preprocessing(const Eigen::VectorXd & x_star, bool gradient){
-	if(&x_star != last_x){
+void AbstractGaussianProcess::update_k_star_preprocessing(
+		const Eigen::VectorXd & x_star, bool gradient) {
+	double hash = x_star.sum();
+	if (&x_star != last_x || hash != last_x_hash) {
 		last_x = &x_star;
+		last_x_hash = hash;
 		update_k_star(x_star);
-		if(gradient && !gradient_computed){
+		if (gradient && !gradient_computed) {
 			cf->compute_dkdx(x_star, k_star, sampleset, JT);
 			gradient_computed = true;
 		}
 	}
 }
-
 
 double AbstractGaussianProcess::log_likelihood() {
 	compute();

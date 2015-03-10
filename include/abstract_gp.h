@@ -94,7 +94,8 @@ public:
 protected:
 	virtual double var_impl(const Eigen::VectorXd &x_star) = 0;
 
-	virtual void grad_var_impl(const Eigen::VectorXd & x, Eigen::VectorXd & grad) = 0;
+	virtual void grad_var_impl(const Eigen::VectorXd & x,
+			Eigen::VectorXd & grad) = 0;
 
 	virtual double log_likelihood_impl() = 0;
 
@@ -106,7 +107,8 @@ protected:
 	/**
 	 * Checks if calls to update_k_star are really necessary.
 	 */
-	virtual void update_k_star_preprocessing(const Eigen::VectorXd & x_star, bool gradient);
+	virtual void update_k_star_preprocessing(const Eigen::VectorXd & x_star,
+			bool gradient);
 
 	virtual void update_alpha() = 0;
 
@@ -150,6 +152,11 @@ private:
 	 * Pointer to the last x that was used to update kstar.
 	 */
 	Eigen::VectorXd const * last_x;
+
+	/**
+	 * Contains the sum of elements of the last x.
+	 */
+	double last_x_hash;
 
 	/**
 	 * Flag signaling whether we already computed JT for kstar or not.
