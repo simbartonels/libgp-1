@@ -119,30 +119,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mexPrintf("inflibgp: Initializating GP.\n");
 	gp->covf().set_loghyper(params);
 	mexPrintf(
+			"inflibgp: GP hyper parameters set.\n");
+
+	double nlZ = -gp->log_likelihood();
+	mexPrintf(
 			"inflibgp: GP initialization complete.\n");
-	Eigen::VectorXd meanY(test_n);
-	Eigen::VectorXd varY(test_n);
+//	Eigen::VectorXd meanY(test_n);
+//	Eigen::VectorXd varY(test_n);
+
+	plhs[3] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
+	Eigen::Map<Eigen::VectorXd> meanY(mxGetPr(plhs[3]), test_n);
+	plhs[4] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
+	Eigen::Map<Eigen::VectorXd> varY(mxGetPr(plhs[4]), test_n);
+	mexPrintf("inflibgp: Starting prediction.\n");
 	for(size_t i = 0; i < test_n; i++){
 		meanY(i) = gp->f(testX.row(i));
 		varY(i) = gp->var(testX.row(i));
 	}
-
+	mexPrintf("inflibgp: Prediction complete.\n");
 	plhs[0] = mxCreateDoubleMatrix(M, 1, mxREAL); /* allocate space for output */
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), M) = gp->getAlpha();
+	std::cout << "Alpha transferred." << std::endl;
 	plhs[1] = mxCreateDoubleMatrix(M, M, mxREAL);
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[1]), M, M) = gp->getL();
-	double nlZ = -gp->log_likelihood();
+	std::cout << "L transferred." << std::endl;
 	plhs[2] = mxCreateDoubleScalar(nlZ);
-	plhs[3] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
-	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), test_n) = meanY;
-	plhs[4] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
-	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), test_n) = varY;
+//	mexPrintf("inflibgp: Transferring data.\n");
+//	plhs[3] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
+//	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), test_n) = meanY;
+//	plhs[4] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
+//	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), test_n) = varY;
 
-	if(nlhs >= 5){
+	if(nlhs >= 6){
+		mexPrintf("inflibgp: Computing llh gradient.\n");
 		plhs[5] = mxCreateDoubleMatrix(p, 1, mxREAL);
 		Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[5]), p) = -gp->log_likelihood_gradient();
 	}
-
+	mexPrintf("inflibgp: Deleting GP.\n");
 	delete gp;
+	mexPrintf("inflibgp: Done.\n");
 }
 
