@@ -133,7 +133,7 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 		lambdaSquared.array() = piOver2Sqrd
 				* indices.row(i).array().square().cast<double>() / squaredL.transpose().array();
 		double value = logSpectralDensity(lambdaSquared);
-		logDetSigma += value;
+		logDetSigma += value/2; //to prevent overflows
 //		value = exp(value);
 //		if(value == 0.0)
 //			value = 1e-200;
@@ -143,7 +143,7 @@ void libgp::Solin::log_hyper_updated(const Eigen::VectorXd& p) {
 		iSigma.diagonal()(i) = exp(-value);
 	}
 	//logDetSigma is supposed to contain half of the log determinant
-	logDetSigma /= 2;
+//	logDetSigma /= 2;
 }
 
 inline double Solin::logSpectralDensity(const Eigen::VectorXd & lambdaSquared) {

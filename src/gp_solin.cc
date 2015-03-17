@@ -13,6 +13,7 @@ libgp::SolinGaussianProcess::SolinGaussianProcess(size_t input_dim,
 	PhiPhi.resize(M, M);
 	Lv.resize(input_dim);
 	Lv.setZero();
+	temp_M.resize(M);
 }
 
 libgp::SolinGaussianProcess::~SolinGaussianProcess() {
@@ -21,15 +22,15 @@ libgp::SolinGaussianProcess::~SolinGaussianProcess() {
 void libgp::SolinGaussianProcess::updateCholesky(const double x[], double y) {
 	newDataPoints = true;
 	//set L to max(X)
-	for(size_t i = 0; i < input_dim; i++)
-		if(Lv(i) < std::fabs(x[i]))
+	for (size_t i = 0; i < input_dim; i++)
+		if (Lv(i) < std::fabs(x[i]))
 			Lv(i) = std::fabs(x[i]);
 	//recompute_yy is updated in the parent method
 	DegGaussianProcess::updateCholesky(x, y);
 }
 
 void libgp::SolinGaussianProcess::update_alpha() {
-	if(recompute_yy){
+	if (recompute_yy) {
 		const std::vector<double>& targets = sampleset->y();
 		Eigen::Map<const Eigen::VectorXd> y(&targets[0], sampleset->size());
 		Phiy = Phi * y;
@@ -52,16 +53,19 @@ void libgp::SolinGaussianProcess::computeCholesky() {
 			Phi.col(i) = bf->computeBasisFunctionVector(sampleset->x(i));
 		PhiPhi.setZero();
 		PhiPhi.selfadjointView<Eigen::Lower>().rankUpdate(Phi);
+		//TODO: necessary?
+		PhiPhi = PhiPhi.selfadjointView<Eigen::Lower>();
 	}
 
-	L.triangularView<Eigen::Lower>() = PhiPhi.triangularView<Eigen::Lower>();
+//	L.triangularView<Eigen::Lower>() = PhiPhi.triangularView<Eigen::Lower>();
 //	L.diagonal() += squared_noise * bf->getInverseOfSigma().diagonal();
 	//this is numerically more stable
-	L *= bf->getCholeskyOfInvertedSigma().diagonal().cwiseInverse().asDiagonal();
-	L.diagonal() += squared_noise * bf->getCholeskyOfInvertedSigma().diagonal();
-	L *= bf->getCholeskyOfInvertedSigma().diagonal().asDiagonal();
-	L =
-			L.selfadjointView<Eigen::Lower>().llt().matrixL();
+	double sn = exp(log_noise);
+	temp_M = bf->getCholeskyOfInvertedSigma().diagonal() * sn;
+	L = PhiPhi * temp_M.cwiseInverse().asDiagonal();
+	L.diagonal() += temp_M;
+	L *= temp_M.asDiagonal();
+	L = L.selfadjointView<Eigen::Lower>().llt().matrixL();
 }
 
 inline void libgp::SolinGaussianProcess::llh_setup_other() {

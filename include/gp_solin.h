@@ -51,6 +51,11 @@ namespace libgp {
      * Boundaries.
      */
     Eigen::VectorXd Lv;
+
+    /**
+     * Temporary vector of size M.
+     */
+    Eigen::VectorXd temp_M;
   };
 }
 
