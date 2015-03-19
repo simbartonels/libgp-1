@@ -220,7 +220,7 @@ using namespace libgp;
         }
 
     void measureBFcomputationTime() {
-    	size_t D = 4;
+    	size_t D = 384;
     	size_t n = 2000;
     	size_t num_execs = 100;
     	std::cout << "D is " << D << std::endl;
@@ -247,8 +247,6 @@ using namespace libgp;
     		for (size_t i = 0; i < num_execs; i++) {
     			gp->f(x);
     			gp->var(x);
-    			gp->grad_f(x, grad);
-    			gp->grad_var(x, grad);
     		}
     		double tic = stop_watch() / num_execs;
     		std::cout << tic << std::endl;
