@@ -15,11 +15,7 @@ namespace libgp {
  */
 class FICfixed: public FIC {
 public:
-	FICfixed();
-
 	virtual ~FICfixed();
-
-	Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
 	void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi,
 			size_t p, Eigen::MatrixXd &Grad);

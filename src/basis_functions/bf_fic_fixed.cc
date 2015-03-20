@@ -1,8 +1,5 @@
-#include "basis_functions/bf_FIC_fixed.h"
+#include "basis_functions/bf_fic_fixed.h"
 namespace libgp {
-
-libgp::FICfixed::FICfixed() {
-}
 
 libgp::FICfixed::~FICfixed() {
 }
