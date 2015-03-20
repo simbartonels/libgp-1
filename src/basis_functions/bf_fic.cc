@@ -133,7 +133,6 @@ std::string FIC::pretty_print_parameters() {
 }
 
 void libgp::FIC::log_hyper_updated(const Eigen::VectorXd& p) {
-	size_t cov_params_size = cov_params.size();
 	cov_params.head(cov_params_size - 1) = loghyper.head(cov_params_size - 1);
 	//TODO: strong assumption that noise parameter is the last
 	cov_params.tail(1) = loghyper.tail(1);

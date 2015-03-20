@@ -9,6 +9,7 @@
 #include "basis_functions/bf_multi_scale.h"
 #include "basis_functions/bf_solin.h"
 #include "basis_functions/bf_fic.h"
+#include "basis_functions/bf_fic_fixed.h"
 //#ifdef INCLUDE_BASIS_FUNCTIONS_BF_FAST_FOOD_H_
 #ifdef BUILD_FAST_FOOD
 #	include "basis_functions/bf_fast_food.h"
@@ -21,6 +22,7 @@ BasisFFactory::BasisFFactory () {
 	registry["SparseMultiScaleGP"] = & create_func<MultiScale>;
 	registry[BF_SOLIN_NAME] = & create_func<Solin>;
 	registry["FIC"] = & create_func<FIC>;
+	registry["FICfixed"] = & create_func<FICfixed>;
 	#ifdef BUILD_FAST_FOOD
 	registry["FastFood"] = & create_func<FastFood>;
 	#endif

@@ -57,9 +57,6 @@ protected:
 	size_t get_param_dim_without_noise(size_t input_dim,
 			size_t num_basis_functions);
 
-//	double getLogNoise();
-
-private:
 	Eigen::MatrixXd Sigma;
 
 	Eigen::MatrixXd iSigma;

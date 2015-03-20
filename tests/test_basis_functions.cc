@@ -299,7 +299,7 @@ TEST_P(BFGradientTest, CholeskyCorrect) {
 		FAIL() << "Cholesky contains Inf or NaN!";
 	L.array() = (iSigma - L * L.transpose()).array().abs();
 	L.array() = L.array() / (iSigma.array() + 1e-15);
-	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15)<< "iSigma: " << std::endl << iSigma << std::endl
+	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15) << "iSigma: " << std::endl << iSigma << std::endl
 	<< "diff: " << std::endl << L << std::endl;
 }
 
@@ -347,10 +347,10 @@ TEST_P(BFGradientTest, InverseCorrect) {
 
 #ifdef BUILD_FAST_FOOD
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
-		Values("SparseMultiScaleGP", "Solin", "FastFood", "FIC"));
+		Values("SparseMultiScaleGP", "Solin", "FastFood", "FIC", "FICfixed"));
 #else
 INSTANTIATE_TEST_CASE_P(BasisFunction, BFGradientTest,
-		Values("SparseMultiScaleGP", "Solin", "FIC"));
+		Values("SparseMultiScaleGP", "Solin", "FIC", "FICfixed"));
 #endif
 
 #else
