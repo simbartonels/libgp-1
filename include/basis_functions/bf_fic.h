@@ -32,12 +32,12 @@ public:
 
 	bool gradDiagWrappedIsNull(size_t parameter);
 
-	void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi,
+	virtual void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi,
 			size_t p, Eigen::MatrixXd &Grad);
 
 	bool gradBasisFunctionIsNull(size_t p);
 
-	void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
+	virtual void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
 
 	bool gradiSigmaIsNull(size_t p);
 
@@ -46,7 +46,7 @@ public:
 	}
 	;
 
-	std::string to_string();
+	virtual std::string to_string();
 
 	std::string pretty_print_parameters();
 protected:

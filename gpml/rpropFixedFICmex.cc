@@ -45,8 +45,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt(ss.str().c_str());
 		return;
 	}
-	((libgp::FICfixed * ) &(gp->covf()))->setU(U);
 	Eigen::Map<const Eigen::MatrixXd> U(mxGetPr(prhs[P_U]), M, D);
+	((libgp::FICfixed * ) &(gp->covf()))->setU(U);
 	std::cout << "rpropmex: GP instantiated." << std::endl;
 	Eigen::Map<const Eigen::MatrixXd> X(mxGetPr(prhs[2]), n,
 			D);
