@@ -21,7 +21,7 @@ public:
 			size_t num_basisf, std::string basisf_def);
 
 	/** Create and instance of GaussianProcess from file. */
-	virtual ~OptFICGaussianProcess();
+	virtual ~OptFICGaussianProcess(){};
 
 protected:
 
