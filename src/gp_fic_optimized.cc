@@ -28,9 +28,15 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 		}
 		if (!gradiSigmaIsNull){
 			//we misuse v as temporary variable here
-			v = dkuui * B;
-			R.row(m) -= v;
-			R.col(m) -= v.transpose();
+			//TODO: this could be wrong
+			std::cout << "v: " << v.size() << " B: " << B.rows() << ", " << B.cols() << std::endl;
+			v = dkuui.transpose() * B;
+			//v = B * dkuui;
+			std::cout << "R: " << R.rows() << ", " << R.cols() << std::endl;
+			R.row(m) -= v.transpose();
+			std::cout << "okay" << std::endl;
+			R.col(m).array() -= dkuui.array() * B.col(m).array();
+			std::cout << " the problem is not here " << std::endl;
 		}
 	} else {
 		wdKuial = FICGaussianProcess::grad_basis_function(i,
@@ -44,7 +50,7 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 	size_t bf_params_size = bf->get_param_dim();
 	size_t cov_params_size = bf_params_size - M * input_dim;
 	//TODO: it would be better to make this const...
-	Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, M);
+	Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
 	if (p >= cov_params_size - 1 && p < bf_params_size - 1) {
 		optimize = true;
 //			diSigmadp.setZero();
@@ -56,6 +62,8 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 		}
 		dkuui(m) /= 2;
 		wdKuuiw = 2 * (w.array().square() * dkuui.array()).sum();
+		//TODO: remove
+		assert(wdKuuiw == FICGaussianProcess::grad_isigma(p, gradiSigmaIsNull));
 	} else {
 		optimize = false;
 		wdKuuiw = FICGaussianProcess::grad_isigma(p, gradiSigmaIsNull);
