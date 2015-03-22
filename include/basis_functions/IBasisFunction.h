@@ -229,6 +229,12 @@ public:
 		log_hyper_updated(p);
 	};
 
+	//TODO: Make this protected!
+	/**
+	 * Pointer to the wrapped covariance function.
+	 */
+	CovarianceFunction * cov;
+
 protected:
 	/**
 	 * Performs the actual initialization.
@@ -253,8 +259,6 @@ protected:
 	virtual size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions) = 0;
 
 	size_t M;
-
-	CovarianceFunction * cov;
 
 	size_t seed;
 };

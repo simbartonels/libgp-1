@@ -51,7 +51,7 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 		m = (p - cov_params_size + 1) % M;
 		d = (p - cov_params_size + 1 - m) / M;
 		for (size_t i = 0; i < M; i++) {
-			bf->grad_input(U.row(m), U.row(i), temp_input_dim);
+			(bf->cov)->grad_input(U.row(m), U.row(i), temp_input_dim);
 			dkuui(i) = temp_input_dim(d);
 		}
 		dkuui(m) /= 2;
