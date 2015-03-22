@@ -49,6 +49,13 @@ public:
 	virtual std::string to_string();
 
 	std::string pretty_print_parameters();
+
+	/**
+	 * Inducing point matrix.
+	 *
+	 * TODO: This is a hack to make the optimized version work.
+	 */
+	Eigen::MatrixXd U;
 protected:
 	void log_hyper_updated(const Eigen::VectorXd &p);
 
@@ -64,11 +71,6 @@ protected:
 	Eigen::MatrixXd choliSigma;
 
 	double logDetSigma;
-
-	/**
-	 * Inducing point matrix.
-	 */
-	Eigen::MatrixXd U;
 
 	/**
 	 * Vector containing the parameters of the covariance function.

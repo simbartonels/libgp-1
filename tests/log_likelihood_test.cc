@@ -67,6 +67,13 @@ TEST(LogLikelihoodTest, CheckGradientsFICGP2)
   genericGradientTest(gp, input_dim);
 }
 
+TEST(LogLikelihoodTest, CheckGradientsFICGP2Optimized)
+{
+  int input_dim = 3;
+  libgp::OptFICGaussianProcess * gp = new libgp::OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FIC");
+  genericGradientTest(gp, input_dim);
+}
+
 TEST(LogLikelihoodTest, CheckGradientsFICfixedGP)
 {
   int input_dim = 3;

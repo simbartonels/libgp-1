@@ -54,6 +54,36 @@ protected:
 
 	void updateCholesky(const double x[], double y);
 
+	/**
+	 * Computes the basis function part of the log-likelihood gradient.
+	 */
+	virtual double grad_basis_function(size_t i, bool gradBasisFunctionIsNull, bool gradiSigmaIsNull);
+
+	/**
+	 * Computes the weight prior part of the log-likelihood gradient.
+	 */
+	virtual double grad_isigma(size_t i, bool gradiSigmaIsNull);
+
+	Eigen::MatrixXd B;
+	Eigen::MatrixXd R;
+	Eigen::MatrixXd dKui;
+	Eigen::MatrixXd dKuui;
+	Eigen::VectorXd al;
+	/**
+	 * Corresponds to Ku in infFITC.
+	 */
+	Eigen::MatrixXd Phi;
+	Eigen::VectorXd w;
+
+	/**
+	 * Convenience pointer that just points to the covariance function cf in the super class.
+	 */
+	IBasisFunction * bf;
+
+	/**
+	 * Number of basis functions.
+	 */
+	size_t M;
 private:
 	/**
 	 * Initializes all the vectors and matrices used in the for loop.
@@ -65,28 +95,18 @@ private:
 	 */
 	Eigen::VectorXd k;
 
-	/**
-	 * Corresponds to Ku in infFITC.
-	 */
-	Eigen::MatrixXd Phi;
 	Eigen::MatrixXd Lu;
 	Eigen::VectorXd dg;
-	Eigen::VectorXd al;
 	Eigen::VectorXd alSqrd;
 	Eigen::VectorXd isqrtgamma;
 	Eigen::MatrixXd V;
-	Eigen::MatrixXd B;
 	Eigen::MatrixXd W;
-	Eigen::VectorXd w;
 	Eigen::MatrixXd Wdg;
-	Eigen::MatrixXd R;
 	Eigen::VectorXd v;
 	Eigen::MatrixXd BWdg;
 	Eigen::VectorXd WdgSum;
 
 	Eigen::VectorXd ddiagK;
-	Eigen::MatrixXd dKui;
-	Eigen::MatrixXd dKuui;
 
 	Eigen::VectorXd r;
 	Eigen::VectorXd beta;
@@ -98,15 +118,6 @@ private:
 	 */
 	Eigen::MatrixXd LuuLu;
 
-	/**
-	 * Convenience pointer that just points to the covariance function cf in the super class.
-	 */
-	IBasisFunction * bf;
-
-	/**
-	 * Number of basis functions.
-	 */
-	size_t M;
 };
 }
 

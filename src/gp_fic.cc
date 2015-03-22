@@ -160,6 +160,40 @@ double FICGaussianProcess::log_likelihood_impl() {
 	return -llh;
 }
 
+double FICGaussianProcess::grad_basis_function(size_t i, bool gradBasisFunctionIsNull, bool gradiSigmaIsNull){
+	double wdKuial;
+	if (!gradBasisFunctionIsNull) {
+		bf->gradBasisFunction(sampleset, Phi, i, dKui);
+		wdKuial = 2 * (w.transpose()  * dKui * al).sum(); //O(Mn)
+		//R = 2*dKui-dKuui*B;
+		if(!gradiSigmaIsNull)
+			R = 2 * dKui - dKuui * B; //O(M^2n)
+		else
+			//this is quite bad but optimizing this case makes the code unreadable
+			R = 2 * dKui;
+	} else {
+		//this branch will be entered only for two parameters (in case of MultiScale)
+		if(!gradiSigmaIsNull)
+			R = -dKuui * B;
+		else
+			//optimizing this case makes the code unreadable
+			R.setZero();
+		wdKuial = 0;
+	}
+	return wdKuial;
+}
+
+double FICGaussianProcess::grad_isigma(size_t i, bool gradiSigmaIsNull){
+	double wdKuuiw;
+	if (!gradiSigmaIsNull) {
+		bf->gradiSigma(i, dKuui);
+		wdKuuiw = (w.transpose() * dKuui * w).sum(); //O(M^2)
+	} else {
+		wdKuuiw = 0;
+	}
+	return wdKuuiw;
+}
+
 Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 	size_t num_params = bf->get_param_dim();
 	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
@@ -169,33 +203,9 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 		bool gradiSigmaIsNull = bf->gradiSigmaIsNull(i);
 		bool gradBasisFunctionIsNull = bf->gradBasisFunctionIsNull(i);
 
-		double wdKuuiw;
-		if (!gradiSigmaIsNull) {
-			bf->gradiSigma(i, dKuui);
-			wdKuuiw = (w.transpose() * dKuui * w).sum();
-		} else {
-			wdKuuiw = 0;
-		}
+		double wdKuuiw = grad_isigma(i, gradiSigmaIsNull);
 
-		double wdKuial;
-		if (!gradBasisFunctionIsNull) {
-			bf->gradBasisFunction(sampleset, Phi, i, dKui);
-			wdKuial = 2 * (w.transpose()  * dKui * al).sum();
-			//R = 2*dKui-dKuui*B;
-			if(!gradiSigmaIsNull)
-				R = 2 * dKui - dKuui * B;
-			else
-				//this is quite bad but optimizing this case makes the code unreadable
-				R = 2 * dKui;
-		} else {
-			//this branch will be entered only for two parameters (in case of MultiScale)
-			if(!gradiSigmaIsNull)
-				R = -dKuui * B;
-			else
-				//optimizing this case makes the code unreadable
-				R.setZero();
-			wdKuial = 0;
-		}
+		double wdKuial = grad_basis_function(i, gradBasisFunctionIsNull, gradiSigmaIsNull);
 
 		double ddiagK_idg;
 		if (!bf->gradDiagWrappedIsNull(i)) {
@@ -212,7 +222,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 				+ wdKuuiw - wdKuial
 				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
-				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum();
+				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum(); //O(Mn)
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above
