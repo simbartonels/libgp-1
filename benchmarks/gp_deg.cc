@@ -69,8 +69,10 @@ using namespace libgp;
     	compare_time(llhGradFast, llhGradSolin, 10);
     }
 
+#define USED_GP "FastFood"
+
     void measureBFcomputationTime() {
-    	size_t D = 384;
+    	size_t D = 2;
     	size_t n = 2000;
     	size_t num_execs = 100;
     	std::cout << "D is " << D << std::endl;
@@ -85,9 +87,9 @@ using namespace libgp;
     		std::cout << "Choose M: ";
     		size_t M;
     		std::cin >> M;
-    		std::cout << "initializing GP" << std::endl;
+    		std::cout << "initializing GP using approximation" << USED_GP << std::endl;
     		gp = new DegGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
-    				"FastFood");
+    				USED_GP);
     		for (int i = 0; i < n; ++i) {
     			gp->add_pattern(X.row(i), y(i));
     		}
@@ -104,6 +106,8 @@ using namespace libgp;
     }
 
 int main(int argc, char const *argv[]) {
+	measureBFcomputationTime();
+	return 0;
 	size_t input_dim = 2;
 	size_t M = 2048;
 	size_t n = 5000;

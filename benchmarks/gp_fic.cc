@@ -220,8 +220,8 @@ using namespace libgp;
         }
 
     void measureBFcomputationTime() {
-    	size_t D = 384;
-    	size_t n = 2000;
+    	size_t D = 2;
+    	size_t n = 500;
     	size_t num_execs = 100;
     	std::cout << "D is " << D << std::endl;
     	Eigen::VectorXd grad(D);

@@ -124,8 +124,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double nlZ = -gp->log_likelihood();
 	mexPrintf(
 			"inflibgp: GP initialization complete.\n");
-//	Eigen::VectorXd meanY(test_n);
-//	Eigen::VectorXd varY(test_n);
 
 	plhs[3] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd> meanY(mxGetPr(plhs[3]), test_n);
@@ -144,12 +142,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[1]), M, M) = gp->getL();
 	std::cout << "L transferred." << std::endl;
 	plhs[2] = mxCreateDoubleScalar(nlZ);
-//	mexPrintf("inflibgp: Transferring data.\n");
-//	plhs[3] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
-//	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[3]), test_n) = meanY;
-//	plhs[4] = mxCreateDoubleMatrix(test_n, 1, mxREAL);
-//	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), test_n) = varY;
-
 	if(nlhs >= 6){
 		mexPrintf("inflibgp: Computing llh gradient.\n");
 		plhs[5] = mxCreateDoubleMatrix(p, 1, mxREAL);
