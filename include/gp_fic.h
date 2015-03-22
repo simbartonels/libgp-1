@@ -74,6 +74,7 @@ protected:
 	 */
 	Eigen::MatrixXd Phi;
 	Eigen::VectorXd w;
+	Eigen::VectorXd v;
 
 	/**
 	 * Convenience pointer that just points to the covariance function cf in the super class.
@@ -102,7 +103,6 @@ private:
 	Eigen::MatrixXd V;
 	Eigen::MatrixXd W;
 	Eigen::MatrixXd Wdg;
-	Eigen::VectorXd v;
 	Eigen::MatrixXd BWdg;
 	Eigen::VectorXd WdgSum;
 

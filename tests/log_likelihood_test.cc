@@ -7,6 +7,7 @@
 #include "gp_deg.h"
 #include "gp_solin.h"
 #include "gp_utils.h"
+#include "gp_fic_optimized.h"
 #include <cmath>
 #include <iostream>
 #include <gtest/gtest.h>

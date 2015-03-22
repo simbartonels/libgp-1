@@ -1,7 +1,8 @@
 // libgp - Gaussian process library for Machine Learning
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
-
+#include "gp_fic_optimized.h"
+#include "basis_functions/bf_fic.h"
 namespace libgp {
 double OptFICGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
@@ -33,7 +34,8 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 	double wdKuuiw;
 	size_t bf_params_size = bf->get_param_dim();
 	size_t cov_params_size = bf_params_size - M * input_dim;
-	Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U);
+	//TODO: it would be better to make this const...
+	Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, M);
 	if (p >= cov_params_size - 1 && p < bf_params_size - 1) {
 		optimize = true;
 //			diSigmadp.setZero();
