@@ -18,11 +18,8 @@ public:
 	/** Create and instance of GaussianProcess with given input dimensionality
 	 *  and covariance function. */
 	OptFICGaussianProcess(size_t input_dim, std::string covf_def,
-			size_t num_basisf, std::string basisf_def) : FICGaussianProcess(input_dim, covf_def, num_basisf, basisf_def){
-		optimize = false;
-		temp_input_dim.resize(input_dim);
-		dkuui.resize(M);
-	};
+			size_t num_basisf, std::string basisf_def);
+
 	/** Create and instance of GaussianProcess from file. */
 	virtual ~OptFICGaussianProcess();
 

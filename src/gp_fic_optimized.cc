@@ -4,6 +4,15 @@
 #include "gp_fic_optimized.h"
 #include "basis_functions/bf_fic.h"
 namespace libgp {
+
+OptFICGaussianProcess::OptFICGaussianProcess(size_t input_dim, std::string covf_def,
+		size_t num_basisf, std::string basisf_def) : FICGaussianProcess(input_dim, covf_def, num_basisf, basisf_def){
+	optimize = false;
+	temp_input_dim.resize(input_dim);
+	dkuui.resize(M);
+};
+
+
 double OptFICGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
 	double wdKuial;
