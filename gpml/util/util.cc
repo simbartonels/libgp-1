@@ -7,6 +7,8 @@
 #include "gp_solin.h"
 #include "gp_deg.h"
 #include "gp_fic.h"
+#include "gp_fic_optimized.h"
+#include "gp_multiscale_optimized.h"
 #include "gp.h"
 
 
@@ -54,6 +56,10 @@ libgp::AbstractGaussianProcess * constructGP(const std::string & gp_name, size_t
 		gp = new libgp::DegGaussianProcess(D, cov_name, M, bf_name, seed);
 	} else if (gp_name.compare("FIC") == 0) {
 		gp = new libgp::FICGaussianProcess(D, cov_name, M, bf_name);
+	}else if (gp_name.compare("OptFIC") == 0) {
+		gp = new libgp::OptFICGaussianProcess(D, cov_name, M, bf_name);
+	}else if (gp_name.compare("OptMultiscale") == 0) {
+		gp = new libgp::OptMultiScaleGaussianProcess(D, cov_name, M, bf_name);
 	} else if (gp_name.compare("Solin") == 0) {
 		gp = new libgp::SolinGaussianProcess(D, cov_name, M);
 	} else {
