@@ -1,11 +1,11 @@
 // libgp - Gaussian process library for Machine Learning
 // Copyright (c) 2013, Manuel Blum <mblum@informatik.uni-freiburg.de>
 // All rights reserved.
-#include "gp_fic_optimized.h"
-#include "basis_functions/bf_fic.h"
+#include "gp_multiscale_optimized.h"
+#include "basis_functions/bf_multi_scale.h"
 namespace libgp {
 
-OptFICGaussianProcess::OptFICGaussianProcess(size_t input_dim,
+OptMultiScaleGaussianProcess::OptMultiScaleGaussianProcess(size_t input_dim,
 		std::string covf_def, size_t num_basisf, std::string basisf_def) :
 		FICGaussianProcess(input_dim, covf_def, num_basisf, basisf_def) {
 	optimize = false;
@@ -14,7 +14,7 @@ OptFICGaussianProcess::OptFICGaussianProcess(size_t input_dim,
 }
 ;
 
-double OptFICGaussianProcess::grad_basis_function(size_t i,
+double OptMultiScaleGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
 	double wdKuial;
 	if (optimize) {
@@ -29,7 +29,6 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 		}
 		if (!gradiSigmaIsNull) {
 			R.row(m) -= dkuui.transpose() * B;
-			size_t n = sampleset->size();
 			for(size_t j=0; j < M; j++)
 				R.row(j) -= dkuui(j) * B.row(m);
 //			bf->gradiSigma(i, dKuui);
@@ -46,25 +45,19 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 	return wdKuial;
 }
 
-double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
+double OptMultiScaleGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 	double wdKuuiw;
 	size_t bf_params_size = bf->get_param_dim();
 	size_t cov_params_size = bf_params_size - M * input_dim;
-	Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
-	if (p >= cov_params_size - 1 && p < bf_params_size - 1) {
+	if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
 		optimize = true;
-		m = (p - cov_params_size + 1) % M;
-		d = (p - cov_params_size + 1 - m) / M;
-		for (size_t i = 0; i < M; i++) {
-			(bf->cov)->grad_input(U.row(m), U.row(i), temp_input_dim);
-			dkuui(i) = temp_input_dim(d);
-		}
+		m = (p - input_dim) % M;
+		((MultiScale *) bf)->gradiSigmaVector(p, m, dkuui);
 		/*
 		 * This step is needed to assume dKuui = A + B where
 		 * A[i,j] = \delta_{im} dkuui[j]
 		 * B[i,j] = \delta_{jm} dkuui[i]
 		 */
-		dkuui(m) /= 2;
 		//wdKuuiw = non-zero entry of w^T * B:
 		wdKuuiw = (w.array() * dkuui.array()).sum();
 		//dkuui = non-zero entries of w^T * A

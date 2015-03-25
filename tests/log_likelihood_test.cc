@@ -8,6 +8,7 @@
 #include "gp_solin.h"
 #include "gp_utils.h"
 #include "gp_fic_optimized.h"
+#include "gp_multiscale_optimized.h"
 #include <cmath>
 #include <iostream>
 #include <gtest/gtest.h>
@@ -41,7 +42,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    gp->covf().set_loghyper(params);
 	    double j2 = gp->log_likelihood();
 	    params(i) = theta;
-	    ASSERT_NEAR((j2-j1)/(2*e), grad(i), 1e-5) << "parameter number: " << i;
+	    EXPECT_NEAR((j2-j1)/(2*e), grad(i), 1e-5) << "parameter number: " << i;
 	  }
 
 	  delete gp;
@@ -54,21 +55,29 @@ TEST(LogLikelihoodTest, CheckGradientsFullGP)
   genericGradientTest(gp, input_dim);
 }
 
-TEST(LogLikelihoodTest, CheckGradientsFICGP)
+TEST(LogLikelihoodTest, CheckGradientsMultiScaleGP)
 {
   int input_dim = 3;
   libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
   genericGradientTest(gp, input_dim);
 }
 
-TEST(LogLikelihoodTest, CheckGradientsFICGP2)
+TEST(LogLikelihoodTest, CheckGradientsMultiScaleGPOptimized)
+{
+  int input_dim = 3;
+  libgp::OptMultiScaleGaussianProcess * gp = new libgp::OptMultiScaleGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
+  genericGradientTest(gp, input_dim);
+}
+
+
+TEST(LogLikelihoodTest, CheckGradientsFICGP)
 {
   int input_dim = 3;
   libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FIC");
   genericGradientTest(gp, input_dim);
 }
 
-TEST(LogLikelihoodTest, CheckGradientsFICGP2Optimized)
+TEST(LogLikelihoodTest, CheckGradientsFICGPOptimized)
 {
   int input_dim = 3;
   libgp::OptFICGaussianProcess * gp = new libgp::OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FIC");

@@ -140,6 +140,33 @@ const Eigen::MatrixXd & MultiScale::getInverseOfSigma() {
 	return Upsi;
 }
 
+void MultiScale::gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dSigmadp){
+	//derivatives with respect to inducing inputs or inducing length scales
+	//don't call setPrevious...() here. it breaks things in gradBasisFunction()
+	size_t d = ((p - input_dim - m) / M) % input_dim;
+	temp.array() = Uell.col(d).array() + (Uell(m, d) - ell(d));
+
+	//TODO: unintended copy
+	//could be avoided by introducing another matrix Upsi-snu2
+	UpsiCol = Upsi.col(m);
+	//for the gradients we have to remove the inducing input noise (from the diagonal)
+	UpsiCol(m) -= snu2;
+	if (p < M * input_dim + input_dim) {
+		//derivatives for inducing length scales
+		dSigmadp.array() = ((U(m, d) - U.col(d).array())
+				/ temp.array()).square() - temp.cwiseInverse().array();
+		dSigmadp.array() *= (Uell(m, d) - ell(d) / 2)
+				* UpsiCol.array() / 2;
+//		dSigmadp(m, m) *= 2;
+	} else {
+		//derivatives for inducing inputs
+		dSigmadp.array() = (-U(m, d) + U.col(d).array())
+				* UpsiCol.array() / temp.array();
+		dSigmadp(m)/=2;
+	}
+
+}
+
 void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 	//TODO: use that FIC uses only lower half (i.e. dSigma is assumed self-adjoint)
 	dSigmadp.setZero();
@@ -156,31 +183,12 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 		dSigmadp = -Upsi; // + snu2 * Eigen::MatrixXd::Identity(M, M);
 		dSigmadp.diagonal().array() += snu2;
 	} else {
-		//derivatives with respect to inducing inputs or inducing length scales
-		//don't call setPrevious...() here. it breaks things in gradBasisFunction()
 		size_t m = (p - input_dim) % M;
-		size_t d = ((p - input_dim - m) / M) % input_dim;
-		temp.array() = Uell.col(d).array() + (Uell(m, d) - ell(d));
-
-		//TODO: unintended copy
-		//could be avoided by introducing another matrix Upsi-snu2
-		UpsiCol = Upsi.col(m);
-		//for the gradients we have to remove the inducing input noise (from the diagonal)
-		UpsiCol(m) -= snu2;
-		if (p < M * input_dim + input_dim) {
-			//derivatives for inducing length scales
-			dSigmadp.col(m).array() = ((U(m, d) - U.col(d).array())
-					/ temp.array()).square() - temp.cwiseInverse().array();
-			dSigmadp.col(m).array() *= (Uell(m, d) - ell(d) / 2)
-					* UpsiCol.array() / 2;
-			dSigmadp.row(m).array() = dSigmadp.col(m).transpose().array();
-			dSigmadp(m, m) *= 2;
-		} else {
-			//derivatives for inducing inputs
-			dSigmadp.col(m).array() = (-U(m, d) + U.col(d).array())
-					* UpsiCol.array() / temp.array();
-			dSigmadp.row(m).array() = dSigmadp.col(m).transpose().array();
-		}
+		Eigen::VectorXd col = dSigmadp.col(m);
+		gradiSigmaVector(p, m, col);
+		dSigmadp.col(m) = col;
+		dSigmadp.row(m).array() = dSigmadp.col(m).transpose().array();
+		dSigmadp(m, m) *= 2;
 	}
 }
 

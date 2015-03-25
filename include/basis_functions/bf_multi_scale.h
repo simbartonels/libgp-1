@@ -56,7 +56,15 @@ public:
 	    void compute_dkdx(const Eigen::VectorXd & x,
 				const Eigen::VectorXd & kstar, SampleSet * sampleSet, Eigen::MatrixXd & JT);
 
-
+	    /**
+	     * This function can be called if iSigma is of the form
+		 * iSigma = A + B where
+		 * A[i,j] = \delta_{im} dsigmadp[j]
+		 * B[i,j] = \delta_{jm} dsigmadp[i]
+		 *
+		 * disigmadp is the output argument.
+		 */
+	    void gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dsigmadp);
 	protected:
 	    virtual bool real_init();
 
