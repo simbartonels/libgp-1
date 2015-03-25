@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "gp_fic.h"
+#include "gp_fic_optimized.h"
 #include "naive/gp_fic_naive.h"
 #include "gp_utils.h"
 #include "util/time_call.h"
@@ -135,6 +136,8 @@ using namespace libgp;
 
     static FICnaiveGaussianProcess * gpnaive;
 
+    static OptFICGaussianProcess * gpopt;
+
     void f1(){
     	gp->log_likelihood();
     }
@@ -207,6 +210,10 @@ using namespace libgp;
     	gp->log_likelihood_gradient();
     }
 
+    void llhGradFaster(){
+    	gpopt->log_likelihood_gradient();
+    }
+
     void LuuLu_base(){
     	Sigma3 = Sigma1 * Sigma2;
     }
@@ -254,6 +261,7 @@ using namespace libgp;
     }
 
 
+
 int main(int argc, char const *argv[]) {
 	size_t input_dim = 3;
 	size_t M = 200;
@@ -269,23 +277,29 @@ int main(int argc, char const *argv[]) {
 	gp = new FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"SparseMultiScaleGP");
 
+	gpopt = new OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
+			"SparseMultiScaleGP");
+	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
+				M, "SparseMultiScaleGP");
+
+
 	// initialize hyper parameter vector
 	Eigen::VectorXd params(gp->covf().get_param_dim());
 	params.setRandom();
 	// set parameters of covariance function
 	gp->covf().set_loghyper(params);
-
-	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
-			M, "SparseMultiScaleGP");
 	gpnaive->covf().set_loghyper(params);
-
+	gpopt->covf().set_loghyper(params);
 	// add training patterns
 	for (int i = 0; i < n; ++i) {
 		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
 		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
 		gp->add_pattern(x, y);
 		gpnaive->add_pattern(x, y);
+		gpopt->add_pattern(x, y);
 	}
+
+	compare_time(llhGradFast, llhGradFaster, 1);
 
 //	testSpeedOfLogLikelihood();
 //	testSpeedOfCholeskyComputation2();
