@@ -49,3 +49,7 @@ TARGET_LINK_LIBRARIES(gpbenchm_misc_mm gp)
 ADD_EXECUTABLE(gpbenchm_deg gp_deg.cc  ${LIBGP_BENCHMARKS})
 set_target_properties(gpbenchm_deg PROPERTIES COMPILE_FLAGS "-O2")
 TARGET_LINK_LIBRARIES(gpbenchm_deg gp)
+
+ADD_EXECUTABLE(gpbenchm_full gp_full.cc  ${LIBGP_BENCHMARKS})
+set_target_properties(gpbenchm_full PROPERTIES COMPILE_FLAGS "-O2")
+TARGET_LINK_LIBRARIES(gpbenchm_full gp)
