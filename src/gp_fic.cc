@@ -33,6 +33,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	JT.resize(input_dim, M);
 	Lu.resize(M, M);
 	BWdg.resize(M, M);
+	RWdg.resize(M, M);
 	w.resize(M);
 	beta.resize(M);
 	k_star.resize(M);
@@ -180,6 +181,8 @@ double FICGaussianProcess::grad_basis_function(size_t i, bool gradBasisFunctionI
 			R.setZero();
 		wdKuial = 0;
 	}
+	v = -R.cwiseProduct(B).colwise().sum();
+	RWdg = R * Wdg.transpose();
 	return wdKuial;
 }
 
@@ -212,17 +215,16 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 			bf->gradDiagWrapped(sampleset, k, i, ddiagK);
 			ddiagK_idg = ddiagK.cwiseQuotient(dg).sum();
 			// v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
-			v = ddiagK.transpose() - R.cwiseProduct(B).colwise().sum();
+			v += ddiagK;
 		} else {
 			ddiagK_idg = 0;
-			v = -R.cwiseProduct(B).colwise().sum();
 		}
 
 		gradient(i) = ddiagK_idg
 				+ wdKuuiw - wdKuial
 				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
-				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum(); //O(M^2n)
+				- RWdg.cwiseProduct(BWdg).sum(); //O(M^2n)
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above

@@ -103,6 +103,7 @@ protected:
 	Eigen::MatrixXd W;
 	Eigen::MatrixXd Wdg;
 	Eigen::MatrixXd BWdg;
+	Eigen::MatrixXd RWdg;
 	Eigen::VectorXd WdgSum;
 
 	Eigen::VectorXd ddiagK;
