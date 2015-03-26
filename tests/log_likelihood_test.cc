@@ -13,7 +13,8 @@
 #include <iostream>
 #include <gtest/gtest.h>
 
-
+static int input_dim = 2;
+static int M = 40;
 void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	  size_t param_dim = gp->covf().get_param_dim();
 	  Eigen::VectorXd params(param_dim);
@@ -44,7 +45,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    params(i) = theta;
 	    double dist = (j2-j1)/(2*e);
 	    dist = std::fabs(dist-grad(i))/(std::fabs(dist) + 1e-50);
-	    EXPECT_NEAR(dist, 0., 1e-5) << "parameter number: " << i;
+	    EXPECT_NEAR(dist, 0., 1e-3) << "parameter number: " << i;
 	  }
 
 	  delete gp;
@@ -52,66 +53,66 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 
 TEST(LogLikelihoodTest, CheckGradientsFullGP)
 {
-  int input_dim = 3;
+
   libgp::GaussianProcess * gp = new libgp::GaussianProcess(input_dim, "CovSum ( CovSEiso, CovNoise)");
   genericGradientTest(gp, input_dim);
 }
 
 TEST(LogLikelihoodTest, CheckGradientsMultiScaleGP)
 {
-  int input_dim = 3;
-  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
+
+  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "SparseMultiScaleGP");
   genericGradientTest(gp, input_dim);
 }
 
 TEST(LogLikelihoodTest, CheckGradientsMultiScaleGPOptimized)
 {
-  int input_dim = 3;
-  libgp::OptMultiScaleGaussianProcess * gp = new libgp::OptMultiScaleGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "SparseMultiScaleGP");
+
+  libgp::OptMultiScaleGaussianProcess * gp = new libgp::OptMultiScaleGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "SparseMultiScaleGP");
   genericGradientTest(gp, input_dim);
 }
 
 
 TEST(LogLikelihoodTest, CheckGradientsFICGP)
 {
-  int input_dim = 3;
-  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FIC");
+
+  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "FIC");
   genericGradientTest(gp, input_dim);
 }
 
 TEST(LogLikelihoodTest, CheckGradientsFICGPOptimized)
 {
-  int input_dim = 3;
-  libgp::OptFICGaussianProcess * gp = new libgp::OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FIC");
+
+  libgp::OptFICGaussianProcess * gp = new libgp::OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "FIC");
   genericGradientTest(gp, input_dim);
 }
 
 TEST(LogLikelihoodTest, CheckGradientsFICfixedGP)
 {
-  int input_dim = 3;
-  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FICfixed");
+
+  libgp::FICGaussianProcess * gp = new libgp::FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "FICfixed");
   genericGradientTest(gp, input_dim);
 }
 
 #ifdef BUILD_FAST_FOOD
 TEST(LogLikelihoodTest, CheckGradientsDegGPFastFood)
 {
-  int input_dim = 3;
-  libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "FastFood");
+
+  libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "FastFood");
   genericGradientTest(gp, input_dim);
 }
 #endif
 
 TEST(LogLikelihoodTest, CheckGradientsDegGP)
 {
-  int input_dim = 3;
-  libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20, "Solin");
+
+  libgp::DegGaussianProcess * gp = new libgp::DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M, "Solin");
   genericGradientTest(gp, input_dim);
 }
 
 TEST(LogLikelihoodTest, CheckGradientsSolinGP)
 {
-  int input_dim = 3;
-  libgp::SolinGaussianProcess * gp = new libgp::SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", 20);
+
+  libgp::SolinGaussianProcess * gp = new libgp::SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M);
   genericGradientTest(gp, input_dim);
 }
