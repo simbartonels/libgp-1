@@ -44,10 +44,10 @@ Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		temp = g.col(m).cwiseProduct((*PIs.at(m)) * temp);
 		wht_apply(wht_tree, 1, temp.data());
 		temp = s.col(m).cwiseProduct(temp);
-		phi.segment((M_intern + m) * input_dim, input_dim).array() = temp.head(
-				input_dim).array().sin();
 		phi.segment(m * input_dim, input_dim).array() =
 				temp.head(input_dim).array().cos();
+		phi.segment((M_intern + m) * input_dim, input_dim).array() = temp.head(
+				input_dim).array().sin();
 	}
 	return phi;
 }
@@ -229,6 +229,8 @@ bool libgp::FastFood::real_init() {
 
 inline void FastFood::initializeMatrices() {
 	srand(seed);
+	srand48(seed);
+	std::cout << "FastFood: using seed " << seed << std::endl;
 	for (size_t i = 0; i < M_intern; i++) {
 		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
 				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
