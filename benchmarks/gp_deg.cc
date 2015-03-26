@@ -69,7 +69,24 @@ using namespace libgp;
     	compare_time(llhGradFast, llhGradSolin, 10);
     }
 
-#define USED_GP "FastFood"
+    void testReSeeding(){
+    	size_t M = 100;
+    	Eigen::VectorXd x1(M);
+    	Eigen::VectorXd x2(M);
+    	size_t seed = (size_t) time(0);
+    	srand(seed);
+    	x1.setRandom();
+    	x2.setRandom();
+    	assert(!(x1-x2).isZero(1e-5));
+    	std::cout << x1.transpose() << std::endl;
+    	srand(seed);
+    	x2.setRandom();
+    	assert((x1-x2).isZero(1e-50));
+    	std::cout << x2.transpose() << std::endl;
+
+    }
+
+#define USED_GP "Solin"
 
     void measureBFcomputationTime() {
     	size_t D = 2;
@@ -90,9 +107,12 @@ using namespace libgp;
     		std::cout << "initializing GP using approximation" << USED_GP << std::endl;
     		gp = new DegGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
     				USED_GP);
+        	Eigen::VectorXd params(gp->covf().get_param_dim());
+        	params.setRandom();
     		for (int i = 0; i < n; ++i) {
     			gp->add_pattern(X.row(i), y(i));
     		}
+    		gp->covf().set_loghyper(params);
     		gp->log_likelihood();
     		std::cout << "done" << std::endl;
     		stop_watch();
@@ -101,12 +121,15 @@ using namespace libgp;
     			gp->var(x);
     		}
     		double tic = stop_watch() / num_execs;
-    		std::cout << tic << std::endl;
+    		std::cout << "time: " << tic << std::endl;
+//    		std::cout << "diag(L): " << gp->getL().diagonal().transpose() << std::endl;
+    		std::cout << "f(x): " << gp->f(x) << std::endl;
     	}
     }
 
 int main(int argc, char const *argv[]) {
 	measureBFcomputationTime();
+//	testReSeeding();
 	return 0;
 	size_t input_dim = 2;
 	size_t M = 2048;
