@@ -42,7 +42,7 @@ double OptMultiScaleGaussianProcess::grad_basis_function(size_t i,
 			v += B.row(m).cwiseProduct(dkuui.transpose() * B);
 			RWdg.row(m) -= dkuui.transpose() * BWdg;
 			for (size_t j = 0; j < M; j++) {
-				v += B.row(j).cwiseProduct(dkuui(j) * B.row(m));
+				v.array() += B.row(j).array() * dkuui(j) * B.row(m).array();
 				RWdg.row(j) -= dkuui(j) * BWdg.row(m);
 			}
 //			bf->gradiSigma(i, dKuui);
@@ -82,7 +82,9 @@ double OptMultiScaleGaussianProcess::grad_isigma(size_t p,
 		//wdKuui = w^T * (A * B)* w
 //		wdKuuiw = (dkuui.array() * w.array()).sum();
 //		wdKuuiw = (w(m) * dkuui.array() * w.array()).sum() + wdKuuiw * w(m);
-		wdKuuiw = w(m) * ((dkuui.array() * w.array()).sum() + wdKuuiw);
+
+//		wdKuuiw = (wdKuuiw + (dkuui.array() * w.array()).sum()) * w(m);
+		wdKuuiw *= 2 * w(m);
 //		double dist = FICGaussianProcess::grad_isigma(p,
 //				gradiSigmaIsNull);
 //		dist = std::fabs((wdKuuiw - dist)/(dist + 1e-50));

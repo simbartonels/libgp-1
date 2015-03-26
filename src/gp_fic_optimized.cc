@@ -28,14 +28,16 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 			Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
 			for (size_t j = 0; j < n; j++) {
 				bf->cov->grad_input(U.row(m), sampleset->x(j), temp_input_dim);
+				//TODO: this is probably the reason why FICs speed up is neglible in comparison to multiscale
 				dkui(j) = temp_input_dim(d);
 			}
-			wdKuial = 2 * w(m) * (dkui.array() * al.array()).sum(); //O(n)
+			v = 2 * dkui;
+			wdKuial = w(m) * (v.array() * al.array()).sum(); //O(n)
 //			wdKuial_target = std::fabs(wdKuial_target - wdKuial)/(std::fabs(wdKuial_target) + 1e-50);
 //			assert(wdKuial_target < 1e-5);
 					//R = 2*dKui-dKuui*B;
-			v.array() = -2 * dkui.array() * B.row(m).transpose().array();
-			RWdg.row(m) = 2 * dkui.transpose() * Wdg.transpose();
+			RWdg.row(m) = v.transpose() * Wdg.transpose();
+			v.array() *= -B.row(m).transpose().array();
 		} else {
 			wdKuial = 0;
 			v.setZero();
@@ -44,7 +46,7 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 			v += B.row(m).cwiseProduct(dkuui.transpose() * B);
 			RWdg.row(m) -= dkuui.transpose() * BWdg;
 			for(size_t j=0; j < M; j++){
-				v += B.row(j).cwiseProduct(dkuui(j) * B.row(m));
+				v.array() += B.row(j).array() * dkuui(j) * B.row(m).array();
 				RWdg.row(j) -= dkuui(j) * BWdg.row(m);
 			}
 //			bf->gradiSigma(i, dKuui);
@@ -93,7 +95,9 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 		//wdKuui = w^T * (A * B)* w
 //		wdKuuiw = (dkuui.array() * w.array()).sum();
 //		wdKuuiw = (w(m) * dkuui.array() * w.array()).sum() + wdKuuiw * w(m);
-		wdKuuiw = w(m) * ((dkuui.array() * w.array()).sum() + wdKuuiw);
+
+//		wdKuuiw = w(m) * ((dkuui.array() * w.array()).sum() + wdKuuiw);
+		wdKuuiw *= 2 * w(m);
 //		double dist = FICGaussianProcess::grad_isigma(p,
 //				gradiSigmaIsNull);
 //		dist = std::fabs((wdKuuiw - dist)/(dist + 1e-50));
