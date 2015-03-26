@@ -43,6 +43,9 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 		wdKuial = FICGaussianProcess::grad_basis_function(i,
 				gradBasisFunctionIsNull, gradiSigmaIsNull);
 	}
+	//TODO: optimize this!
+	v = -R.cwiseProduct(B).colwise().sum();
+	RWdg = R * Wdg.transpose();
 	return wdKuial;
 }
 
