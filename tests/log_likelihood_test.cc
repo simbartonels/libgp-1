@@ -19,7 +19,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	  Eigen::VectorXd params(param_dim);
 	  params.setRandom();
 	  gp->covf().set_loghyper(params);
-	  size_t n = 500;
+	  size_t n = 1000;
 	  Eigen::MatrixXd X(n, input_dim);
 	  X.setRandom();
 //	  Eigen::VectorXd y = gp->covf().draw_random_sample(X);
@@ -42,7 +42,9 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    gp->covf().set_loghyper(params);
 	    double j2 = gp->log_likelihood();
 	    params(i) = theta;
-	    EXPECT_NEAR((j2-j1)/(2*e), grad(i), 1e-5) << "parameter number: " << i;
+	    double dist = (j2-j1)/(2*e);
+	    dist = std::fabs(dist-grad(i))/(std::fabs(dist) + 1e-50);
+	    EXPECT_NEAR(dist, 0., 1e-5) << "parameter number: " << i;
 	  }
 
 	  delete gp;

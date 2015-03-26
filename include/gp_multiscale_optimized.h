@@ -29,17 +29,18 @@ protected:
 
 	double grad_isigma(size_t i, bool gradiSigmaIsNull);
 
-	Eigen::VectorXd log_likelihood_gradient_impl();
-
 private:
 	/**
 	 * A vector that represents the gradient dKuui.
 	 */
 	Eigen::VectorXd dkuui;
 
-	Eigen::VectorXd temp_input_dim;
+	/**
+	 * A vector that represents the nonzero values of dKui.
+	 */
+	Eigen::VectorXd dkui;
 
-	Eigen::MatrixXd RWdg;
+	Eigen::VectorXd temp_input_dim;
 
 	size_t m;
 
