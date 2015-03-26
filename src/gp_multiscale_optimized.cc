@@ -11,6 +11,7 @@ OptMultiScaleGaussianProcess::OptMultiScaleGaussianProcess(size_t input_dim,
 	optimize = false;
 	temp_input_dim.resize(input_dim);
 	dkuui.resize(M);
+	RWdg.resize(M, M);
 }
 ;
 
@@ -77,5 +78,53 @@ double OptMultiScaleGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull
 		wdKuuiw = FICGaussianProcess::grad_isigma(p, gradiSigmaIsNull);
 	}
 	return wdKuuiw;
+}
+
+Eigen::VectorXd OptMultiScaleGaussianProcess::log_likelihood_gradient_impl() {
+	size_t num_params = bf->get_param_dim();
+	Eigen::VectorXd gradient = Eigen::VectorXd::Zero(num_params);
+	log_likelihood_gradient_precomputations();
+	for (size_t i = 0; i < num_params; i++) {
+//      [ddiagKi,dKuui,dKui] = feval(cov{:}, hyp.cov, x, [], i);
+		bool gradiSigmaIsNull = bf->gradiSigmaIsNull(i);
+		bool gradBasisFunctionIsNull = bf->gradBasisFunctionIsNull(i);
+
+		double wdKuuiw = grad_isigma(i, gradiSigmaIsNull);
+
+		double wdKuial = grad_basis_function(i, gradBasisFunctionIsNull, gradiSigmaIsNull);
+
+		double ddiagK_idg;
+		if (!bf->gradDiagWrappedIsNull(i)) {
+			bf->gradDiagWrapped(sampleset, k, i, ddiagK);
+			ddiagK_idg = ddiagK.cwiseQuotient(dg).sum();
+			// v = ddiagKi - sum(R.*B,1)';   % diag part of cov deriv
+			v = ddiagK.transpose() - R.cwiseProduct(B).colwise().sum();
+		} else {
+			ddiagK_idg = 0;
+			v = -R.cwiseProduct(B).colwise().sum();
+		}
+
+		if(optimize){
+			if(m == 1)
+				tempM = R.row(2) * Wdg.transpose();
+			else
+				tempM = R.row(1) * Wdg.transpose();
+			dkuui = R.row(m) * Wdg.transpose();
+			for(size_t j = 0; j < M; j++)
+				RWdg.row(j) = tempM.transpose();
+			RWdg.row(m)  = dkuui.transpose();
+		}
+		else
+			RWdg = R * Wdg.transpose();
+
+		gradient(i) = ddiagK_idg
+				+ wdKuuiw - wdKuial
+				- (v.array() * alSqrd.array()).sum()
+				- WdgSum.cwiseProduct(v).sum()
+				- (RWdg).cwiseProduct(BWdg).sum(); //O(M^2n)
+	}
+	gradient /= 2;
+	//noise gradient included in the loop above
+	return -gradient;
 }
 }

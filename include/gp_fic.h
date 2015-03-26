@@ -42,7 +42,7 @@ protected:
 
 	double log_likelihood_impl();
 
-	Eigen::VectorXd log_likelihood_gradient_impl();
+	virtual Eigen::VectorXd log_likelihood_gradient_impl();
 
 	/** Update test input and cache kernel vector. */
 	void update_k_star(const Eigen::VectorXd &x_star);
@@ -85,7 +85,6 @@ protected:
 	 * Number of basis functions.
 	 */
 	size_t M;
-private:
 	/**
 	 * Initializes all the vectors and matrices used in the for loop.
 	 */
@@ -111,7 +110,7 @@ private:
 	Eigen::VectorXd r;
 	Eigen::VectorXd beta;
 
-	Eigen::VectorXd temp;
+	Eigen::VectorXd tempM;
 
 	/**
 	 * Temporary matrix to save the product of Luu and Lu.

@@ -37,7 +37,7 @@ FICGaussianProcess::FICGaussianProcess(size_t input_dim, std::string covf_def,
 	beta.resize(M);
 	k_star.resize(M);
 	dKuui.resize(M, M);
-	temp.resize(M);
+	tempM.resize(M);
 	LuuLu.resize(M, M);
 }
 
@@ -222,7 +222,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 				+ wdKuuiw - wdKuial
 				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
-				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum(); //O(Mn)
+				- (R * Wdg.transpose()).cwiseProduct(BWdg).sum(); //O(M^2n)
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above
