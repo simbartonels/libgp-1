@@ -95,31 +95,38 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 		}
 	} else if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
 		bool lengthScaleDerivative = p < M * input_dim + input_dim;
-		//use precomputed values where possible
-		if (p != previous_p) {
-			Grad.setZero();
-			setPreviousNumberAndDimensionForParameter(p, lengthScaleDerivative);
-		}
-
-		size_t m = previous_m;
-		size_t d = previous_d;
-		if (lengthScaleDerivative) {
-			double t2 = (Uell(m, d) - ell(d) / 2) / 2;
-			//length scale derivatives
-			for (size_t i = 0; i < n; i++) {
-				double t = (U(m, d) - (sampleSet->x(i))(d)) / Uell(m, d);
-				Grad(m, i) = t2 * (t * t - 1 / Uell(m, d)) * Phi(m, i);
-			}
-		} else {
-			//inducing point derivatives
-			for (size_t i = 0; i < n; i++) {
-				Grad(m, i) = (-U(m, d) + (sampleSet->x(i))(d)) / Uell(m, d)
-						* Phi(m, i);
-			}
-		}
+		Grad.setZero();
+		Eigen::VectorXd grad(n);
+		gradBasisFunctionVector(sampleSet, Phi, p, grad);
+		Grad.row(previous_m) = grad.transpose();
 	} else {
 		//amplitude and noise derivative
 		Grad.setZero();
+	}
+}
+
+
+void MultiScale::gradBasisFunctionVector(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::VectorXd &grad){
+	bool lengthScaleDerivative = p < M * input_dim + input_dim;
+	//use precomputed values where possible
+	if (p != previous_p)
+		setPreviousNumberAndDimensionForParameter(p, lengthScaleDerivative);
+	size_t n = sampleSet->size();
+	size_t m = previous_m;
+	size_t d = previous_d;
+	if (lengthScaleDerivative) {
+		double t2 = (Uell(m, d) - ell(d) / 2) / 2;
+		//length scale derivatives
+		for (size_t i = 0; i < n; i++) {
+			double t = (U(m, d) - (sampleSet->x(i))(d)) / Uell(m, d);
+			grad(i) = t2 * (t * t - 1 / Uell(m, d)) * Phi(m, i);
+		}
+	} else {
+		//inducing point derivatives
+		for (size_t i = 0; i < n; i++) {
+			grad(i) = (-U(m, d) + (sampleSet->x(i))(d)) / Uell(m, d)
+					* Phi(m, i);
+		}
 	}
 }
 

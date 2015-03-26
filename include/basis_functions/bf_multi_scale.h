@@ -65,6 +65,14 @@ public:
 		 * disigmadp is the output argument.
 		 */
 	    void gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dsigmadp);
+
+	    /**
+	     * This function can be called if dPhi/dp is of the form
+		 * dPhi/dp[i,j] = \delta_{im} grad[j]
+		 *
+		 * grad is the output argument.
+		 */
+		void gradBasisFunctionVector(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::VectorXd &grad);
 	protected:
 	    virtual bool real_init();
 
