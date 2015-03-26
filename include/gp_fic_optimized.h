@@ -35,6 +35,11 @@ private:
 	 */
 	Eigen::VectorXd dkuui;
 
+	/**
+	 * A vector that represents the nonzero values of dKui.
+	 */
+	Eigen::VectorXd dkui;
+
 	Eigen::VectorXd temp_input_dim;
 
 	size_t m;

@@ -18,18 +18,24 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
 	double wdKuial;
 	if (optimize) {
+		R.setZero();
 		if (!gradBasisFunctionIsNull) {
-			bf->gradBasisFunction(sampleset, Phi, i, dKui);
-			wdKuial = 2 * (w.transpose() * dKui * al).sum(); //O(Mn)
+			size_t n = sampleset->size();
+			if(dkui.size() < n)
+				dkui.resize(n);
+			Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
+			for (size_t j = 0; j < n; j++) {
+				bf->cov->grad_input(U.row(m), sampleset->x(j), temp_input_dim);
+				dkui(j) = temp_input_dim(d);
+			}
+			wdKuial = 2 * w(m) * (dkui.array() * al.array()).sum(); //O(n)
 					//R = 2*dKui-dKuui*B;
-			R = 2 * dKui;
+			R.row(m) = 2 * dkui.transpose();
 		} else {
-			R.setZero();
 			wdKuial = 0;
 		}
 		if (!gradiSigmaIsNull) {
 			R.row(m) -= dkuui.transpose() * B;
-			size_t n = sampleset->size();
 			for(size_t j=0; j < M; j++)
 				R.row(j) -= dkuui(j) * B.row(m);
 //			bf->gradiSigma(i, dKuui);
