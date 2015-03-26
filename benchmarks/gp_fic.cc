@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "gp_fic.h"
+#include "gp_multiscale_optimized.h"
 #include "gp_fic_optimized.h"
 #include "naive/gp_fic_naive.h"
 #include "gp_utils.h"
@@ -26,8 +27,8 @@ using namespace libgp;
 
     void testPassingReferences(){
     	size_t input_dim = 3;
-    	size_t M = 200;
-    	size_t n = 1000;
+    	size_t M = 100;
+    	size_t n = 5000;
 
     	//TODO: find a way to extract a vector from a matrix without copying
     	//TODO: then adapt SampleSet
@@ -136,7 +137,7 @@ using namespace libgp;
 
     static FICnaiveGaussianProcess * gpnaive;
 
-    static OptFICGaussianProcess * gpopt;
+    static FICGaussianProcess * gpopt;
 
     void f1(){
     	gp->log_likelihood();
@@ -226,9 +227,34 @@ using namespace libgp;
         	compare_time(LuuLu_base, LuuLu_2, 10);
         }
 
+    static Eigen::VectorXd v;
+    static Eigen::MatrixXd B;
+    static Eigen::VectorXd dkuui;
+
+    void m_base(){
+    	size_t j = 1;
+    	size_t m = 2;
+    	v.array() += B.row(j).array() * dkuui(j) * B.row(m).array();
+    }
+
+    void m_competitor(){
+    	size_t j = 1;
+    	size_t m = 2;
+    	v += B.row(j).cwiseProduct(dkuui(j) * B.row(m));
+    }
+
+    void compareMspeed(){
+    	size_t n = 6000;
+    	size_t M = 1500;
+    	v.resize(n);
+    	dkuui.resize(M);
+    	B.resize(M, n);
+    	compare_time(m_base, m_competitor, 10);
+    }
+
     void measureBFcomputationTime() {
     	size_t D = 2;
-    	size_t n = 500;
+    	size_t n = 2000;
     	size_t num_execs = 100;
     	std::cout << "D is " << D << std::endl;
     	Eigen::VectorXd grad(D);
@@ -260,12 +286,57 @@ using namespace libgp;
     	}
     }
 
+    void measureLlhGradcomputationTime() {
+    	size_t D = 2;
+    	std::cout << "D is " << D << std::endl;
+    	Eigen::VectorXd grad(D);
+    	while (true) {
+    		std::cout << "Choose n: ";
+			size_t n;
+			std::cin >> n;
+    		std::cout << "Choose M: ";
+    		size_t M;
+    		std::cin >> M;
+        	Eigen::VectorXd x(D);
+        	x.setRandom();
+        	Eigen::MatrixXd X(n, D);
+        	X.setRandom();
+        	Eigen::VectorXd y(n);
+        	y.setRandom();
+    		std::cout << "initializing GP" << std::endl;
+    		gp = new OptFICGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
+    				"FIC");
+    		gpopt = new OptMultiScaleGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
+    		    				"SparseMultiScaleGP");
+    		for (int i = 0; i < n; ++i) {
+    			gp->add_pattern(X.row(i), y(i));
+    			gpopt->add_pattern(X.row(i), y(i));
+    		}
+    		gp->log_likelihood();
+    		gpopt->log_likelihood();
+    		std::cout << "done" << std::endl;
+    		stop_watch();
+    		gp->log_likelihood_gradient();
+    		double tic = stop_watch();
+    		std::cout << "fic: " << tic << std::endl;
+
+    		stop_watch();
+    		gpopt->log_likelihood_gradient();
+    		tic = stop_watch();
+    		std::cout << "multiscale: " << tic << std::endl;
+    	}
+    }
+
 
 
 int main(int argc, char const *argv[]) {
-	size_t input_dim = 3;
-	size_t M = 200;
-	size_t n = 2000;
+//	compareMspeed();
+//	measureLlhGradcomputationTime();
+	measureBFcomputationTime();
+	return 0;
+	size_t input_dim = 2;
+	size_t M = 100;
+	size_t n = 600;
 	V.resize(M, n);
 	V.setRandom();
 	Sigma1.resize(M, M);
@@ -274,13 +345,16 @@ int main(int argc, char const *argv[]) {
 	Sigma1.setRandom();
 	Sigma2.setRandom();
 	Sigma3.setRandom();
+//	gp = new FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
+//			"SparseMultiScaleGP");
+//	gpopt = new OptMultiScaleGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
+//			"SparseMultiScaleGP");
 	gp = new FICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
-			"SparseMultiScaleGP");
-
+			"FIC");
 	gpopt = new OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
-			"SparseMultiScaleGP");
-	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
-				M, "SparseMultiScaleGP");
+			"FIC");
+//	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
+//				M, "SparseMultiScaleGP");
 
 
 	// initialize hyper parameter vector
@@ -288,27 +362,30 @@ int main(int argc, char const *argv[]) {
 	params.setRandom();
 	// set parameters of covariance function
 	gp->covf().set_loghyper(params);
-	gpnaive->covf().set_loghyper(params);
+//	gpnaive->covf().set_loghyper(params);
 	gpopt->covf().set_loghyper(params);
 	// add training patterns
 	for (int i = 0; i < n; ++i) {
 		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
 		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
 		gp->add_pattern(x, y);
-		gpnaive->add_pattern(x, y);
+//		gpnaive->add_pattern(x, y);
 		gpopt->add_pattern(x, y);
 	}
-
-	compare_time(llhGradFast, llhGradFaster, 1);
+	std::cout << "til here" << std::endl;
+//	compare_time(llhGradBaseline, llhGradFast, 1);
+	stop_watch();
+	llhGradFaster();
+	std::cout << "faster grad: " << stop_watch() << std::endl;
+//	compare_time(llhGradFast, llhGradFaster, 1);
 
 //	testSpeedOfLogLikelihood();
 //	testSpeedOfCholeskyComputation2();
 
-//	compare_time(llhGradBaseline, llhGradFast, 1);
 
 //	testSpeedOfCholeskyComputation11();
 //	testSpeedOfLuuLu();
-	measureBFcomputationTime();
+//	measureBFcomputationTime();
 
 	delete gp;
 	delete gpnaive;
