@@ -182,7 +182,7 @@ double FICGaussianProcess::grad_basis_function(size_t i, bool gradBasisFunctionI
 		wdKuial = 0;
 	}
 	v = -R.cwiseProduct(B).colwise().sum();
-	RWdg = R * Wdg.transpose();
+	RWdg = R * Wdg.transpose(); //O(M^2n)
 	return wdKuial;
 }
 
@@ -224,7 +224,7 @@ Eigen::VectorXd FICGaussianProcess::log_likelihood_gradient_impl() {
 				+ wdKuuiw - wdKuial
 				- (v.array() * alSqrd.array()).sum()
 				- WdgSum.cwiseProduct(v).sum()
-				- RWdg.cwiseProduct(BWdg).sum(); //O(M^2n)
+				- RWdg.cwiseProduct(BWdg).sum(); //O(Mn)
 	}
 	gradient /= 2;
 	//noise gradient included in the loop above
@@ -243,7 +243,7 @@ void FICGaussianProcess::log_likelihood_gradient_precomputations(){
 		B.resize(M, n);
 		ddiagK.resize(n);
 		dKui.resize(M, n);
-		R.resize(M, n);
+		R.resize(M, n); //TODO: in the optimized version this is no longer used
 		v.resize(n);
 		WdgSum.resize(n);
 	}

@@ -42,7 +42,7 @@ protected:
 
 	double log_likelihood_impl();
 
-	virtual Eigen::VectorXd log_likelihood_gradient_impl();
+	Eigen::VectorXd log_likelihood_gradient_impl();
 
 	/** Update test input and cache kernel vector. */
 	void update_k_star(const Eigen::VectorXd &x_star);
@@ -103,6 +103,9 @@ protected:
 	Eigen::MatrixXd W;
 	Eigen::MatrixXd Wdg;
 	Eigen::MatrixXd BWdg;
+	/**
+	 * R*Wdg.transpose()
+	 */
 	Eigen::MatrixXd RWdg;
 	Eigen::VectorXd WdgSum;
 
