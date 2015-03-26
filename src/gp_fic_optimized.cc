@@ -18,9 +18,9 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
 	double wdKuial;
 	if (optimize) {
+//		double wdKuial_target = FICGaussianProcess::grad_basis_function(i,
+//			gradBasisFunctionIsNull, gradiSigmaIsNull);
 		RWdg.setZero();
-		//TODO: remove
-		R.setZero();
 		if (!gradBasisFunctionIsNull) {
 			size_t n = sampleset->size();
 			if(dkui.size() < n)
@@ -31,20 +31,20 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 				dkui(j) = temp_input_dim(d);
 			}
 			wdKuial = 2 * w(m) * (dkui.array() * al.array()).sum(); //O(n)
+//			wdKuial_target = std::fabs(wdKuial_target - wdKuial)/(std::fabs(wdKuial_target) + 1e-50);
+//			assert(wdKuial_target < 1e-5);
 					//R = 2*dKui-dKuui*B;
-			//TODO: remove
-			R.row(m) = 2 * dkui.transpose();
-			v = 2 * dkui;
-			RWdg.row(m) = v.transpose() * Wdg.transpose();
+			v.array() = -2 * dkui.array() * B.row(m).transpose().array();
+			RWdg.row(m) = 2 * dkui.transpose() * Wdg.transpose();
 		} else {
 			wdKuial = 0;
 			v.setZero();
 		}
 		if (!gradiSigmaIsNull) {
-			R.row(m) -= dkuui.transpose() * B;
+			v += B.row(m).cwiseProduct(dkuui.transpose() * B);
 			RWdg.row(m) -= dkuui.transpose() * BWdg;
 			for(size_t j=0; j < M; j++){
-				R.row(j) -= dkuui(j) * B.row(m);
+				v += B.row(j).cwiseProduct(dkuui(j) * B.row(m));
 				RWdg.row(j) -= dkuui(j) * BWdg.row(m);
 			}
 //			bf->gradiSigma(i, dKuui);
@@ -53,13 +53,15 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 //				R_target += 2*dKui;
 //			double dist = ((R_target.array()-R.array())/R_target.array()+1e-50).abs().maxCoeff();
 //			assert(dist < 1e-5);
+
+//			Eigen::MatrixXd RWdg_target = R*Wdg.transpose();
+//			double dist = ((RWdg_target.array()-RWdg.array())/RWdg_target.array()+1e-50).abs().maxCoeff();
+//			assert(dist < 1e-5);
 		}
 	} else {
 		wdKuial = FICGaussianProcess::grad_basis_function(i,
 				gradBasisFunctionIsNull, gradiSigmaIsNull);
 	}
-	//TODO: optimize this!
-	v = -R.cwiseProduct(B).colwise().sum();
 	return wdKuial;
 }
 
