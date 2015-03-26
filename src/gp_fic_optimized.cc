@@ -18,6 +18,8 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
 	double wdKuial;
 	if (optimize) {
+		RWdg.setZero();
+		//TODO: remove
 		R.setZero();
 		if (!gradBasisFunctionIsNull) {
 			size_t n = sampleset->size();
@@ -30,14 +32,21 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 			}
 			wdKuial = 2 * w(m) * (dkui.array() * al.array()).sum(); //O(n)
 					//R = 2*dKui-dKuui*B;
+			//TODO: remove
 			R.row(m) = 2 * dkui.transpose();
+			v = 2 * dkui;
+			RWdg.row(m) = v.transpose() * Wdg.transpose();
 		} else {
 			wdKuial = 0;
+			v.setZero();
 		}
 		if (!gradiSigmaIsNull) {
 			R.row(m) -= dkuui.transpose() * B;
-			for(size_t j=0; j < M; j++)
+			RWdg.row(m) -= dkuui.transpose() * BWdg;
+			for(size_t j=0; j < M; j++){
 				R.row(j) -= dkuui(j) * B.row(m);
+				RWdg.row(j) -= dkuui(j) * BWdg.row(m);
+			}
 //			bf->gradiSigma(i, dKuui);
 //			Eigen::MatrixXd R_target = -dKuui * B;
 //			if(!gradBasisFunctionIsNull)
@@ -51,7 +60,6 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 	}
 	//TODO: optimize this!
 	v = -R.cwiseProduct(B).colwise().sum();
-	RWdg = R * Wdg.transpose();
 	return wdKuial;
 }
 
