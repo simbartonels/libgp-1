@@ -58,6 +58,7 @@ void MultiScale::putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag) {
 
 Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 		const Eigen::VectorXd & x) {
+	//a for loop is slower
 	Delta = x.transpose().replicate(M, 1) - U;
 //	Delta.array() = Delta.array().square() / Uell.array();
 	Eigen::VectorXd uvx = (Delta.array().square() / Uell.array()).rowwise().sum();
