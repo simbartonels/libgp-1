@@ -8,124 +8,135 @@
 #include "basis_functions/bf_solin.h"
 
 using namespace libgp;
-    static DegGaussianProcess * gp;
+static DegGaussianProcess * gp;
 
-    static SolinGaussianProcess * gpsolin;
+static SolinGaussianProcess * gpsolin;
 
-    static DegGaussianProcessNaive * gpnaive;
+static DegGaussianProcessNaive * gpnaive;
 
-    void f1(){
-    	gp->log_likelihood();
-    }
+void f1() {
+	gp->log_likelihood();
+}
 
-    void f2(){
-    	gpnaive->log_likelihood();
-    }
+void f2() {
+	gpnaive->log_likelihood();
+}
 
-    void testSpeedOfLogLikelihood(){
-    	double fv = gp->log_likelihood();
-    	double nv = gpnaive->log_likelihood();
-    	std::cout << "fv: " << fv << std::endl;
-    	std::cout << "nv: " << nv << std::endl;
-    	assert(std::abs(fv-nv)/nv <1e-5);
+void testSpeedOfLogLikelihood() {
+	double fv = gp->log_likelihood();
+	double nv = gpnaive->log_likelihood();
+	std::cout << "fv: " << fv << std::endl;
+	std::cout << "nv: " << nv << std::endl;
+	assert(std::abs(fv - nv) / nv < 1e-5);
 
-    	std::cout << "speed of llh computation:" << std::endl;
-    	compare_time(f1, f2, 5);
-    }
+	std::cout << "speed of llh computation:" << std::endl;
+	compare_time(f1, f2, 5);
+}
 
-    void compChol_fast(){
-    	gp->covf().loghyper_changed = true;
-    	gp->getL();
-    }
+void compChol_fast() {
+	gp->covf().loghyper_changed = true;
+	gp->getL();
+}
 
-    void compChol_base(){
-    	gpnaive->covf().loghyper_changed = true;
-    	gpnaive->getL();
-    }
+void compChol_base() {
+	gpnaive->covf().loghyper_changed = true;
+	gpnaive->getL();
+}
 
-    void testSpeedOfCholeskyComputation2(){
-    	compare_time(compChol_base, compChol_fast, 10);
-    }
+void testSpeedOfCholeskyComputation2() {
+	compare_time(compChol_base, compChol_fast, 10);
+}
 
-    void llhGradBaseline(){
-    	gpnaive->log_likelihood_gradient();
-    }
+void llhGradBaseline() {
+	gpnaive->log_likelihood_gradient();
+}
 
-    void llhGradFast(){
-    	gp->log_likelihood_gradient();
-    }
+void llhGradFast() {
+	gp->log_likelihood_gradient();
+}
 
-    void compCholSolin(){
-    	gpsolin->covf().loghyper_changed = true;
-		gpsolin->getL();
-    }
+void compCholSolin() {
+	gpsolin->covf().loghyper_changed = true;
+	gpsolin->getL();
+}
 
-    void llhGradSolin(){
-    	gpsolin->log_likelihood_gradient();
-    }
+void llhGradSolin() {
+	gpsolin->log_likelihood_gradient();
+}
 
-    void compareSolinAndDeg(){
-    	compare_time(compChol_fast, compCholSolin, 10);
-    	compare_time(llhGradFast, llhGradSolin, 10);
-    }
+void compareSolinAndDeg() {
+	compare_time(compChol_fast, compCholSolin, 10);
+	compare_time(llhGradFast, llhGradSolin, 10);
+}
 
-    void testReSeeding(){
-    	size_t M = 100;
-    	Eigen::VectorXd x1(M);
-    	Eigen::VectorXd x2(M);
-    	size_t seed = (size_t) time(0);
-    	srand(seed);
-    	x1.setRandom();
-    	x2.setRandom();
-    	assert(!(x1-x2).isZero(1e-5));
-    	std::cout << x1.transpose() << std::endl;
-    	srand(seed);
-    	x2.setRandom();
-    	assert((x1-x2).isZero(1e-50));
-    	std::cout << x2.transpose() << std::endl;
+void testReSeeding() {
+	size_t M = 100;
+	Eigen::VectorXd x1(M);
+	Eigen::VectorXd x2(M);
+	size_t seed = (size_t) time(0);
+	srand(seed);
+	x1.setRandom();
+	x2.setRandom();
+	assert(!(x1 - x2).isZero(1e-5));
+	std::cout << x1.transpose() << std::endl;
+	srand(seed);
+	x2.setRandom();
+	assert((x1 - x2).isZero(1e-50));
+	std::cout << x2.transpose() << std::endl;
 
-    }
+}
 
 #define USED_GP "Solin"
 
-    void measureBFcomputationTime() {
-    	size_t D = 2;
-    	size_t n = 2000;
-    	size_t num_execs = 100;
-    	std::cout << "D is " << D << std::endl;
-    	Eigen::VectorXd grad(D);
-    	Eigen::VectorXd x(D);
-    	x.setRandom();
-    	Eigen::MatrixXd X(n, D);
-    	X.setRandom();
-    	Eigen::VectorXd y(n);
-    	y.setRandom();
-    	while (true) {
-    		std::cout << "Choose M: ";
-    		size_t M;
-    		std::cin >> M;
-    		std::cout << "initializing GP using approximation" << USED_GP << std::endl;
-    		gp = new DegGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
-    				USED_GP);
-        	Eigen::VectorXd params(gp->covf().get_param_dim());
-        	params.setRandom();
-    		for (int i = 0; i < n; ++i) {
-    			gp->add_pattern(X.row(i), y(i));
-    		}
-    		gp->covf().set_loghyper(params);
-    		gp->log_likelihood();
-    		std::cout << "done" << std::endl;
-    		stop_watch();
-    		for (size_t i = 0; i < num_execs; i++) {
-    			gp->f(x);
-    			gp->var(x);
-    		}
-    		double tic = stop_watch() / num_execs;
-    		std::cout << "time: " << tic << std::endl;
+void measureBFcomputationTime() {
+	size_t D = 2;
+	size_t n = 2000;
+	size_t num_execs = 100;
+	size_t trials = num_execs;
+	std::cout << "D is " << D << std::endl;
+	Eigen::VectorXd grad(D);
+	Eigen::VectorXd x(D);
+	x.setRandom();
+	Eigen::MatrixXd X(n, D);
+	X.setRandom();
+	Eigen::VectorXd y(n);
+	y.setRandom();
+	while (true) {
+		std::cout << "Choose M: ";
+		size_t M;
+		std::cin >> M;
+		std::cout << "initializing GP using approximation" << USED_GP
+				<< std::endl;
+		gp = new SolinGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M);
+		//USED_GP);
+		Eigen::VectorXd params(gp->covf().get_param_dim());
+		params.setRandom();
+		for (int i = 0; i < n; ++i) {
+			gp->add_pattern(X.row(i), y(i));
+		}
+		Eigen::VectorXd lstretcher(D);
+		lstretcher.fill(3);
+		gp->add_pattern(lstretcher, 0);
+		gp->covf().set_loghyper(params);
+		gp->log_likelihood();
+		std::cout << "done" << std::endl;
+		double tic = -log(0.);
+		for (size_t j = 0; j < trials; j++) {
+			std::cout << j << "/" << trials << ": " << tic << std::endl;
+			stop_watch();
+			for (size_t i = 0; i < num_execs; i++) {
+				gp->f(x);
+				gp->var(x);
+			}
+			double temp = stop_watch() / num_execs;
+			if(temp < tic)
+				tic = temp;
+		}
+		std::cout << "time: " << tic << std::endl;
 //    		std::cout << "diag(L): " << gp->getL().diagonal().transpose() << std::endl;
-    		std::cout << "f(x): " << gp->f(x) << std::endl;
-    	}
-    }
+		std::cout << "f(x): " << gp->f(x) << std::endl;
+	}
+}
 
 int main(int argc, char const *argv[]) {
 	measureBFcomputationTime();
@@ -137,7 +148,8 @@ int main(int argc, char const *argv[]) {
 	//fast food is not such a good idea since there are some random effects
 	gp = new DegGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"Solin");
-	gpsolin = new SolinGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M);
+	gpsolin = new SolinGaussianProcess(input_dim,
+			"CovSum ( CovSEard, CovNoise)", M);
 
 	// initialize hyper parameter vector
 	Eigen::VectorXd params(gp->covf().get_param_dim());
@@ -145,8 +157,8 @@ int main(int argc, char const *argv[]) {
 	// set parameters of covariance function
 	gp->covf().set_loghyper(params);
 
-	gpnaive = new DegGaussianProcessNaive(input_dim, "CovSum ( CovSEard, CovNoise)",
-			M, "Solin");
+	gpnaive = new DegGaussianProcessNaive(input_dim,
+			"CovSum ( CovSEard, CovNoise)", M, "Solin");
 	gpnaive->covf().set_loghyper(params);
 
 	Eigen::MatrixXd X(n, input_dim);
@@ -171,9 +183,12 @@ int main(int argc, char const *argv[]) {
 	libgp::Solin * bf = (libgp::Solin *) &(gpsolin->covf());
 	std::cout << gpsolin->getL().diagonal().transpose() << std::endl;
 	std::cout << "phi(X(0)): " << gpsolin->f(X.row(0)) << std::endl;
-	std::cout << bf->computeBasisFunctionVector(X.row(0)).transpose() << std::endl;
-	std::cout << "Sigma: " << bf->getSigma().diagonal().transpose() << std::endl;
-	std::cout << "log(|Sigma|): " << bf->getLogDeterminantOfSigma() << std::endl;
+	std::cout << bf->computeBasisFunctionVector(X.row(0)).transpose()
+			<< std::endl;
+	std::cout << "Sigma: " << bf->getSigma().diagonal().transpose()
+			<< std::endl;
+	std::cout << "log(|Sigma|): " << bf->getLogDeterminantOfSigma()
+			<< std::endl;
 	std::cout << gpsolin->getL().diagonal().array().log().sum() << std::endl;
 	std::cout << log(gpsolin->getL().diagonal().array().prod()) << std::endl;
 	std::cout << "starting measurements" << std::endl;
@@ -182,7 +197,6 @@ int main(int argc, char const *argv[]) {
 	std::cout << stop_watch() << std::endl;
 	std::cout << gpsolin->log_likelihood() << std::endl;
 	std::cout << stop_watch() << std::endl;
-
 
 	delete gp;
 	delete gpnaive;
