@@ -247,9 +247,54 @@ using namespace libgp;
     	size_t n = 6000;
     	size_t M = 1500;
     	v.resize(n);
+    	v.setRandom();
     	dkuui.resize(M);
+    	dkuui.setRandom();
     	B.resize(M, n);
+    	B.setRandom();
     	compare_time(m_base, m_competitor, 10);
+    }
+
+    Eigen::MatrixXd Delta;
+    Eigen::VectorXd x;
+    Eigen::MatrixXd U;
+    Eigen::MatrixXd Uell;
+    Eigen::VectorXd logfactors;
+    Eigen::VectorXd uvx;
+    void predict_base(){
+    	size_t M = U.rows();
+    	Delta = x.transpose().replicate(M, 1) - U;
+    	//	Delta.array() = Delta.array().square() / Uell.array();
+		uvx = (Delta.array().square() / Uell.array()).rowwise().sum();
+		uvx.array() = (-0.5 * uvx.array() - logfactors.array()).exp();
+    }
+
+    void predict_competitor(){
+    	//slower
+    	size_t M = U.rows();
+    	for(size_t i = 0; i < M; i++)
+    		Delta.row(i) = x.transpose() - U.row(i);
+		uvx = (Delta.array().square() / Uell.array()).rowwise().sum();
+		uvx.array() = (-0.5 * uvx.array() - logfactors.array()).exp();
+    }
+
+    void compare_prediction(){
+    	size_t n = 6000;
+    	size_t M = 1500;
+    	size_t D = 2;
+    	Delta.resize(M, D);
+    	Delta.setRandom();
+    	x.resize(D);
+    	x.setRandom();
+    	U.resize(M, D);
+    	U.setRandom();
+    	Uell.resize(M, D);
+    	Uell.setRandom();
+    	logfactors.resize(M);
+    	logfactors.setRandom();
+    	uvx.resize(M);
+    	uvx.setRandom();
+    	compare_time(predict_base, predict_competitor, 10);
     }
 
     void measureBFcomputationTime() {
@@ -332,7 +377,8 @@ using namespace libgp;
 int main(int argc, char const *argv[]) {
 //	compareMspeed();
 //	measureLlhGradcomputationTime();
-	measureBFcomputationTime();
+//	measureBFcomputationTime();
+	compare_prediction();
 	return 0;
 	size_t input_dim = 2;
 	size_t M = 100;
