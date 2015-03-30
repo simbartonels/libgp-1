@@ -11,8 +11,8 @@
 #include "gp.h"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	if (nrhs != 4 || nlhs != 2) /* check the input */
-		mexErrMsgTxt("Usage: [e1, e2] = toy_exp2(seeds, X, U, M)");
+	if (nrhs != 6 || nlhs != 2) /* check the input */
+		mexErrMsgTxt("Usage: [e1, e2] = toy_exp2(seeds, X, U, M, log(sn2), Xtest");
 	size_t n = mxGetM(prhs[1]);
 	size_t D = mxGetN(prhs[1]);
 	size_t s = mxGetN(prhs[0]);
@@ -28,24 +28,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	ardse->init(D);
 	Eigen::VectorXd p_se(ardse->get_param_dim());
 	p_se.fill(0);
+	p_se(D+1) = mxGetScalar(prhs[4]);//1e-25; //log(0.0); //0 noise
 	ardse->set_loghyper(p_se);
 	srand(seeds(0));
 	srand48(seeds(0));
 	Eigen::Map<const Eigen::MatrixXd> X(mxGetPr(prhs[1]), n, D);
-	mexPrintf("Sampling input data.\n");
-	Eigen::MatrixXd Xtest(n, D);
-	for (size_t j = 0; j < n; j++) {
-		for (size_t d = 0; d < D; d++) {
-			Xtest(j, d) = libgp::Utils::randn();
-		}
-	}
+	Eigen::Map<const Eigen::MatrixXd> Xtest(mxGetPr(prhs[5]), n, D);
 	mexPrintf("Sampling function.\n");
 	Eigen::VectorXd y = ardse->draw_random_sample(X);
 	std::cout << "last training target: " << y.tail(1) << std::endl;
 
-	Eigen::VectorXd p(D+2);
-	p.head(D+1) = p_se;
-	p(D+1) = 1e-25; //log(0.0); //0 noise
+	Eigen::VectorXd p = p_se;
 
 	libgp::GaussianProcess gp = libgp::GaussianProcess(D, "CovSum ( CovSEard, CovNoise)");
 	gp.covf().set_loghyper(p);
@@ -70,6 +63,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		double pred = (multiscale.f(Xtest.row(k)) - target);
 		e2(0) += pred * pred / n;
 	}
+	if(!ytest.allFinite())
+		mexErrMsgTxt("Test data contains NaN or Inf!");
 //	std::cout << ytest.transpose() << std::endl;
 	double testvar = (ytest.array() - ytest.mean()).square().sum() / n + 1e-50;
 	std::cout << "Test target variance: " << testvar << std::endl;
