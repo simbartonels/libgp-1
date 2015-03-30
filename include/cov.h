@@ -131,7 +131,7 @@ public:
 	};
 
 	/** Draw random target values from this covariance function for input X. */
-	virtual Eigen::VectorXd draw_random_sample(Eigen::MatrixXd &X);
+	virtual Eigen::VectorXd draw_random_sample(const Eigen::MatrixXd &X);
 
 	bool loghyper_changed;
 

@@ -37,7 +37,7 @@ namespace libgp
   }
 
   
-  Eigen::VectorXd CovarianceFunction::draw_random_sample(Eigen::MatrixXd &X)
+  Eigen::VectorXd CovarianceFunction::draw_random_sample(const Eigen::MatrixXd &X)
   {
     assert (X.cols() == int(input_dim));  
     int n = X.rows();
