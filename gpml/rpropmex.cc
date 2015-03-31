@@ -18,7 +18,8 @@
 #define P_HYP 7
 #define P_M 8
 #define P_BF_NAME 9
-#define P_EXTRA 10
+#define P_CAP_TIME 10
+#define P_EXTRA 11
 
 std::stringstream ss;
 
@@ -36,9 +37,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char * gp_name_buf;
 	char * cov_name_buf;
 
-	if (nlhs != 5 || nrhs < 8) /* check the input */
+	if (nlhs != 6 || nrhs < 8) /* check the input */
 		mexErrMsgTxt(
-				"Usage: [times, theta_over_time, meanY, varY, nlZ] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName, extraParameters)");
+				"Usage: [times, theta_over_time, meanY, varY, nlZ, grad_norms] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName, capTime, extraParameters)");
 	seed = (size_t) mxGetScalar(prhs[0]);
 	iters = (size_t) mxGetScalar(prhs[1]);
 	n = mxGetM(prhs[2]);
@@ -120,6 +121,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	Eigen::Map<const Eigen::VectorXd> params(mxGetPr(prhs[P_HYP]), p);
 
+	double capTime = mxGetScalar(prhs[P_CAP_TIME]);
+
 //	mexPrintf("rpropmex: Initializating GP with hyper-parameters.\n");
 	gp->covf().set_loghyper(params);
 //	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
@@ -131,8 +134,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::MatrixXd meanY(test_n, iters);
 	Eigen::MatrixXd varY(test_n, iters);
 	Eigen::VectorXd nlZ(iters);
+	Eigen::VectorXd grad_norms(iters);
 	std::cout << "starting optimization" << std::endl;
-	rprop.maximize(gp, testX, times, theta_over_time, meanY, varY, nlZ);
+	rprop.maximize(gp, testX, capTime, times, theta_over_time, meanY, varY, nlZ, grad_norms);
 	plhs[0] = mxCreateDoubleMatrix(iters, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), iters) = times;
 	plhs[1] = mxCreateDoubleMatrix(p, iters, mxREAL);
@@ -143,6 +147,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::MatrixXd>(mxGetPr(plhs[3]), test_n, iters) = varY;
 	plhs[4] = mxCreateDoubleMatrix(iters, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[4]), iters) = nlZ;
+	plhs[5] = mxCreateDoubleMatrix(iters, 1, mxREAL);
+	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[5]), iters) = grad_norms;
 
 	delete (gp);
 	mexPrintf("Hyper-parameter optimization finished.\n");

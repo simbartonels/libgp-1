@@ -68,9 +68,9 @@ void RProp::maximize(AbstractGaussianProcess * gp, size_t n, bool verbose) {
 }
 
 void RProp::maximize(AbstractGaussianProcess * gp,
-		const Eigen::MatrixXd & testX, Eigen::VectorXd & times,
+		const Eigen::MatrixXd & testX, double cap_time, Eigen::VectorXd & times,
 		Eigen::MatrixXd & param_history, Eigen::MatrixXd & meanY,
-		Eigen::MatrixXd & varY, Eigen::VectorXd & nllh) {
+		Eigen::MatrixXd & varY, Eigen::VectorXd & nllh, Eigen::VectorXd & grad_norms) {
 	int param_dim = gp->covf().get_param_dim();
 	size_t iters = times.size();
 	size_t input_dim = gp->get_input_dim();
@@ -83,6 +83,7 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 	assert(meanY.cols() == iters);
 	assert(varY.size() == meanY.size());
 	assert(nllh.size() == iters);
+	assert(grad_norms.size() == iters);
 	Eigen::VectorXd Delta = Eigen::VectorXd::Ones(param_dim) * Delta0;
 	Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
 	Eigen::VectorXd params = gp->covf().get_loghyper();
@@ -100,6 +101,7 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 		std::cout << i << " " << -lik << std::endl;
 		param_history.col(i) = best_params;
 		times(i) = t;
+		grad_norms(i) = grad_old.norm();
 		nllh(i) = -best; //best has been updated in step
 		if (lik == best) {
 			//TODO: would that be faster using a sampleset?
@@ -113,6 +115,9 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 			meanY.col(i).array() = meanY.col(i - 1).array();
 			varY.col(i).array() = varY.col(i - 1).array();
 		}
+		if(t > cap_time)
+			//we still want to have the results
+			break;
 	}
 	gp->covf().set_loghyper(best_params);
 }
