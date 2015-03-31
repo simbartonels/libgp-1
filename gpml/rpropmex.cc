@@ -18,6 +18,7 @@
 #define P_HYP 7
 #define P_M 8
 #define P_BF_NAME 9
+#define P_EXTRA 10
 
 std::stringstream ss;
 
@@ -37,7 +38,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (nlhs != 5 || nrhs < 8) /* check the input */
 		mexErrMsgTxt(
-				"Usage: [times, theta_over_time, meanY, varY, nlZ] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)");
+				"Usage: [times, theta_over_time, meanY, varY, nlZ] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName, extraParameters)");
 	seed = (size_t) mxGetScalar(prhs[0]);
 	iters = (size_t) mxGetScalar(prhs[1]);
 	n = mxGetM(prhs[2]);
@@ -103,6 +104,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t test_n = mxGetM(prhs[4]);
 	Eigen::Map<const Eigen::MatrixXd> testX(mxGetPr(prhs[4]),
 			test_n, D);
+	if(nrhs > P_EXTRA){
+		Eigen::Map<const Eigen::MatrixXd> extra(mxGetPr(prhs[P_EXTRA]), mxGetM(prhs[P_EXTRA]), mxGetN(prhs[P_EXTRA]));
+		((libgp::IBasisFunction *) &(gp->covf()))->setExtraParameters(extra);
+	}
 	std::cout << "rpropmex: Data sets transferred." << std::endl;
 	p = mxGetM(prhs[P_HYP]);
 	if (p != gp->covf().get_param_dim()) {
@@ -119,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	gp->covf().set_loghyper(params);
 //	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
 	libgp::RProp rprop;
-	rprop.init(1e-12);
+	rprop.init(1e-4);
 	Eigen::VectorXd times(iters);
 	times.fill(-1);
 	Eigen::MatrixXd theta_over_time(p, iters);

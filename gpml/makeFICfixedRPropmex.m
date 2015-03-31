@@ -1,1 +1,0 @@
-eval(['mex -O rpropFixedFICmex.cc ', defineCompilationEnv()]);
