@@ -9,15 +9,18 @@
 #include "gp_deg.h"
 #include "gp_multiscale_optimized.h"
 #include "gp.h"
+#include "basis_functions/bf_multi_scale.h"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	if (nrhs != 6 || nlhs != 2) /* check the input */
-		mexErrMsgTxt("Usage: [e1, e2] = toy_exp2(seeds, X, U, M, log(sn2), Xtest");
+	if (nrhs != 7 || nlhs < 2) /* check the input */
+		mexErrMsgTxt("Usage: [e1, e2, y] = toy_exp2(seeds, X, paramsMS, M, log(sn2), Xtest, c");
 	size_t n = mxGetM(prhs[1]);
 	size_t D = mxGetN(prhs[1]);
 	size_t s = mxGetN(prhs[0]);
 	size_t M1 = (size_t) mxGetScalar(prhs[3]);
-	size_t M = mxGetM(prhs[2]) / D;
+	size_t M = (mxGetM(prhs[2]) - D - 2) / D / 2;
+	Eigen::MatrixXd c(1, 1);
+	c(0, 0) = mxGetScalar(prhs[6]);
 	Eigen::VectorXd e1(s);
 	e1.setZero();
 	Eigen::VectorXd e2(s);
@@ -37,6 +40,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mexPrintf("Sampling function.\n");
 	Eigen::VectorXd y = ardse->draw_random_sample(X);
 	std::cout << "last training target: " << y.tail(1) << std::endl;
+	//standardize dataset
+	y.array() -= y.mean();
+	y.array() /= y.array().square().sum() / y.size();
 
 	Eigen::VectorXd p = p_se;
 
@@ -44,16 +50,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	gp.covf().set_loghyper(p);
 	libgp::OptMultiScaleGaussianProcess multiscale = libgp::OptMultiScaleGaussianProcess(D,
 					"CovSum ( CovSEard, CovNoise)", M, "SparseMultiScaleGP");
+	((libgp::MultiScale *) &(multiscale.covf()))->setExtraParameters(c);
 	for(size_t j = 0; j < n; j++){
 		gp.add_pattern(X.row(j), y(j));
 		multiscale.add_pattern(X.row(j), y(j));
 	}
-	Eigen::VectorXd ms_params(2 * M * D + D + 2);
-	ms_params.head(D).fill(log(M) - log(n));
-	ms_params.segment(D, M * D).fill(log(n) - log(M));
-	Eigen::Map<const Eigen::VectorXd> U(mxGetPr(prhs[2]), M*D);
-	ms_params.segment(M*D+D, M*D) = U;
-	ms_params.tail(2) = p.tail(2);
+//	Eigen::VectorXd ms_params(2 * M * D + D + 2);
+//	ms_params.head(D).fill(log(M) - log(n));
+//	ms_params.segment(D, M * D).fill(log(n) - log(M) - log(2));
+//	Eigen::Map<const Eigen::VectorXd> U(mxGetPr(prhs[2]), M*D);
+//	ms_params.segment(M*D+D, M*D) = U;
+//	ms_params.tail(2) = p.tail(2);
+//	std::cout << multiscale.covf().get_loghyper().transpose() << std::endl;
+	Eigen::Map<const Eigen::VectorXd> ms_params(mxGetPr(prhs[2]), 2*M*D+D+2);
+//	std::cout << M << std::endl;
+//	std::cout << ms_params.transpose() << std::endl;
 	multiscale.covf().set_loghyper(ms_params);
 	Eigen::VectorXd ytest(n);
 	for(size_t k = 0; k < n; k++){
@@ -63,6 +74,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		double pred = (multiscale.f(Xtest.row(k)) - target);
 		e2(0) += pred * pred / n;
 	}
+
+	std::cout << "ytest.tail(1): " << ytest.tail(1) << std::endl;
 	if(!ytest.allFinite())
 		mexErrMsgTxt("Test data contains NaN or Inf!");
 //	std::cout << ytest.transpose() << std::endl;
@@ -90,4 +103,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[0]), s) = e1;
 	plhs[1] = mxCreateDoubleMatrix(s, 1, mxREAL);
 	Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[1]), s) = e2;
+	if(nlhs > 2){
+		plhs[2] = mxCreateDoubleMatrix(ytest.size(), 1, mxREAL);
+		Eigen::Map<Eigen::VectorXd>(mxGetPr(plhs[2]), ytest.size()) = ytest;
+	}
 }
