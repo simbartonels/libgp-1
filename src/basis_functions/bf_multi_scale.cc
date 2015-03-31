@@ -23,6 +23,10 @@ size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M) {
 	return 2 * M * input_dim + input_dim + 1;
 }
 
+void MultiScale::setExtraParameters(const Eigen::MatrixXd & c){
+	ind_noise_factor = c(0, 0);
+}
+
 bool MultiScale::real_init() {
 	CovFactory f;
 	CovarianceFunction * expectedCov;
@@ -49,6 +53,7 @@ bool MultiScale::real_init() {
 	two_PI_to_the_D_over_2 = pow(2 * M_PI, input_dim / 2.);
 	//this assures that previous_p can not correspond to a parameter number
 	previous_p = get_param_dim() + 2;
+	ind_noise_factor = 1e-6;
 	return true;
 }
 
@@ -288,7 +293,7 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	c_over_ell_det = c / ell_determinant_factor;
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
-	snu2 = 1e-6 * sn2;
+	snu2 = ind_noise_factor * sn2;
 	initializeMatrices();
 }
 

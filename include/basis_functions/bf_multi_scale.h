@@ -7,193 +7,212 @@
 
 #include "IBasisFunction.h"
 
-namespace libgp{
-class MultiScale : public IBasisFunction{
+namespace libgp {
+class MultiScale: public IBasisFunction {
 public:
-		void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag);
+	void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag);
 
-		Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
+	Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
-		const Eigen::MatrixXd & getInverseOfSigma();
+	const Eigen::MatrixXd & getInverseOfSigma();
 
-		const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
+	const Eigen::MatrixXd & getCholeskyOfInvertedSigma();
 
-		const Eigen::MatrixXd & getSigma();
+	const Eigen::MatrixXd & getSigma();
 
-		bool sigmaIsDiagonal(){
-			return false;
-		};
+	bool sigmaIsDiagonal() {
+		return false;
+	}
+	;
 
-		double getLogDeterminantOfSigma();
+	double getLogDeterminantOfSigma();
 
-		/**
-		 * Parent is overwritten since this kernel does not exactly wrap the ARDse.
-		 */
-		double getWrappedKernelValue(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2);
+	/**
+	 * Parent is overwritten since this kernel does not exactly wrap the ARDse.
+	 */
+	double getWrappedKernelValue(const Eigen::VectorXd &x1,
+			const Eigen::VectorXd &x2);
 
-	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
+	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
+			Eigen::VectorXd &grad);
 
-	    void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double kernel_value, Eigen::VectorXd &grad);
+	void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2,
+			double kernel_value, Eigen::VectorXd &grad);
 
-	    void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient);
+	void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK,
+			size_t parameter, Eigen::VectorXd & gradient);
 
-	    bool gradDiagWrappedIsNull(size_t parameter);
+	bool gradDiagWrappedIsNull(size_t parameter);
 
-		void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::MatrixXd &Grad);
+	void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd &Phi,
+			size_t p, Eigen::MatrixXd &Grad);
 
-		bool gradBasisFunctionIsNull(size_t p);
+	bool gradBasisFunctionIsNull(size_t p);
 
-		void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
+	void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp);
 
-		bool gradiSigmaIsNull(size_t p);
+	bool gradiSigmaIsNull(size_t p);
 
-	    std::string to_string();
+	std::string to_string();
 
-	    std::string pretty_print_parameters();
+	std::string pretty_print_parameters();
 
-	    void grad_input(const Eigen::VectorXd & x, const Eigen::VectorXd & z, Eigen::VectorXd & grad);
+	void grad_input(const Eigen::VectorXd & x, const Eigen::VectorXd & z,
+			Eigen::VectorXd & grad);
 
-	    void compute_dkdx(const Eigen::VectorXd & x,
-				const Eigen::VectorXd & kstar, SampleSet * sampleSet, Eigen::MatrixXd & JT);
+	void compute_dkdx(const Eigen::VectorXd & x, const Eigen::VectorXd & kstar,
+			SampleSet * sampleSet, Eigen::MatrixXd & JT);
 
-	    /**
-	     * This function can be called if iSigma is of the form
-		 * iSigma = A + B where
-		 * A[i,j] = \delta_{im} dsigmadp[j]
-		 * B[i,j] = \delta_{jm} dsigmadp[i]
-		 *
-		 * disigmadp is the output argument.
-		 */
-	    void gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dsigmadp);
+	/**
+	 * This function can be called if iSigma is of the form
+	 * iSigma = A + B where
+	 * A[i,j] = \delta_{im} dsigmadp[j]
+	 * B[i,j] = \delta_{jm} dsigmadp[i]
+	 *
+	 * disigmadp is the output argument.
+	 */
+	void gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dsigmadp);
 
-	    /**
-	     * This function can be called if dPhi/dp is of the form
-		 * dPhi/dp[i,j] = \delta_{im} grad[j]
-		 *
-		 * grad is the output argument.
-		 */
-		void gradBasisFunctionVector(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::VectorXd &grad);
-	protected:
-	    virtual bool real_init();
+	/**
+	 * This function can be called if dPhi/dp is of the form
+	 * dPhi/dp[i,j] = \delta_{im} grad[j]
+	 *
+	 * grad is the output argument.
+	 */
+	void gradBasisFunctionVector(SampleSet * sampleSet,
+			const Eigen::MatrixXd &Phi, size_t p, Eigen::VectorXd &grad);
 
-	    void log_hyper_updated(const Eigen::VectorXd & p);
+	/**
+	 * Sets the inducing noise factor. Adds c*noise to the inducing input matrix.
+	 */
+	void setExtraParameters(const Eigen::MatrixXd & c);
+protected:
+	virtual bool real_init();
 
-	    size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions);
-	private:
-	    inline double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2, const Eigen::VectorXd & sigma);
+	void log_hyper_updated(const Eigen::VectorXd & p);
 
-	    void initializeMatrices();
+	size_t get_param_dim_without_noise(size_t input_dim,
+			size_t num_basis_functions);
+private:
+	inline double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2,
+			const Eigen::VectorXd & sigma);
 
-	    /**
-	     * Given a parameter number and whether the parameter corresponds to a length scale or an
-	     * inducing point this function sets previous_m and previous_d accordingly. I.e. it sets
-	     * the number of the length scale / inducing point and the dimension as to access U and Uell.
-	     * @param p the number of the parameter
-	     * @param lengthScaleDerivative whether the parameter corresponds to an inducing length scale
-	     * 	or an inducing point
-	     */
-	    void inline setPreviousNumberAndDimensionForParameter(size_t p,
-	    		bool lengthScaleDerivative);
+	void initializeMatrices();
 
-	    /**
-	     * Contains (2PI)^(D/2).
-	     */
-	    double two_PI_to_the_D_over_2;
+	/**
+	 * Given a parameter number and whether the parameter corresponds to a length scale or an
+	 * inducing point this function sets previous_m and previous_d accordingly. I.e. it sets
+	 * the number of the length scale / inducing point and the dimension as to access U and Uell.
+	 * @param p the number of the parameter
+	 * @param lengthScaleDerivative whether the parameter corresponds to an inducing length scale
+	 * 	or an inducing point
+	 */
+	void inline setPreviousNumberAndDimensionForParameter(size_t p,
+			bool lengthScaleDerivative);
 
-	    /**
-	     * Signal variance factor.
-	     */
-	    double c;
+	/**
+	 * Contains (2PI)^(D/2).
+	 */
+	double two_PI_to_the_D_over_2;
 
-	    /**
-	     * Contains c/sqrt(|2*pi*diag(ell)|) + sn2.
-	     */
-	    double c_over_ell_det;
+	/**
+	 * Signal variance factor.
+	 */
+	double c;
 
-	    /**
-	     * Length scales.
-	     */
-	    Eigen::VectorXd ell;
+	/**
+	 * Contains c/sqrt(|2*pi*diag(ell)|) + sn2.
+	 */
+	double c_over_ell_det;
 
-	    /**
-	     * Inducing input matrix.
-	     */
-	    Eigen::MatrixXd U;
+	/**
+	 * Length scales.
+	 */
+	Eigen::VectorXd ell;
 
-	    /**
-	     * Corresponding length scales.
-	     */
-	    Eigen::MatrixXd Uell;
+	/**
+	 * Inducing input matrix.
+	 */
+	Eigen::MatrixXd U;
 
-	    /**
-	     * Contains the log of the products of the length scales.
-	     */
-	    Eigen::VectorXd logfactors;
+	/**
+	 * Corresponding length scales.
+	 */
+	Eigen::MatrixXd Uell;
 
-	    /**
-	     * Temporary vector that contains x-z.
-	     */
-	    Eigen::VectorXd delta;
+	/**
+	 * Contains the log of the products of the length scales.
+	 */
+	Eigen::VectorXd logfactors;
 
-	    Eigen::MatrixXd Delta;
+	/**
+	 * Temporary vector that contains x-z.
+	 */
+	Eigen::VectorXd delta;
 
-	    /**
-	     * Squared noise.
-	     */
-	    double sn2;
+	Eigen::MatrixXd Delta;
 
-	    /**
-	     * Squared inducing input noise.
-	     */
-	    double snu2;
+	/**
+	 * Squared noise.
+	 */
+	double sn2;
 
-	    /**
-	     * The matrix Upsi.
-	     */
-	    Eigen::MatrixXd Upsi;
+	/**
+	 * Squared inducing input noise.
+	 */
+	double snu2;
 
-	    /**
-	     * Cholesky of Upsi.
-	     */
-	    Eigen::MatrixXd LUpsi;
+	/**
+	 * The matrix Upsi.
+	 */
+	Eigen::MatrixXd Upsi;
 
-	    /**
-	     * Inverse of Upsi.
-	     */
-	    Eigen::MatrixXd iUpsi;
+	/**
+	 * Cholesky of Upsi.
+	 */
+	Eigen::MatrixXd LUpsi;
 
-	    /**
-	     * log(|Upsi|)/2
-	     */
-	    double halfLogDetiUpsi;
+	/**
+	 * Inverse of Upsi.
+	 */
+	Eigen::MatrixXd iUpsi;
 
-	    /**
-	     * Vector used in the gradient computation of iSigma.
-	     */
-		Eigen::VectorXd temp;
-		Eigen::VectorXd UpsiCol;
+	/**
+	 * log(|Upsi|)/2
+	 */
+	double halfLogDetiUpsi;
 
-		/**
-		 * Temporary vector of size input_dim. Used in initializeMatrices.
-		 */
-		Eigen::VectorXd temp_input_dim;
+	/**
+	 * Vector used in the gradient computation of iSigma.
+	 */
+	Eigen::VectorXd temp;
+	Eigen::VectorXd UpsiCol;
 
-		/**
-		 * Contains the parameter number of the last computed gradient.
-		 */
-		size_t previous_p;
+	/**
+	 * Temporary vector of size input_dim. Used in initializeMatrices.
+	 */
+	Eigen::VectorXd temp_input_dim;
 
-		/**
-		 * Contains the number of the basis vector or length scale of the last computed gradient.
-		 */
-		size_t previous_m;
+	/**
+	 * Contains the parameter number of the last computed gradient.
+	 */
+	size_t previous_p;
 
-		/**
-		 * Contains the dimension of the basis vector or length scale of the last computed gradient.
-		 */
-		size_t previous_d;
+	/**
+	 * Contains the number of the basis vector or length scale of the last computed gradient.
+	 */
+	size_t previous_m;
+
+	/**
+	 * Contains the dimension of the basis vector or length scale of the last computed gradient.
+	 */
+	size_t previous_d;
+
+	/**
+	 * This factor is multiplied with the noise and added to the diagonal of the inducing input matrix.
+	 */
+	double ind_noise_factor;
 };
 }
-
 
 #endif /* INCLUDE_BASIS_FUNCTIONS_BF_MULTI_SCALE_H_ */

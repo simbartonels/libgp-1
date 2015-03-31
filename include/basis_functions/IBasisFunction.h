@@ -46,7 +46,7 @@ public:
 	 *  @param seed for random numbers
 	 *  @return true if initialization was successful.
 	 */
-	bool init(size_t M, CovarianceFunction * wrappedCovFunc, size_t seed){
+	bool init(size_t M, CovarianceFunction * wrappedCovFunc, size_t seed) {
 		//TODO (Simon): refactor. this is actually already a lot of functionality for a header file
 		input_dim = wrappedCovFunc->get_input_dim();
 
@@ -60,17 +60,26 @@ public:
 	}
 
 	/**
+	 * Allows to hand over extra parameters if the method has such.
+	 */
+	virtual void setExtraParameters(const Eigen::MatrixXd & extra) {
+		//do nothing
+	}
+	;
+
+	/**
 	 * Writes k(x, x) into diag where diag is of size sampleSet->size().
 	 * ATTENTION: For efficiency this method is to be overwritten!
 	 * @param sampleSet the sample set
 	 * @param diag the output vector
 	 */
-	virtual void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag){
+	virtual void putDiagWrapped(SampleSet * sampleSet, Eigen::VectorXd& diag) {
 		size_t n = sampleSet->size();
 		assert(diag.size() == n);
-		for(size_t i = 0; i < n; i++)
+		for (size_t i = 0; i < n; i++)
 			diag(i) = getWrappedKernelValue(sampleSet->x(i), sampleSet->x(i));
-	};
+	}
+	;
 
 	/**
 	 * Computes the values of all basis functions for a given vector.
@@ -84,7 +93,8 @@ public:
 	virtual Eigen::VectorXd computeBasisFunctionVector(
 			const Eigen::VectorXd &x) = 0;
 
-	virtual void gradBasisFunction(SampleSet * sampleSet, const Eigen::MatrixXd & Phi, size_t p, Eigen::MatrixXd & Grad) = 0;
+	virtual void gradBasisFunction(SampleSet * sampleSet,
+			const Eigen::MatrixXd & Phi, size_t p, Eigen::MatrixXd & Grad) = 0;
 
 	/**
 	 * Computes the derivative of a basis function vector phi(x) with respect to parameter i.
@@ -95,7 +105,7 @@ public:
 	 * @param grad where to put the result
 	 */
 	virtual void gradBasisFunction(const Eigen::VectorXd &x,
-			const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad){
+			const Eigen::VectorXd &phi, size_t p, Eigen::VectorXd &grad) {
 		SampleSet * sampleSet = new SampleSet(x.size());
 		sampleSet->add(x.data(), 0.);
 //		Eigen::Map<Eigen::MatrixXd> Phi(phi.data(), phi.rows(), phi.cols());
@@ -104,7 +114,8 @@ public:
 		gradBasisFunction(sampleSet, Phi, p, Grad);
 		grad = Grad.col(0);
 		delete sampleSet;
-	};
+	}
+	;
 
 	/**
 	 * Returns additional information about properties of the gradient of the basis function.
@@ -118,7 +129,6 @@ public:
 	 * the matrix Sigma for which k(x,z)=phi(x) Sigma phi(z).
 	 */
 	virtual const Eigen::MatrixXd & getSigma() = 0;
-
 
 	/**
 	 * Returns true if the matrix Sigma is a diagonal matrix.
@@ -150,8 +160,7 @@ public:
 	 * @param p the number of the parameter
 	 * @param diSigmadp where to put the derivative
 	 */
-	virtual void gradiSigma(size_t p,
-			Eigen::MatrixXd & diSigmadp) = 0;
+	virtual void gradiSigma(size_t p, Eigen::MatrixXd & diSigmadp) = 0;
 
 	/**
 	 * Gives some extra information about the gradient Sigma^-1.
@@ -180,7 +189,8 @@ public:
 	 */
 	double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2) {
 		//the last sum() is to convince Eigen that we can return a double.
-		return (computeBasisFunctionVector(x1).transpose() * getSigma() * computeBasisFunctionVector(x2)).sum();
+		return (computeBasisFunctionVector(x1).transpose() * getSigma()
+				* computeBasisFunctionVector(x2)).sum();
 	}
 
 	/**
@@ -195,7 +205,9 @@ public:
 	 * @param parameter The parameter for which to compute the gradient.
 	 * @param gradient Where to write the output.
 	 */
-	virtual void gradDiagWrapped(SampleSet * sampleset, const Eigen::VectorXd & diagK, size_t parameter, Eigen::VectorXd & gradient){
+	virtual void gradDiagWrapped(SampleSet * sampleset,
+			const Eigen::VectorXd & diagK, size_t parameter,
+			Eigen::VectorXd & gradient) {
 		//highly inefficient but this method should be overwritten anyways...
 		assert(diagK.size() == gradient.size());
 		size_t n = sampleset->size();
@@ -219,15 +231,16 @@ public:
 	 * This is necessary for hyper-parameter optimization for degenerate kernels.
 	 * Unfortunately, there seems to be no easy way to hide this parameter.
 	 */
-	virtual double getLogNoise(){
+	virtual double getLogNoise() {
 		return loghyper(get_param_dim() - 1);
 	}
 
-	void set_loghyper(const Eigen::VectorXd &p){
+	void set_loghyper(const Eigen::VectorXd &p) {
 		CovarianceFunction::set_loghyper(p);
 		//TODO: think about noise!
 		log_hyper_updated(p);
-	};
+	}
+	;
 
 	//TODO: Make this protected!
 	/**
@@ -256,7 +269,8 @@ protected:
 	 * @param num_basis_functions The number of basis functions (M).
 	 * @return The number of hyper-parameters.
 	 */
-	virtual size_t get_param_dim_without_noise(size_t input_dim, size_t num_basis_functions) = 0;
+	virtual size_t get_param_dim_without_noise(size_t input_dim,
+			size_t num_basis_functions) = 0;
 
 	size_t M;
 

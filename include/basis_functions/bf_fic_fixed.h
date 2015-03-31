@@ -27,7 +27,7 @@ public:
 	/**
 	 * Sets the location of the inducing points.
 	 */
-	void setU(const Eigen::MatrixXd & U);
+	void setExtraParameters(const Eigen::MatrixXd & U);
 protected:
 	void log_hyper_updated(const Eigen::VectorXd &p);
 

@@ -4,7 +4,7 @@ namespace libgp {
 libgp::FICfixed::~FICfixed() {
 }
 
-void FICfixed::setU(const Eigen::MatrixXd & U){
+void FICfixed::setExtraParameters(const Eigen::MatrixXd & U){
 	this->U = U;
 	U_initialized = true;
 }
