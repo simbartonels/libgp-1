@@ -298,10 +298,18 @@ using namespace libgp;
     }
 
     void measureBFcomputationTime() {
-    	size_t D = 2;
-    	size_t n = 2000;
     	size_t num_execs = 100;
-    	std::cout << "D is " << D << std::endl;
+
+    	while (true) {
+    		std::cout << "Choose M: ";
+    		size_t M;
+    		std::cin >> M;
+		std::cout << "Choose D: ";
+		size_t D;
+		std::cin >> D;
+		std::cout << "Choose n: ";
+		size_t n;
+		std::cin >> n;
     	Eigen::VectorXd grad(D);
     	Eigen::VectorXd x(D);
     	x.setRandom();
@@ -309,10 +317,7 @@ using namespace libgp;
     	X.setRandom();
     	Eigen::VectorXd y(n);
     	y.setRandom();
-    	while (true) {
-    		std::cout << "Choose M: ";
-    		size_t M;
-    		std::cin >> M;
+
     		std::cout << "initializing GP" << std::endl;
     		gp = new FICGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
     				"SparseMultiScaleGP");
@@ -321,20 +326,22 @@ using namespace libgp;
     		}
     		gp->log_likelihood();
     		std::cout << "done" << std::endl;
+		double min = -log(0.0);
+		for(size_t j = 0; j < num_execs; j++){
     		stop_watch();
     		for (size_t i = 0; i < num_execs; i++) {
     			gp->f(x);
     			gp->var(x);
     		}
     		double tic = stop_watch() / num_execs;
-    		std::cout << tic << std::endl;
+		if(tic < min)
+			min = tic;
+    		std::cout << j << "/" << num_execs << ": " << min << std::endl;
+		}
     	}
     }
 
     void measureLlhGradcomputationTime() {
-    	size_t D = 2;
-    	std::cout << "D is " << D << std::endl;
-    	Eigen::VectorXd grad(D);
     	while (true) {
     		std::cout << "Choose n: ";
 			size_t n;
@@ -342,6 +349,10 @@ using namespace libgp;
     		std::cout << "Choose M: ";
     		size_t M;
     		std::cin >> M;
+		std::cout << "Choose D: ";
+		size_t D;
+		std::cin >> D;
+		Eigen::VectorXd grad(D);
         	Eigen::VectorXd x(D);
         	x.setRandom();
         	Eigen::MatrixXd X(n, D);
@@ -349,19 +360,19 @@ using namespace libgp;
         	Eigen::VectorXd y(n);
         	y.setRandom();
     		std::cout << "initializing GP" << std::endl;
-    		gp = new OptFICGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
-    				"FIC");
+//    		gp = new OptFICGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
+//    				"FIC");
     		gpopt = new OptMultiScaleGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
     		    				"SparseMultiScaleGP");
     		for (int i = 0; i < n; ++i) {
-    			gp->add_pattern(X.row(i), y(i));
+//    			gp->add_pattern(X.row(i), y(i));
     			gpopt->add_pattern(X.row(i), y(i));
     		}
-    		gp->log_likelihood();
+//    		gp->log_likelihood();
     		gpopt->log_likelihood();
     		std::cout << "done" << std::endl;
     		stop_watch();
-    		gp->log_likelihood_gradient();
+//    		gp->log_likelihood_gradient();
     		double tic = stop_watch();
     		std::cout << "fic: " << tic << std::endl;
 
@@ -377,8 +388,8 @@ using namespace libgp;
 int main(int argc, char const *argv[]) {
 //	compareMspeed();
 //	measureLlhGradcomputationTime();
-//	measureBFcomputationTime();
-	compare_prediction();
+	measureBFcomputationTime();
+//	compare_prediction();
 	return 0;
 	size_t input_dim = 2;
 	size_t M = 100;

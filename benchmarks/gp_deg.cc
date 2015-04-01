@@ -86,29 +86,32 @@ void testReSeeding() {
 
 }
 
-#define USED_GP "Solin"
+#define USED_GP "FastFood"
 
 void measureBFcomputationTime() {
-	size_t D = 2;
-	size_t n = 2000;
 	size_t num_execs = 100;
 	size_t trials = num_execs;
-	std::cout << "D is " << D << std::endl;
-	Eigen::VectorXd grad(D);
-	Eigen::VectorXd x(D);
-	x.setRandom();
-	Eigen::MatrixXd X(n, D);
-	X.setRandom();
-	Eigen::VectorXd y(n);
-	y.setRandom();
 	while (true) {
+		std::cout << "Choose D: ";
+		size_t D;
+		std::cin >> D;
 		std::cout << "Choose M: ";
 		size_t M;
 		std::cin >> M;
+		std::cout << "Choose n: ";
+		size_t n;
+		std::cin >> n;
+		Eigen::VectorXd grad(D);
+		Eigen::VectorXd x(D);
+		x.setRandom();
+		Eigen::MatrixXd X(n, D);
+		X.setRandom();
+		Eigen::VectorXd y(n);
+		y.setRandom();
+
 		std::cout << "initializing GP using approximation" << USED_GP
 				<< std::endl;
-		gp = new SolinGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M);
-		//USED_GP);
+		gp = new DegGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M, USED_GP);
 		Eigen::VectorXd params(gp->covf().get_param_dim());
 		params.setRandom();
 		for (int i = 0; i < n; ++i) {
@@ -135,6 +138,9 @@ void measureBFcomputationTime() {
 		std::cout << "time: " << tic << std::endl;
 //    		std::cout << "diag(L): " << gp->getL().diagonal().transpose() << std::endl;
 		std::cout << "f(x): " << gp->f(x) << std::endl;
+		Eigen::VectorXd bf(M);
+		bf = ((IBasisFunction *) &(gp->covf()))->computeBasisFunctionVector(x);
+		std::cout << "phi(x).tail(10): " <<  bf.tail(10).transpose() << std::endl;
 	}
 }
 
