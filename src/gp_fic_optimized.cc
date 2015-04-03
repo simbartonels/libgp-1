@@ -27,9 +27,7 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 				dkui.resize(n);
 			Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
 			for (size_t j = 0; j < n; j++) {
-				bf->cov->grad_input(U.row(m), sampleset->x(j), temp_input_dim);
-				//TODO: this is probably the reason why FICs speed up is neglible in comparison to multiscale
-				dkui(j) = temp_input_dim(d);
+				dkui(j) = bf->cov->grad_input_d(U(m, d), sampleset->x(j)(d), d);
 			}
 			v = 2 * dkui;
 			wdKuial = w(m) * (v.array() * al.array()).sum(); //O(n)
@@ -77,8 +75,7 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 		m = (p - cov_params_size + 1) % M;
 		d = (p - cov_params_size + 1 - m) / M;
 		for (size_t i = 0; i < M; i++) {
-			(bf->cov)->grad_input(U.row(m), U.row(i), temp_input_dim);
-			dkuui(i) = temp_input_dim(d);
+			dkuui(i) = (bf->cov)->grad_input_d(U(m, d), U(i, d), d);
 		}
 		/*
 		 * This step is needed to assume dKuui = A + B where
