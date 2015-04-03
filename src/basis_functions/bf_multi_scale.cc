@@ -153,7 +153,7 @@ void inline MultiScale::setPreviousNumberAndDimensionForParameter(size_t p,
 }
 
 bool MultiScale::gradBasisFunctionIsNull(size_t p) {
-	if (fixUell && p >= input_dim && p <= input_dim + M * input_dim)
+	if (fixUell && p >= input_dim && p < input_dim + M * input_dim)
 		return true;
 	return p >= 2 * M * input_dim + input_dim;
 }
