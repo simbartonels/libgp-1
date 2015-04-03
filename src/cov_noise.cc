@@ -38,7 +38,7 @@ namespace libgp
     grad.setZero();
   }
 
-  double CovNoise::grad_input_d(double xd, double zd, size_t d){
+  double CovNoise::grad_input_d(double xd, double zd, double k, size_t d){
 	  return 0;
   }
 

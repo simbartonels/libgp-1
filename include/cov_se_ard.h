@@ -29,7 +29,7 @@ namespace libgp
     double get(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2);
     void grad(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
     void grad_input(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad);
-    double grad_input_d(double xd, double zd, size_t d);
+    double grad_input_d(double xd, double zd, double k, size_t d);
     void set_loghyper(const Eigen::VectorXd &p);
     virtual std::string to_string();
   private:

@@ -27,7 +27,7 @@ double OptFICGaussianProcess::grad_basis_function(size_t i,
 				dkui.resize(n);
 			Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
 			for (size_t j = 0; j < n; j++) {
-				dkui(j) = bf->cov->grad_input_d(U(m, d), sampleset->x(j)(d), d);
+				dkui(j) = bf->cov->grad_input_d(U(m, d), sampleset->x(j)(d), Phi(m, j), d);
 			}
 			v = 2 * dkui;
 			wdKuial = w(m) * (v.array() * al.array()).sum(); //O(n)
@@ -70,12 +70,13 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 	size_t bf_params_size = bf->get_param_dim();
 	size_t cov_params_size = bf_params_size - M * input_dim;
 	Eigen::Map<const Eigen::MatrixXd> U(((FIC *) bf)->U.data(), M, input_dim);
+	Eigen::Map<const Eigen::MatrixXd> iSigma(((FIC *) bf)->getInverseOfSigma().data(), M, M);
 	if (p >= cov_params_size - 1 && p < bf_params_size - 1) {
 		optimize = true;
 		m = (p - cov_params_size + 1) % M;
 		d = (p - cov_params_size + 1 - m) / M;
 		for (size_t i = 0; i < M; i++) {
-			dkuui(i) = (bf->cov)->grad_input_d(U(m, d), U(i, d), d);
+			dkuui(i) = (bf->cov)->grad_input_d(U(m, d), U(i, d), iSigma(m, i), d);
 		}
 		/*
 		 * This step is needed to assume dKuui = A + B where

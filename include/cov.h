@@ -91,7 +91,7 @@ public:
 	/*
 	 * TODO: DO NOT USE!
 	 */
-	virtual double grad_input_d(double xd, double zd, size_t d){
+	virtual double grad_input_d(double xd, double zd, double k, size_t d){
 		std::cerr << "grad_input_d not implemented!" << std::endl;
 		//		exit(-1);
 			return 0;
