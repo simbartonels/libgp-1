@@ -141,6 +141,12 @@ private:
 	Eigen::MatrixXd Uell;
 
 	/**
+	 * Flag indicating whether the inducing lengthscales are considered hyper-parameters or not.
+	 * If true this method reduces to FIC.
+	 */
+	bool fixUell;
+
+	/**
 	 * Contains the log of the products of the length scales.
 	 */
 	Eigen::VectorXd logfactors;

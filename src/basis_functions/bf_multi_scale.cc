@@ -23,8 +23,10 @@ size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M) {
 	return 2 * M * input_dim + input_dim + 1;
 }
 
-void MultiScale::setExtraParameters(const Eigen::MatrixXd & c){
+void MultiScale::setExtraParameters(const Eigen::MatrixXd & c) {
 	ind_noise_factor = c(0, 0);
+	if (c.cols() > 1)
+		fixUell = c(0, 1) == 1.0;
 }
 
 bool MultiScale::real_init() {
@@ -54,6 +56,7 @@ bool MultiScale::real_init() {
 	//this assures that previous_p can not correspond to a parameter number
 	previous_p = get_param_dim() + 2;
 	ind_noise_factor = 1e-6;
+	fixUell = false;
 	return true;
 }
 
@@ -66,7 +69,8 @@ Eigen::VectorXd MultiScale::computeBasisFunctionVector(
 	//a for loop is slower
 	Delta = x.transpose().replicate(M, 1) - U;
 //	Delta.array() = Delta.array().square() / Uell.array();
-	Eigen::VectorXd uvx = (Delta.array().square() / Uell.array()).rowwise().sum();
+	Eigen::VectorXd uvx =
+			(Delta.array().square() / Uell.array()).rowwise().sum();
 	uvx.array() = (-0.5 * uvx.array() - logfactors.array()).exp();
 	return uvx;
 }
@@ -111,8 +115,8 @@ void MultiScale::gradBasisFunction(SampleSet * sampleSet,
 	}
 }
 
-
-void MultiScale::gradBasisFunctionVector(SampleSet * sampleSet, const Eigen::MatrixXd &Phi, size_t p, Eigen::VectorXd &grad){
+void MultiScale::gradBasisFunctionVector(SampleSet * sampleSet,
+		const Eigen::MatrixXd &Phi, size_t p, Eigen::VectorXd &grad) {
 	bool lengthScaleDerivative = p < M * input_dim + input_dim;
 	//use precomputed values where possible
 	if (p != previous_p)
@@ -146,6 +150,8 @@ void inline MultiScale::setPreviousNumberAndDimensionForParameter(size_t p,
 }
 
 bool MultiScale::gradBasisFunctionIsNull(size_t p) {
+	if (fixUell && p >= input_dim && p <= input_dim + M * input_dim)
+		return true;
 	return p >= 2 * M * input_dim + input_dim;
 }
 
@@ -153,7 +159,8 @@ const Eigen::MatrixXd & MultiScale::getInverseOfSigma() {
 	return Upsi;
 }
 
-void MultiScale::gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dSigmadp){
+void MultiScale::gradiSigmaVector(size_t p, size_t m,
+		Eigen::VectorXd & dSigmadp) {
 	//derivatives with respect to inducing inputs or inducing length scales
 	//don't call setPrevious...() here. it breaks things in gradBasisFunction()
 	size_t d = ((p - input_dim - m) / M) % input_dim;
@@ -166,16 +173,16 @@ void MultiScale::gradiSigmaVector(size_t p, size_t m, Eigen::VectorXd & dSigmadp
 	UpsiCol(m) -= snu2;
 	if (p < M * input_dim + input_dim) {
 		//derivatives for inducing length scales
-		dSigmadp.array() = ((U(m, d) - U.col(d).array())
-				/ temp.array()).square() - temp.cwiseInverse().array();
-		dSigmadp.array() *= (Uell(m, d) - ell(d) / 2)
-				* UpsiCol.array() / 2;
+		dSigmadp.array() =
+				((U(m, d) - U.col(d).array()) / temp.array()).square()
+						- temp.cwiseInverse().array();
+		dSigmadp.array() *= (Uell(m, d) - ell(d) / 2) * UpsiCol.array() / 2;
 //		dSigmadp(m, m) *= 2;
 	} else {
 		//derivatives for inducing inputs
-		dSigmadp.array() = (-U(m, d) + U.col(d).array())
-				* UpsiCol.array() / temp.array();
-		dSigmadp(m)/=2;
+		dSigmadp.array() = (-U(m, d) + U.col(d).array()) * UpsiCol.array()
+				/ temp.array();
+		dSigmadp(m) /= 2;
 	}
 
 }
