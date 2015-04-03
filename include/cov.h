@@ -80,13 +80,21 @@ public:
 
 	/**
 	 * Computes dk(x,z)/dx. NOTE: implementations have to check for the case x=z!
-	 * TODO: Actually a function that returns d k(x,z)/d xd (i.e. w.r.t. a specific dimension) would be more efficient.
 	 */
-	virtual void grad_input(const Eigen::VectorXd & x, const Eigen::VectorXd & z, Eigen::VectorXd & grad){
+	virtual void grad_input(const Eigen::VectorXd & xd, const Eigen::VectorXd & zd, Eigen::VectorXd & grad){
 		//TODO: make this method abstract and implement it for every cov function
 		std::cerr << "grad_input not implemented!" << std::endl;
 //		exit(-1);
 		grad.setZero();
+	};
+
+	/*
+	 * TODO: DO NOT USE!
+	 */
+	virtual double grad_input_d(double xd, double zd, size_t d){
+		std::cerr << "grad_input_d not implemented!" << std::endl;
+		//		exit(-1);
+			return 0;
 	};
 
 	/**

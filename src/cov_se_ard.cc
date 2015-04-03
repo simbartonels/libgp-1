@@ -47,6 +47,13 @@ namespace libgp
     grad = -k*input_diff.cwiseQuotient(ell);
   }
 
+  double CovSEard::grad_input_d(double xd, double zd, size_t d){
+	  double diff = (xd-zd)/ell(d);
+	  double k = sf2*exp(-0.5*diff*diff);
+	  return -k*diff/ell(d);
+  }
+
+
   void CovSEard::set_loghyper(const Eigen::VectorXd &p)
   {
     CovarianceFunction::set_loghyper(p);

@@ -54,6 +54,10 @@ namespace libgp
 	  grad += grad2;
   }
 
+  double CovSum::grad_input_d(double xd, double zd, size_t d){
+	  return first->grad_input_d(xd, zd, d)+second->grad_input_d(xd, zd, d);
+  }
+
   void CovSum::set_loghyper(const Eigen::VectorXd &p)
   {
     CovarianceFunction::set_loghyper(p);
