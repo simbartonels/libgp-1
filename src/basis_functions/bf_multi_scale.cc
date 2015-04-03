@@ -27,6 +27,9 @@ void MultiScale::setExtraParameters(const Eigen::MatrixXd & c) {
 	ind_noise_factor = c(0, 0);
 	if (c.cols() > 1)
 		fixUell = c(0, 1) == 1.0;
+
+	std::cout << "bf_multi_scale: inducing noise factor set to " << ind_noise_factor << std::endl;
+	std::cout << "bf_multi_scale: inducing length scales fixed (FIC mode): " << fixUell << std::endl;
 }
 
 bool MultiScale::real_init() {
