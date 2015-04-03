@@ -16,7 +16,7 @@ OptMultiScaleGaussianProcess::OptMultiScaleGaussianProcess(size_t input_dim,
 
 double OptMultiScaleGaussianProcess::grad_basis_function(size_t i,
 		bool gradBasisFunctionIsNull, bool gradiSigmaIsNull) {
-	double wdKuial;
+	double wdKuial = 0.;
 	if (optimize) {
 //		double wdKuial_target = FICGaussianProcess::grad_basis_function(i,
 //			gradBasisFunctionIsNull, gradiSigmaIsNull);
@@ -36,7 +36,6 @@ double OptMultiScaleGaussianProcess::grad_basis_function(size_t i,
 //			assert(wdKuial_target < 1e-5);
 		} else {
 			v.setZero();
-			wdKuial = 0;
 		}
 		if (!gradiSigmaIsNull) {
 			v += B.row(m).cwiseProduct(dkuui.transpose() * B);
@@ -61,34 +60,37 @@ double OptMultiScaleGaussianProcess::grad_basis_function(size_t i,
 
 double OptMultiScaleGaussianProcess::grad_isigma(size_t p,
 		bool gradiSigmaIsNull) {
-	double wdKuuiw;
+	double wdKuuiw = 0.;
 	size_t bf_params_size = bf->get_param_dim();
 	size_t cov_params_size = bf_params_size - M * input_dim;
 	if (p >= input_dim && p < 2 * M * input_dim + input_dim) {
 		optimize = true;
-		m = (p - input_dim) % M;
-		((MultiScale *) bf)->gradiSigmaVector(p, m, dkuui);
-		/*
-		 * This step is needed to assume dKuui = A + B where
-		 * A[i,j] = \delta_{im} dkuui[j]
-		 * B[i,j] = \delta_{jm} dkuui[i]
-		 */
-		//wdKuuiw = non-zero entry of w^T * B:
-		wdKuuiw = (w.array() * dkuui.array()).sum();
-		//dkuui = non-zero entries of w^T * A
+		//gradiSigma could be 0 if running in FIC mode
+		if (!gradiSigmaIsNull) {
+			m = (p - input_dim) % M;
+			((MultiScale *) bf)->gradiSigmaVector(p, m, dkuui);
+			/*
+			 * This step is needed to assume dKuui = A + B where
+			 * A[i,j] = \delta_{im} dkuui[j]
+			 * B[i,j] = \delta_{jm} dkuui[i]
+			 */
+			//wdKuuiw = non-zero entry of w^T * B:
+			wdKuuiw = (w.array() * dkuui.array()).sum();
+			//dkuui = non-zero entries of w^T * A
 //		dkuui *= w(m);
-		//dkuui = w^T * (A + B)
+			//dkuui = w^T * (A + B)
 //		dkuui(m)+=wdKuuiw;
-		//wdKuui = w^T * (A * B)* w
+			//wdKuui = w^T * (A * B)* w
 //		wdKuuiw = (dkuui.array() * w.array()).sum();
 //		wdKuuiw = (w(m) * dkuui.array() * w.array()).sum() + wdKuuiw * w(m);
 
 //		wdKuuiw = (wdKuuiw + (dkuui.array() * w.array()).sum()) * w(m);
-		wdKuuiw *= 2 * w(m);
+			wdKuuiw *= 2 * w(m);
 //		double dist = FICGaussianProcess::grad_isigma(p,
 //				gradiSigmaIsNull);
 //		dist = std::fabs((wdKuuiw - dist)/(dist + 1e-50));
 //		assert(dist < 1e-5);
+		}
 	} else {
 		optimize = false;
 		wdKuuiw = FICGaussianProcess::grad_isigma(p, gradiSigmaIsNull);
