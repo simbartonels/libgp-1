@@ -213,6 +213,8 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 }
 
 bool MultiScale::gradiSigmaIsNull(size_t p) {
+	if(fixUell && p < input_dim + M*input_dim)
+		return true;
 	return p < input_dim;
 }
 
