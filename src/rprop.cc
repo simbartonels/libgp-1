@@ -138,7 +138,7 @@ inline double RProp::step(AbstractGaussianProcess * gp, double & best,
 	}
 	grad_old = grad;
 	double norm = grad_old.norm();
-	if(ISNAN(norm)){
+	if(ISNAN(norm))
 		std::cerr << grad_old.transpose() << std::endl;
 	std::cout << "rprop: gradient norm: " << norm << std::endl;
 	if (norm < eps_stop)
