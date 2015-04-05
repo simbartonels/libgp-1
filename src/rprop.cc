@@ -137,8 +137,11 @@ inline double RProp::step(AbstractGaussianProcess * gp, double & best,
 		params(j) += -Utils::sign(grad(j)) * Delta(j);
 	}
 	grad_old = grad;
-	std::cout << "rprop: gradient norm: " << grad_old.norm() << std::endl;
-	if (grad_old.norm() < eps_stop)
+	double norm = grad_old.norm();
+	if(ISNAN(norm)){
+		std::cerr << grad_old.transpose() << std::endl;
+	std::cout << "rprop: gradient norm: " << norm << std::endl;
+	if (norm < eps_stop)
 		return NAN;
 	gp->covf().set_loghyper(params);
 	double lik = gp->log_likelihood();
