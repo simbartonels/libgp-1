@@ -76,6 +76,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		std::string bf_name(bf_name_buf);
 		gp = constructGP(gp_name, D, cov_name, M, bf_name, seed);
 		mxFree(bf_name_buf);
+		if(nrhs > P_EXTRA){
+			Eigen::Map<const Eigen::MatrixXd> extra(mxGetPr(prhs[P_EXTRA]), mxGetM(prhs[P_EXTRA]), mxGetN(prhs[P_EXTRA]));
+			((libgp::IBasisFunction *) &(gp->covf()))->setExtraParameters(extra);
+		}
 	}
 	mxFree(gp_name_buf);
 	mxFree(cov_name_buf);
@@ -105,10 +109,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t test_n = mxGetM(prhs[4]);
 	Eigen::Map<const Eigen::MatrixXd> testX(mxGetPr(prhs[4]),
 			test_n, D);
-	if(nrhs > P_EXTRA){
-		Eigen::Map<const Eigen::MatrixXd> extra(mxGetPr(prhs[P_EXTRA]), mxGetM(prhs[P_EXTRA]), mxGetN(prhs[P_EXTRA]));
-		((libgp::IBasisFunction *) &(gp->covf()))->setExtraParameters(extra);
-	}
 	std::cout << "rpropmex: Data sets transferred." << std::endl;
 	p = mxGetM(prhs[P_HYP]);
 	if (p != gp->covf().get_param_dim()) {
