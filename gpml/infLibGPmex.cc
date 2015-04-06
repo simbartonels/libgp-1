@@ -16,7 +16,8 @@
 #define P_HYP 5
 #define P_M 6
 #define P_BF_NAME 7
-#define USAGE "Usage: [alpha, L, nlZ, mF, s2F, dnlZ] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName)"
+#define P_EXTRA 8
+#define USAGE "Usage: [alpha, L, nlZ, mF, s2F, dnlZ] = infLibGPmex(X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName, extra)"
 
 std::stringstream ss;
 
@@ -73,6 +74,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		//TODO: request seed?
 		size_t seed = 0;
 		gp = constructGP(gp_name, D, cov_name, M, bf_name, seed);
+		if(nrhs > P_EXTRA){
+			Eigen::Map<const Eigen::MatrixXd> extra(mxGetPr(prhs[P_EXTRA]), mxGetM(prhs[P_EXTRA]), mxGetN(prhs[P_EXTRA]));
+			((libgp::IBasisFunction *) &(gp->covf()))->setExtraParameters(extra);
+		}
 		mxFree(bf_name_buf);
 	}
 	mxFree(gp_name_buf);
