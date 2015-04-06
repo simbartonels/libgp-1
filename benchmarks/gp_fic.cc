@@ -391,9 +391,9 @@ int main(int argc, char const *argv[]) {
 //	measureBFcomputationTime();
 //	compare_prediction();
 //	return 0;
-	size_t input_dim = 2;
+	size_t input_dim = 10;
 	size_t M = 100;
-	size_t n = 600;
+	size_t n = 3000;
 	V.resize(M, n);
 	V.setRandom();
 	Sigma1.resize(M, M);
@@ -411,7 +411,7 @@ int main(int argc, char const *argv[]) {
 	gpopt = new OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"FIC");
 	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
-				M, "SparseMultiScaleGP");
+				M, "FIC");
 
 
 	// initialize hyper parameter vector
@@ -438,7 +438,8 @@ int main(int argc, char const *argv[]) {
 		std::cout << "fast gradient: " << std::endl << gradfaster.transpose() << std::endl;
     	assert(diff < 1e-5);
 	}
-	std::cout << "starting speed comparison";
+	std::cout << "grad fast - grad slow" << std::endl << gradfaster.transpose() - gradnaive.transpose() << std::endl;
+	std::cout << "starting speed comparison" << std::endl;
 //	compare_time(llhGradBaseline, llhGradFast, 1);
 	stop_watch();
 	llhGradFaster();
