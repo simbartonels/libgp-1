@@ -30,7 +30,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    gp->add_pattern(X.row(i), y(i));
 	  }
 
-	  double e = 1e-4;
+	  double e = 1e-8;
 
 	  Eigen::VectorXd grad = gp->log_likelihood_gradient();
 

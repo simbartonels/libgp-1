@@ -237,10 +237,10 @@ TEST_P(BFGradientTest, GradientOfiSigmaEqualToNumerical) {
 		for (size_t j = 0; j < M; j++) {
 			for (size_t k = 0; k < M; k++) {
 				if (grad(j, k) == 0.0)
-					ASSERT_NEAR(numeric_gradient(j, k), 0.0, 1e-2)<< "Parameter number: " << i << std::endl
+					EXPECT_NEAR(numeric_gradient(j, k), 0.0, 1e-2)<< "Parameter number: " << i << std::endl
 					 << "index: " << j << "," << k;
 				else
-					ASSERT_NEAR((numeric_gradient(j, k)-grad(j, k))/grad(j, k), 0.0, 1e-2)<< "Parameter number: " << i
+					EXPECT_NEAR((numeric_gradient(j, k)-grad(j, k))/numeric_gradient(j, k), 0.0, 1e-2)<< "Parameter number: " << i
 					<< std::endl << "numerical gradient: " << numeric_gradient(j, k)
 					<< std::endl << "computed gradient: " << grad(j, k)
 					<< std::endl << "index: " << j << "," << k;
