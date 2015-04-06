@@ -388,9 +388,9 @@ using namespace libgp;
 int main(int argc, char const *argv[]) {
 //	compareMspeed();
 //	measureLlhGradcomputationTime();
-	measureBFcomputationTime();
+//	measureBFcomputationTime();
 //	compare_prediction();
-	return 0;
+//	return 0;
 	size_t input_dim = 2;
 	size_t M = 100;
 	size_t n = 600;
@@ -410,8 +410,8 @@ int main(int argc, char const *argv[]) {
 			"FIC");
 	gpopt = new OptFICGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)", M,
 			"FIC");
-//	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
-//				M, "SparseMultiScaleGP");
+	gpnaive = new FICnaiveGaussianProcess(input_dim, "CovSum ( CovSEard, CovNoise)",
+				M, "SparseMultiScaleGP");
 
 
 	// initialize hyper parameter vector
@@ -426,10 +426,19 @@ int main(int argc, char const *argv[]) {
 		double x[] = { drand48() * 4 - 2, drand48() * 4 - 2 };
 		double y = Utils::hill(x[0], x[1]) + Utils::randn() * 0.1;
 		gp->add_pattern(x, y);
-//		gpnaive->add_pattern(x, y);
+		gpnaive->add_pattern(x, y);
 		gpopt->add_pattern(x, y);
 	}
-	std::cout << "til here" << std::endl;
+
+	Eigen::VectorXd gradnaive = gpnaive->log_likelihood_gradient();
+	Eigen::VectorXd gradfaster = gpopt->log_likelihood_gradient();
+	double diff = ((gradnaive.array() - gradfaster.array()).abs()/(gradnaive.array().abs()+1-50)).maxCoeff();
+	if(diff >= 1e-5){
+		std::cout << "correct gradient:" << std::endl << gradnaive.transpose() << std::endl;
+		std::cout << "fast gradient: " << std::endl << gradfaster.transpose() << std::endl;
+    	assert(diff < 1e-5);
+	}
+	std::cout << "starting speed comparison";
 //	compare_time(llhGradBaseline, llhGradFast, 1);
 	stop_watch();
 	llhGradFaster();
