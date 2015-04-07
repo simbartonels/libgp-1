@@ -176,11 +176,11 @@ TEST_P(BFGradientTest, EqualToNumerical) {
 	for (int i = 0; i < param_dim; ++i) {
 		double num_grad = numerical_gradient(i);
 		if (grad(i) == 0.0) {
-			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			EXPECT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
 		else {
-			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+			EXPECT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad
 			<< std::endl << "computed gradient: " << grad(i);
 		}
@@ -195,13 +195,13 @@ TEST_P(BFGradientTest, DiagEqualToNumerical) {
 		double comp_grad2 = gradient_diag(i);
 
 		if (grad(i) == 0.0) {
-			ASSERT_NEAR(grad(i), comp_grad2, 1e-7)<< "Parameter number: " << i;
-			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			EXPECT_NEAR(grad(i), comp_grad2, 1e-7)<< "Parameter number: " << i;
+			EXPECT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
 		else {
-			ASSERT_NEAR((grad(i) - comp_grad2)/grad(i), 0.0, 1e-7) << "Parameter number: " << i;
-			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+			EXPECT_NEAR((grad(i) - comp_grad2)/grad(i), 0.0, 1e-7) << "Parameter number: " << i;
+			EXPECT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
 			<< std::endl << "numerical gradient: " << num_grad;
 		}
 
@@ -217,9 +217,9 @@ TEST_P(BFGradientTest, dkdx) {
 		Eigen::VectorXd num_grad = numerical_gradient_k(i);
 		for (size_t j = 0; j < M; j++) {
 			if (num_grad(j) == 0.0)
-				ASSERT_NEAR(grad(i, j), 0.0, 1e-2);
+				EXPECT_NEAR(grad(i, j), 0.0, 1e-2);
 			else
-				ASSERT_NEAR((num_grad(j)-grad(i, j))/num_grad(j), 0.0, 1e-2)<< "dimension: " << i
+				EXPECT_NEAR((num_grad(j)-grad(i, j))/num_grad(j), 0.0, 1e-2)<< "dimension: " << i
 				<< std::endl << "numerical gradient: " << num_grad(j)
 				<< std::endl << "computed gradient: " << grad(i, j)
 				<< std::endl << "basis function: " << j << std::endl;
@@ -259,11 +259,11 @@ TEST_P(BFGradientTest, BasisFunctionEqualToNumerical) {
 		Eigen::VectorXd numeric_gradient = numerical_basis_function_gradient(i);
 		for (size_t j = 0; j < M; j++) {
 			if (grad(j) == 0.0) {
-				ASSERT_NEAR(numeric_gradient(j), 0.0, 1e-2)<< "parameter: " << i<< std::endl
+				EXPECT_NEAR(numeric_gradient(j), 0.0, 1e-2)<< "parameter: " << i<< std::endl
 				<< "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
 			}
 			else {
-				ASSERT_NEAR((numeric_gradient(j)-grad(j))/grad(j), 0.0, 1e-2)<< "parameter: "
+				EXPECT_NEAR((numeric_gradient(j)-grad(j))/grad(j), 0.0, 1e-2)<< "parameter: "
 				<< i<< std::endl << "numerical gradient: " << numeric_gradient(j) << std::endl << "m: " << j;
 			}
 		}
@@ -282,12 +282,12 @@ TEST_P(BFGradientTest, LogDeterminantCorrect) {
 	if (covf->sigmaIsDiagonal()) {
 		double det_true = log(covf->getSigma().diagonal().prod()) / 2;
 		//make sure the test values agree
-		ASSERT_NEAR(det_true, det2, 1e-5);
+		EXPECT_NEAR(det_true, det2, 1e-5);
 
-		ASSERT_NEAR(det, det_true, 1e-5);
+		EXPECT_NEAR(det, det_true, 1e-5);
 	}
 
-	ASSERT_NEAR(det, det2, 1e-5);
+	EXPECT_NEAR(det, det2, 1e-5);
 }
 
 TEST_P(BFGradientTest, CholeskyCorrect) {
@@ -299,7 +299,7 @@ TEST_P(BFGradientTest, CholeskyCorrect) {
 		FAIL() << "Cholesky contains Inf or NaN!";
 	L.array() = (iSigma - L * L.transpose()).array().abs();
 	L.array() = L.array() / (iSigma.array() + 1e-15);
-	ASSERT_NEAR(L.maxCoeff(), 0, 1e-15) << "iSigma: " << std::endl << iSigma << std::endl
+	EXPECT_NEAR(L.maxCoeff(), 0, 1e-15) << "iSigma: " << std::endl << iSigma << std::endl
 	<< "diff: " << std::endl << L << std::endl;
 }
 
