@@ -10,34 +10,44 @@ using namespace libgp;
 GaussianProcess * gp;
 
     void measureBFcomputationTime() {
-    	size_t D = 2;
-    	size_t n = 2000;
     	size_t num_execs = 100;
-    	std::cout << "D is " << D << std::endl;
-    	Eigen::VectorXd grad(D);
-    	Eigen::VectorXd x(D);
-    	x.setRandom();
-    	Eigen::MatrixXd X(n, D);
-    	X.setRandom();
-    	Eigen::VectorXd y(n);
-    	y.setRandom();
     	while (true) {
+    		std::cout << "Choose D: ";
+    		size_t D;
+    		std::cin >> D;
+    		std::cout << "Choose n: ";
+    		size_t n;
+    		std::cin >> n;
     		std::cout << "Choose M: ";
     		size_t M;
     		std::cin >> M;
+        	Eigen::VectorXd grad(D);
+        	Eigen::VectorXd x(D);
+        	x.setRandom();
+        	Eigen::MatrixXd X(n, D);
+        	X.setRandom();
+        	Eigen::VectorXd y(n);
+        	y.setRandom();
     		gp = new GaussianProcess(D, "CovSum ( CovSEard, CovNoise)");
     		for (int i = 0; i < M; ++i) {
     			gp->add_pattern(X.row(i), y(i));
     		}
     		gp->log_likelihood();
     		std::cout << "done" << std::endl;
-    		stop_watch();
-    		for (size_t i = 0; i < num_execs; i++) {
-    			gp->f(x);
-    			gp->var(x);
+    		double min = -log(0.0);
+    		for(size_t j = 0; j < num_execs; j++){
+				stop_watch();
+				for (size_t i = 0; i < num_execs; i++) {
+					gp->f(x);
+					gp->var(x);
+				}
+	    		double tic = stop_watch() / num_execs;
+	    		if(tic < min)
+				min = tic;
+	    		std::cout << j << "/" << num_execs << ": " << min << std::endl;
+			}
+
     		}
-    		double tic = stop_watch() / num_execs;
-    		std::cout << tic << std::endl;
     	}
     }
 
