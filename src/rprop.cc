@@ -46,7 +46,7 @@ void RProp::init(double eps_stop, double Delta0, double Deltamin,
 	this->etaminus = etaminus;
 	this->etaplus = etaplus;
 	this->eps_stop = eps_stop;
-
+	this->gradNormNan = false;
 }
 
 void RProp::maximize(AbstractGaussianProcess * gp, size_t n, bool verbose) {
@@ -88,10 +88,17 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 	Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
 	Eigen::VectorXd params = gp->covf().get_loghyper();
 	Eigen::VectorXd best_params = params;
-	double best = log(0.0);
-
+	double best = gp->log_likelihood();
 	double t = 0;
-	for (size_t i = 0; i < iters; ++i) {
+
+	times(0) = t;
+	grad_norms(0) = -1;
+	nllh(0) = -best; //best has been updated in step
+	for (size_t j = 0; j < testX.rows(); j++) {
+		meanY(j, 0) = gp->f(testX.row(j));
+		varY(j, 0) = gp->var(testX.row(j));
+	}
+	for (size_t i = 1; i < iters; ++i) {
 		double diff = tic();
 		double lik = step(gp, best, Delta, grad_old, params, best_params);
 		diff = tic() - diff;
@@ -138,8 +145,17 @@ inline double RProp::step(AbstractGaussianProcess * gp, double & best,
 	}
 	grad_old = grad;
 	double norm = grad_old.norm();
-	if(ISNAN(norm))
-		std::cerr << grad_old.transpose() << std::endl;
+	if(ISNAN(norm)){
+		std::cerr << "rprop: grad: " << std::endl << grad_old.transpose() << std::endl;
+		if(gradNormNan){
+			//we abort if the gradient norm is NaN a second time
+			//before there is a chance to recover
+			return NAN;
+		}
+		gradNormNan = true;
+	} else{
+		gradNormNan = false;
+	}
 	std::cout << "rprop: gradient norm: " << norm << std::endl;
 	if (norm < eps_stop)
 		return NAN;

@@ -41,7 +41,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt(
 				"Usage: [times, theta_over_time, meanY, varY, nlZ, grad_norms] = rpropmex(seed, iters, X, y, Xtest, gpName, covName, unwrap(hyp), M, bfName, capTime, extraParameters)");
 	seed = (size_t) mxGetScalar(prhs[0]);
-	iters = (size_t) mxGetScalar(prhs[1]);
 	n = mxGetM(prhs[2]);
 	D = mxGetN(prhs[2]);
 
@@ -128,6 +127,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 //	mexPrintf("rpropmex: GP initialization complete. Starting hyper-parameter optimization.\n");
 	libgp::RProp rprop;
 	rprop.init(1e-4);
+
+	iters = (size_t) mxGetScalar(prhs[1]);
+	iters = iters + 1; //for the initial values
 	Eigen::VectorXd times(iters);
 	times.fill(-1);
 	Eigen::MatrixXd theta_over_time(p, iters);

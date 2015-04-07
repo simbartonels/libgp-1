@@ -49,6 +49,7 @@ private:
 	double etaminus;
 	double etaplus;
 	double eps_stop;
+	bool gradNormNan;
 };
 }
 
