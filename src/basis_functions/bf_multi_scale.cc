@@ -12,6 +12,8 @@
 
 #include <cmath>
 
+#define TWO_PI 1 //2 * M_PI
+
 namespace libgp {
 
 size_t MultiScale::get_param_dim_without_noise(size_t input_dim, size_t M) {
@@ -28,8 +30,10 @@ void MultiScale::setExtraParameters(const Eigen::MatrixXd & c) {
 	if (c.cols() > 1)
 		fixUell = c(0, 1) == 1.0;
 
-	std::cout << "bf_multi_scale: inducing noise factor set to " << ind_noise_factor << std::endl;
-	std::cout << "bf_multi_scale: inducing length scales fixed (FIC mode): " << fixUell << std::endl;
+	std::cout << "bf_multi_scale: inducing noise factor set to "
+			<< ind_noise_factor << std::endl;
+	std::cout << "bf_multi_scale: inducing length scales fixed (FIC mode): "
+			<< fixUell << std::endl;
 }
 
 bool MultiScale::real_init() {
@@ -51,11 +55,12 @@ bool MultiScale::real_init() {
 	ell.resize(input_dim);
 	temp.resize(M);
 	temp_input_dim.resize(input_dim);
+	temp_input_dim2.resize(input_dim);
 	UpsiCol.resize(M);
 	logfactors.resize(M);
 	delta.resize(input_dim);
 	Delta.resize(M, input_dim);
-	two_PI_to_the_D_over_2 = pow(2 * M_PI, input_dim / 2.);
+	two_PI_to_the_D_over_2 = pow(TWO_PI, input_dim / 2.);
 	//this assures that previous_p can not correspond to a parameter number
 	previous_p = get_param_dim() + 2;
 	ind_noise_factor = 1e-6;
@@ -216,7 +221,7 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 }
 
 bool MultiScale::gradiSigmaIsNull(size_t p) {
-	if(fixUell && p < input_dim + M*input_dim)
+	if (fixUell && p < input_dim + M * input_dim)
 		return true;
 	return p < input_dim;
 }
@@ -283,7 +288,7 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	for (size_t i = 0; i < input_dim; i++)
 		ell(i) = exp(loghyper(i));
 	size_t idx = input_dim;
-	logfactors.fill(input_dim * log(2 * M_PI));
+	logfactors.fill(input_dim * log(TWO_PI));
 	for (size_t d = 0; d < input_dim; d++) {
 		for (size_t m = 0; m < M; m++) {
 			/*
@@ -298,11 +303,7 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 	}
 	logfactors /= 2;
 	c = exp(loghyper(2 * M * input_dim + input_dim));
-	double ell_determinant_factor = 1;
-	for (size_t i = 0; i < input_dim; i++)
-		ell_determinant_factor *= 2 * M_PI * ell(i);
-	ell_determinant_factor = sqrt(ell_determinant_factor);
-	c_over_ell_det = c / ell_determinant_factor;
+	c_over_ell_det = exp(loghyper(2 * M * input_dim + input_dim) - (loghyper.head(input_dim).sum()+input_dim*log(TWO_PI))/2);
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
 	snu2 = ind_noise_factor * sn2;
@@ -318,23 +319,29 @@ void MultiScale::initializeMatrices() {
 		temp_input_dim = Uell.row(i).transpose() - ell;
 		//don't transpose temp in place - it breaks things later
 		for (size_t j = 0; j < i; j++) {
-			Upsi(i, j) = g(U.row(i), U.row(j),
-					temp_input_dim.transpose() + Uell.row(j)) / c;
+			temp_input_dim2 = temp_input_dim.transpose() + Uell.row(j);
+			Upsi(i, j) = se_ard(U.row(i), U.row(j), temp_input_dim2);
 			Upsi(j, i) = Upsi(i, j);
 		}
-		Upsi(i, i) = g(U.row(i), U.row(i),
-				temp_input_dim.transpose() + Uell.row(i)) / c + snu2;
+//		Upsi(i, i) = g(U.row(i), U.row(i),
+//				temp_input_dim.transpose() + Uell.row(i)) / c + snu2;
+		temp_input_dim2 = temp_input_dim.transpose() + Uell.row(i);
+		Upsi(i, i) = c / sqrt(temp_input_dim2.array().prod())
+				 + snu2;
 	}
-
+	// this is what we'd need to do to obtain the original Upsi: Upsi /= c_over_ell_det*c*(2pi)^(D/2);
 	//this division has been moved into the for-loop above
 	//LUpsi = LUpsi / c;
-
 	LUpsi = Upsi.selfadjointView<Eigen::Lower>().llt().matrixL();
-	halfLogDetiUpsi = -LUpsi.diagonal().array().log().sum();
 	iUpsi = LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().solve(
 			LUpsi.Identity(M, M));
 	LUpsi.topLeftCorner(M, M).triangularView<Eigen::Lower>().transpose().solveInPlace(
 			iUpsi);
+	double excluded_factor = c*c*two_PI_to_the_D_over_2;
+	LUpsi.array() /= c * sqrt(two_PI_to_the_D_over_2);
+	Upsi.array() /= excluded_factor;
+	iUpsi.array() *= excluded_factor;
+	halfLogDetiUpsi = -LUpsi.diagonal().array().log().sum();
 }
 
 std::string MultiScale::to_string() {
@@ -369,11 +376,17 @@ void MultiScale::compute_dkdx(const Eigen::VectorXd & x,
 inline double MultiScale::g(const Eigen::VectorXd& x1,
 		const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
 //	assert(sigma.minCoeff() >= 0.0);
+	return se_ard(x1, x2, sigma) / (two_PI_to_the_D_over_2 * c);
+}
+
+inline double MultiScale::se_ard(const Eigen::VectorXd& x1,
+		const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) {
+//	assert(sigma.minCoeff() >= 0.0);
 	delta = x1 - x2;
 	double z = delta.cwiseQuotient(sigma).transpose() * delta;
 	z = exp(-0.5 * z);
-	double p = sqrt(sigma.array().prod()) * two_PI_to_the_D_over_2;
-	return z / p;
+	double p = sqrt(sigma.array().prod());
+	return z * (c / p); //this is correct as we chose c:=f^2*sqrt(|sigma|)
 }
 
 }

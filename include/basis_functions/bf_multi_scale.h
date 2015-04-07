@@ -94,8 +94,14 @@ protected:
 	size_t get_param_dim_without_noise(size_t input_dim,
 			size_t num_basis_functions);
 private:
+	/**
+	 * se_ard(...)/(2*pi)^(D/2)
+	 */
 	inline double g(const Eigen::VectorXd & x1, const Eigen::VectorXd & x2,
 			const Eigen::VectorXd & sigma);
+
+	inline double se_ard(const Eigen::VectorXd& x1,
+			const Eigen::VectorXd& x2, const Eigen::VectorXd& sigma) ;
 
 	void initializeMatrices();
 
@@ -198,6 +204,7 @@ private:
 	 * Temporary vector of size input_dim. Used in initializeMatrices.
 	 */
 	Eigen::VectorXd temp_input_dim;
+	Eigen::VectorXd temp_input_dim2;
 
 	/**
 	 * Contains the parameter number of the last computed gradient.
