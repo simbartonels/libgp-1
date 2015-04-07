@@ -419,7 +419,7 @@ int main(int argc, char const *argv[]) {
 	params.setRandom();
 	// set parameters of covariance function
 	gp->covf().set_loghyper(params);
-//	gpnaive->covf().set_loghyper(params);
+	gpnaive->covf().set_loghyper(params);
 	gpopt->covf().set_loghyper(params);
 	// add training patterns
 	for (int i = 0; i < n; ++i) {
@@ -432,13 +432,15 @@ int main(int argc, char const *argv[]) {
 
 	Eigen::VectorXd gradnaive = gpnaive->log_likelihood_gradient();
 	Eigen::VectorXd gradfaster = gpopt->log_likelihood_gradient();
-	double diff = ((gradnaive.array() - gradfaster.array()).abs()/(gradnaive.array().abs()+1-50)).maxCoeff();
+	//+ because the gradient of the optimized version is negative
+	double diff = ((gradnaive.array() + gradfaster.array()).abs()/(gradnaive.array().abs()+1e-50)).maxCoeff();
 	if(diff >= 1e-5){
 		std::cout << "correct gradient:" << std::endl << gradnaive.transpose() << std::endl;
 		std::cout << "fast gradient: " << std::endl << gradfaster.transpose() << std::endl;
     	assert(diff < 1e-5);
 	}
-	std::cout << "grad fast - grad slow" << std::endl << gradfaster.transpose() - gradnaive.transpose() << std::endl;
+	std::cout << "grad slow" << std::endl << gradnaive.transpose() << std::endl;
+	std::cout << "grad fast - grad slow" << std::endl << gradfaster.transpose() + gradnaive.transpose() << std::endl;
 	std::cout << "starting speed comparison" << std::endl;
 //	compare_time(llhGradBaseline, llhGradFast, 1);
 	stop_watch();
