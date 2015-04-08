@@ -88,9 +88,11 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 	Eigen::VectorXd grad_old = Eigen::VectorXd::Zero(param_dim);
 	Eigen::VectorXd params = gp->covf().get_loghyper();
 	Eigen::VectorXd best_params = params;
+	std::cout << "rprop: computing initial likelihood and predictions" << std::endl;
 	double best = gp->log_likelihood();
 	double t = 0;
 
+	param_history.col(0) = best_params;
 	times(0) = t;
 	grad_norms(0) = -1;
 	nllh(0) = -best; //best has been updated in step
@@ -99,13 +101,12 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 		varY(j, 0) = gp->var(testX.row(j));
 	}
 	for (size_t i = 1; i < iters; ++i) {
+		std::cout << "rprop: computing gradient " << std::endl;
 		double diff = tic();
 		double lik = step(gp, best, Delta, grad_old, params, best_params);
 		diff = tic() - diff;
 		t += diff;
-		if (ISNAN(lik))
-			break;
-		std::cout << i << " " << -lik << std::endl;
+		std::cout << i << " " << -lik << " time used in seconds: " << diff << std::endl;
 		param_history.col(i) = best_params;
 		times(i) = t;
 		grad_norms(i) = grad_old.norm();
@@ -122,7 +123,7 @@ void RProp::maximize(AbstractGaussianProcess * gp,
 			meanY.col(i).array() = meanY.col(i - 1).array();
 			varY.col(i).array() = varY.col(i - 1).array();
 		}
-		if(t > cap_time)
+		if(t > cap_time || ISNAN(lik))
 			//we still want to have the results
 			break;
 	}
