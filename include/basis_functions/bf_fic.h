@@ -56,6 +56,11 @@ public:
 	 * TODO: This is a hack to make the optimized version work.
 	 */
 	Eigen::MatrixXd U;
+
+	/**
+	 * Inducing input noise.
+	 */
+	double snu2;
 protected:
 	void log_hyper_updated(const Eigen::VectorXd &p);
 
@@ -78,11 +83,6 @@ protected:
 	Eigen::VectorXd cov_params;
 
 	double half_log_det_sigma;
-
-	/**
-	 * Inducing input noise.
-	 */
-	double snu2;
 
 	/**
 	 * Contains cov_params.size().

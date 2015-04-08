@@ -75,9 +75,12 @@ double OptFICGaussianProcess::grad_isigma(size_t p, bool gradiSigmaIsNull) {
 		optimize = true;
 		m = (p - cov_params_size + 1) % M;
 		d = (p - cov_params_size + 1 - m) / M;
-		for (size_t i = 0; i < M; i++) {
+		for (size_t i = 0; i < m; i++)
 			dkuui(i) = (bf->cov)->grad_input_d(U(m, d), U(i, d), iSigma(m, i), d);
-		}
+		dkuui(m) = (bf->cov)->grad_input_d(U(m, d), U(m, d), iSigma(m, m)-((FIC *) bf)->snu2, d);
+		for (size_t i = m+1; i < M; i++)
+			dkuui(i) = (bf->cov)->grad_input_d(U(m, d), U(i, d), iSigma(m, i), d);
+
 		/*
 		 * This step is needed to assume dKuui = A + B where
 		 * A[i,j] = \delta_{im} dkuui[j]
