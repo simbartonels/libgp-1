@@ -30,7 +30,7 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    gp->add_pattern(X.row(i), y(i));
 	  }
 
-	  double e = 1e-8;
+	  double e = 1e-5;
 
 	  Eigen::VectorXd grad = gp->log_likelihood_gradient();
 
@@ -45,7 +45,8 @@ void genericGradientTest(libgp::AbstractGaussianProcess * gp, size_t input_dim){
 	    params(i) = theta;
 	    double dist = (j2-j1)/(2*e);
 	    dist = std::fabs(dist-grad(i))/(std::fabs(dist) + 1e-50);
-	    EXPECT_NEAR(dist, 0., 1e-3) << "parameter number: " << i;
+	    EXPECT_NEAR(dist, 0., 1e-2) << "parameter number: " << i << " grad(i): " << grad(i) << " num_grad(i): " << (j2-j1)/(2*e)
+		<< std::endl << "llh+: " << j1 << " llh- :" << j2;
 	  }
 
 	  delete gp;
