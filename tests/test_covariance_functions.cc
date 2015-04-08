@@ -32,16 +32,20 @@ class GradientTest : public TestWithParam<std::string> {
     int n, param_dim;
     libgp::CovFactory factory;
     libgp::CovarianceFunction * covf;
-    double e;    
+    double e;
     Eigen::VectorXd params;
     Eigen::VectorXd x1;
-    Eigen::VectorXd x2; 
+    Eigen::VectorXd x2;
 
     Eigen::VectorXd gradient() {
       Eigen::VectorXd grad(param_dim);
       covf->grad(x1, x2, grad);
       return grad;
     }
+
+   double gradient_input_d(size_t i){
+	return covf->grad_input_d(x1(i), x2(i), covf->get(x1, x2), i);
+   }
 
 	Eigen::VectorXd gradient_input() {
 		Eigen::VectorXd grad(x1.size());
@@ -91,27 +95,32 @@ class GradientTest : public TestWithParam<std::string> {
 TEST_P(GradientTest, EqualToNumerical) {
   Eigen::VectorXd grad = gradient();
   for (int i=0; i<param_dim; ++i) {
-    if (grad(i) == 0.0) ASSERT_NEAR(numerical_gradient(i), 0.0, 1e-2);
-    else ASSERT_NEAR((numerical_gradient(i)-grad(i))/grad(i), 0.0, 1e-2);
+    double num_grad = numerical_gradient(i);
+    if (num_grad == 0.0) EXPECT_NEAR(grad(i), 0.0, 1e-2);
+    else EXPECT_NEAR((num_grad-grad(i))/num_grad, 0.0, 1e-2);
   }
 }
 
-//TEST_P(GradientTest, EqualToNumerical_input) {
-//	Eigen::VectorXd grad = gradient_input();
-//	for (int i = 0; i < grad.size(); ++i) {
-//		double num_grad = numerical_gradient_input(i);
-//		if (grad(i) == 0.0) {
-//			ASSERT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
-//			<< std::endl << "numerical gradient: " << num_grad;
-//		}
-//		else {
-//			ASSERT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
-//			<< std::endl << "numerical gradient: " << num_grad
-//			<< std::endl << "computed gradient: " << grad(i);
-//		}
-//	}
-//}
-//
+TEST_P(GradientTest, EqualToNumerical_input) {
+	Eigen::VectorXd grad = gradient_input();
+	if(grad.isZero(1e-50))
+		return; //not implemented
+	for (int i = 0; i < grad.size(); ++i) {
+		double num_grad = numerical_gradient_input(i);
+                double grad_d = gradient_input_d(i);
+                EXPECT_NEAR(grad_d, grad(i), 1e-15);
+		if (grad(i) == 0.0) {
+			EXPECT_NEAR(num_grad, 0.0, 1e-2)<< "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad;
+		}
+		else {
+			EXPECT_NEAR((num_grad-grad(i))/grad(i), 0.0, 1e-2) << "Parameter number: " << i
+			<< std::endl << "numerical gradient: " << num_grad
+			<< std::endl << "computed gradient: " << grad(i);
+		}
+	}
+}
+
 //TEST_P(GradientTest, DiagEqualToNumerical_input) {
 //	Eigen::VectorXd grad = gradient_input_diag();
 //	for (int i = 0; i < grad.size(); ++i) {
