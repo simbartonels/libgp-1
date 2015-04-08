@@ -175,6 +175,11 @@ private:
 	double snu2;
 
 	/**
+	 * snu2/c/c/two_pi_to_the_D_over_2
+	 */
+	double snu2_over_c_squared;
+
+	/**
 	 * The matrix Upsi.
 	 */
 	Eigen::MatrixXd Upsi;

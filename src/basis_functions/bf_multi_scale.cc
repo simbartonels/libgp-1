@@ -178,7 +178,7 @@ void MultiScale::gradiSigmaVector(size_t p, size_t m,
 	//could be avoided by introducing another matrix Upsi-snu2
 	UpsiCol = Upsi.col(m);
 	//for the gradients we have to remove the inducing input noise (from the diagonal)
-	UpsiCol(m) -= snu2;
+	UpsiCol(m) -= snu2_over_c_squared;
 	if (p < M * input_dim + input_dim) {
 		//derivatives for inducing length scales
 		dSigmadp.array() =
@@ -204,12 +204,11 @@ void MultiScale::gradiSigma(size_t p, Eigen::MatrixXd & dSigmadp) {
 	} else if (p == 2 * M * input_dim + input_dim + 1) {
 		//noise derivative
 		//little contribution due to the inducing noise
-		dSigmadp.diagonal().fill(2 * snu2);
+		dSigmadp.diagonal().fill(2 * snu2_over_c_squared);
 	} else if (p == 2 * M * input_dim + input_dim) {
 		//amplitude derivatives
-		//we need to subtract the inducing input noise since it is not affected by the amplitude
-		dSigmadp = -Upsi; // + snu2 * Eigen::MatrixXd::Identity(M, M);
-		dSigmadp.diagonal().array() += snu2;
+		dSigmadp = -Upsi;
+		dSigmadp.diagonal().array() -= snu2_over_c_squared;
 	} else {
 		size_t m = (p - input_dim) % M;
 		Eigen::VectorXd col = dSigmadp.col(m);
@@ -257,6 +256,7 @@ void MultiScale::grad(const Eigen::VectorXd& x1, const Eigen::VectorXd& x2,
 	grad.segment(input_dim, 2 * M * input_dim).setZero();
 	grad(2 * M * input_dim + input_dim + 1) = 0.;
 	if (x1 == x2) {
+		//TODO: VERIFY!!!
 		//does not influence the gradient
 		kernel_value -= sn2;
 		grad(2 * M * input_dim + input_dim + 1) = 2 * sn2;
@@ -307,6 +307,7 @@ void MultiScale::log_hyper_updated(const Eigen::VectorXd& p) {
 
 	sn2 = exp(2 * loghyper(2 * M * input_dim + input_dim + 1));
 	snu2 = ind_noise_factor * sn2;
+	snu2_over_c_squared = snu2 / c / c / two_PI_to_the_D_over_2;
 	initializeMatrices();
 }
 
