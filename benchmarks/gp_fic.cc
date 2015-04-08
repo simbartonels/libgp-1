@@ -299,11 +299,6 @@ using namespace libgp;
 
     void measureBFcomputationTime() {
     	size_t num_execs = 100;
-
-    	while (true) {
-    		std::cout << "Choose M: ";
-    		size_t M;
-    		std::cin >> M;
 		std::cout << "Choose D: ";
 		size_t D;
 		std::cin >> D;
@@ -313,17 +308,24 @@ using namespace libgp;
     	Eigen::VectorXd grad(D);
     	Eigen::VectorXd x(D);
     	x.setRandom();
+    	x(0) = 1;
     	Eigen::MatrixXd X(n, D);
     	X.setRandom();
     	Eigen::VectorXd y(n);
     	y.setRandom();
-
+    	while (true) {
+    		std::cout << "Choose M: ";
+    		size_t M;
+    		std::cin >> M;
     		std::cout << "initializing GP" << std::endl;
-    		gp = new FICGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
+    		gp = new OptMultiScaleGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M,
     				"SparseMultiScaleGP");
     		for (int i = 0; i < n; ++i) {
     			gp->add_pattern(X.row(i), y(i));
     		}
+    		Eigen::VectorXd params(gp->covf().get_param_dim());
+    		params.setRandom();
+    		gp->covf().set_loghyper(params);
     		gp->log_likelihood();
     		std::cout << "done" << std::endl;
 		double min = -log(0.0);
@@ -332,12 +334,14 @@ using namespace libgp;
     		for (size_t i = 0; i < num_execs; i++) {
     			gp->f(x);
     			gp->var(x);
+    			x(0) = -x(0);
     		}
     		double tic = stop_watch() / num_execs;
 		if(tic < min)
 			min = tic;
     		std::cout << j << "/" << num_execs << ": " << min << std::endl;
 		}
+		delete gp;
     	}
     }
 
@@ -368,18 +372,21 @@ using namespace libgp;
 //    			gp->add_pattern(X.row(i), y(i));
     			gpopt->add_pattern(X.row(i), y(i));
     		}
-//    		gp->log_likelihood();
-    		gpopt->log_likelihood();
-    		std::cout << "done" << std::endl;
-    		stop_watch();
-//    		gp->log_likelihood_gradient();
-    		double tic = stop_watch();
-    		std::cout << "fic: " << tic << std::endl;
-
-    		stop_watch();
+    		Eigen::VectorXd params(gpopt->covf().get_param_dim());
+    		params.setRandom();
+    		gpopt->covf().set_loghyper(params);
+    		//    		gp->log_likelihood();
+    		    		gpopt->log_likelihood();
+    		    		std::cout << "done" << std::endl;
+    		    		double tic = stop_watch();
     		gpopt->log_likelihood_gradient();
     		tic = stop_watch();
     		std::cout << "multiscale: " << tic << std::endl;
+    		stop_watch();
+//    		gp->log_likelihood_gradient();
+    		tic = stop_watch();
+    		std::cout << "fic: " << tic << std::endl;
+
     	}
     }
 
@@ -388,9 +395,9 @@ using namespace libgp;
 int main(int argc, char const *argv[]) {
 //	compareMspeed();
 //	measureLlhGradcomputationTime();
-//	measureBFcomputationTime();
+	measureBFcomputationTime();
 //	compare_prediction();
-//	return 0;
+	return 0;
 	size_t input_dim = 10;
 	size_t M = 100;
 	size_t n = 3000;

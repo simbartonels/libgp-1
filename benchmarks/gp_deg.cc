@@ -91,24 +91,25 @@ void testReSeeding() {
 void measureBFcomputationTime() {
 	size_t num_execs = 100;
 	size_t trials = num_execs;
+	std::cout << "Choose D: ";
+	size_t D;
+	std::cin >> D;
+	std::cout << "Choose n: ";
+	size_t n;
+	std::cin >> n;
+	Eigen::VectorXd grad(D);
+	Eigen::VectorXd x(D);
+	x.setRandom();
+	x(0) = 1;
+	Eigen::MatrixXd X(n, D);
+	X.setRandom();
+	Eigen::VectorXd y(n);
+	y.setRandom();
+
 	while (true) {
-		std::cout << "Choose D: ";
-		size_t D;
-		std::cin >> D;
 		std::cout << "Choose M: ";
 		size_t M;
 		std::cin >> M;
-		std::cout << "Choose n: ";
-		size_t n;
-		std::cin >> n;
-		Eigen::VectorXd grad(D);
-		Eigen::VectorXd x(D);
-		x.setRandom();
-		Eigen::MatrixXd X(n, D);
-		X.setRandom();
-		Eigen::VectorXd y(n);
-		y.setRandom();
-
 		std::cout << "initializing GP using approximation" << USED_GP
 				<< std::endl;
 		gp = new DegGaussianProcess(D, "CovSum ( CovSEard, CovNoise)", M, USED_GP);
@@ -130,6 +131,7 @@ void measureBFcomputationTime() {
 			for (size_t i = 0; i < num_execs; i++) {
 				gp->f(x);
 				gp->var(x);
+				x(0) = -x(0);
 			}
 			double temp = stop_watch() / num_execs;
 			if(temp < tic)
@@ -141,6 +143,7 @@ void measureBFcomputationTime() {
 		Eigen::VectorXd bf(M);
 		bf = ((IBasisFunction *) &(gp->covf()))->computeBasisFunctionVector(x);
 		std::cout << "phi(x).tail(10): " <<  bf.tail(10).transpose() << std::endl;
+		delete gp;
 	}
 }
 
