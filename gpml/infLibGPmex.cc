@@ -79,6 +79,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if(nrhs > P_EXTRA){
 			Eigen::Map<const Eigen::MatrixXd> extra(mxGetPr(prhs[P_EXTRA]), mxGetM(prhs[P_EXTRA]), mxGetN(prhs[P_EXTRA]));
 			((libgp::IBasisFunction *) &(gp->covf()))->setExtraParameters(extra);
+			std::cout << "libgpmex: extra parameters matrix is of dimension: " << extra.rows() << ", " << extra.cols() << std::endl;
 		}
 		mxFree(bf_name_buf);
 	}

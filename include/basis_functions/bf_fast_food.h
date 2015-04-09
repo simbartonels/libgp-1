@@ -16,6 +16,11 @@ class FastFood: public IBasisFunction {
 public:
 	virtual ~FastFood();
 
+	/**
+	 * Allows to set S, G, RandPI and B.
+	 */
+	void setExtraParameters(const Eigen::MatrixXd & Extra);
+
 	Eigen::VectorXd computeBasisFunctionVector(const Eigen::VectorXd &x);
 
 	const Eigen::MatrixXd & getInverseOfSigma();
@@ -99,6 +104,8 @@ protected:
 			size_t num_basis_functions);
 
 private:
+	void inline precomputeHe();
+	void inline initRandPI();
 
 	/**
 	 * Deletes all permutation matrices.

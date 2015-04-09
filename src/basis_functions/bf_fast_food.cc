@@ -28,6 +28,16 @@ void FastFood::deletePIs() {
 	}
 }
 
+void FastFood::setExtraParameters(const Eigen::MatrixXd & Extra){
+	s = Extra.block(0, 0, next_input_dim, M_intern);
+	g = Extra.block(next_input_dim, 0, next_input_dim, M_intern);
+	b = Extra.block(2*next_input_dim, 0, next_input_dim, M_intern);
+	std::cout << "bf_fast_food: random matrices initialized externally" << std::endl;
+	for (size_t i = 0; i < M_intern; i++)
+		initRandPI();
+	precomputeHe();
+}
+
 Eigen::VectorXd libgp::FastFood::computeBasisFunctionVector(
 		const Eigen::VectorXd& x_unpadded) {
 	Eigen::VectorXd phi = Eigen::VectorXd::Zero(M);
@@ -228,19 +238,15 @@ bool libgp::FastFood::real_init() {
 }
 
 inline void FastFood::initializeMatrices() {
+	//FIXME: fastfood matrices...
+	std::cerr << "bf_fast_food: Something is wrong in the matrix initialization procedure."
+			<< "Please initialize the matrices by hand using setExtraParameters." << std::endl;
+	return;
 	srand(seed);
 	srand48(seed);
 	std::cout << "FastFood: using seed " << seed << std::endl;
 	for (size_t i = 0; i < M_intern; i++) {
-		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
-				new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
-						next_input_dim);
-		pi->setIdentity();
-		//make a random permutation
-		std::random_shuffle(pi->indices().data(),
-				pi->indices().data() + pi->indices().size());
-		PIs.push_back(pi);
-		assert(pi == PIs.at(i));
+		initRandPI();
 		for (size_t d1 = 0; d1 < next_input_dim; d1++) {
 			g(d1, i) = Utils::randn();
 			double d = 2 * Utils::randi(2);
@@ -255,7 +261,22 @@ inline void FastFood::initializeMatrices() {
 		s.col(i) /= g.col(i).norm();
 	}
 	s /= sqrt(next_input_dim);
+	precomputeHe();
+}
 
+void inline FastFood::initRandPI(){
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>* pi =
+			new Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>(
+					next_input_dim);
+	pi->setIdentity();
+	//make a random permutation
+	std::random_shuffle(pi->indices().data(),
+			pi->indices().data() + pi->indices().size());
+	PIs.push_back(pi);
+//	assert(pi == PIs.at(i));
+}
+
+void inline FastFood::precomputeHe(){
 	Eigen::VectorXd result(M_intern * input_dim);
 	x.setZero();
 	for (size_t d = 0; d < input_dim; d++) {
