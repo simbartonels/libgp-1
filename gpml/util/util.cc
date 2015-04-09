@@ -11,6 +11,22 @@
 #include "gp_multiscale_optimized.h"
 #include "gp.h"
 
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
+#include "winsock2.h"
+#else
+#include <sys/time.h>
+#endif
+
+double tic() {
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
+	return GetTickCount() / 1000.0;
+#else
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	double time_in_seconds = now.tv_sec + now.tv_usec / 1000000.0;
+	return time_in_seconds;
+#endif
+}
 
 /**
  * This function performs consistency checks on the input string and retuns the length of the string.
