@@ -36,6 +36,15 @@ namespace libgp
     grad(input_dim) = 2.0 * k;
   }
   
+  double CovSEard::grad_p(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double k, size_t p)
+  {
+	if(p == input_dim)
+		  return 2*k;
+    double z = (x1(p)-x2(p))/ell(p);
+    z *= z;
+    return z*k;
+  }
+
   void CovSEard::grad_input(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, Eigen::VectorXd &grad)
   {
     input_diff = x1-x2;

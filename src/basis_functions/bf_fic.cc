@@ -67,10 +67,8 @@ void libgp::FIC::gradBasisFunction(SampleSet* sampleSet,
 		const Eigen::MatrixXd& Phi, size_t p, Eigen::MatrixXd& Grad) {
 	if (p < cov_params_size - 1) {
 		for (size_t i = 0; i < sampleSet->size(); i++) {
-			for (size_t j = 0; j < M; j++) {
-				cov->grad(sampleSet->x(i), U.row(j), temp_cov_params_size);
-				Grad(j, i) = temp_cov_params_size(p);
-			}
+			for (size_t j = 0; j < M; j++)
+				Grad(j, i) = cov->grad_p(sampleSet->x(i), U.row(j), Phi(j, i), p);
 		}
 	} else if (p < loghyper.size() - 1) {
 		Grad.setZero();
@@ -102,6 +100,8 @@ void libgp::FIC::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
 		}
 		diSigmadp = diSigmadp.selfadjointView<Eigen::Lower>();
 	} else if (p < loghyper.size() - 1) {
+		//inducing input gradients
+		//this part is optimized in gp_fic_optimized
 		diSigmadp.setZero();
 		size_t m = (p - cov_params.size() + 1) % M;
 		size_t d = (p - cov_params.size() + 1 - m) / M;
@@ -114,6 +114,7 @@ void libgp::FIC::gradiSigma(size_t p, Eigen::MatrixXd& diSigmadp) {
 		//TODO: is this correct? tests fail occasionally
 		diSigmadp.setZero();
 		diSigmadp.diagonal().fill(2 * snu2);
+//		std::cout << "bf_fic: noise parameter?: " << p << " inducing noise: " << snu2 << std::endl;
 	}
 }
 

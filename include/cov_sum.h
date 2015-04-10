@@ -24,6 +24,12 @@ namespace libgp
     double grad_input_d(double xd, double zd, double k, size_t d);
     void set_loghyper(const Eigen::VectorXd &p);
     virtual std::string to_string();
+    double grad_p(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double k, size_t p){
+    	if(p < param_dim_first)
+    		return first->grad_p(x1, x2, k, p);
+    	else
+    		return second->grad_p(x1, x2, k, p);
+    };
   private:
     size_t param_dim_first;
     size_t param_dim_second;

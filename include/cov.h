@@ -79,6 +79,13 @@ public:
 	;
 
 	/**
+	 * TODO: DO NOT USE!
+	 */
+	virtual double grad_p(const Eigen::VectorXd &x1, const Eigen::VectorXd &x2, double k, size_t d){
+		return 0;
+	}
+
+	/**
 	 * Computes dk(x,z)/dx. NOTE: implementations have to check for the case x=z!
 	 */
 	virtual void grad_input(const Eigen::VectorXd & xd, const Eigen::VectorXd & zd, Eigen::VectorXd & grad){
