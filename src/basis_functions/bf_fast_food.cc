@@ -29,6 +29,12 @@ void FastFood::deletePIs() {
 }
 
 void FastFood::setExtraParameters(const Eigen::MatrixXd & Extra){
+	if(Extra.cols() != M_intern || Extra.rows() != 3*next_input_dim){
+		std::cerr << "WARNING: Extra parameter's dimensions " << Extra.rows() << ", " << Extra.cols()
+				<< "do not match expected dimensions " << 3*next_input_dim << ", " << M_intern <<
+				"." << " ACTION: Ignore." << std::endl;
+		return;
+	}
 	s = Extra.block(0, 0, next_input_dim, M_intern);
 	g = Extra.block(next_input_dim, 0, next_input_dim, M_intern);
 	b = Extra.block(2*next_input_dim, 0, next_input_dim, M_intern);
@@ -238,10 +244,6 @@ bool libgp::FastFood::real_init() {
 }
 
 inline void FastFood::initializeMatrices() {
-	//FIXME: fastfood matrices...
-	std::cerr << "bf_fast_food: Something is wrong in the matrix initialization procedure."
-			<< "Please initialize the matrices by hand using setExtraParameters." << std::endl;
-	return;
 	srand(seed);
 	srand48(seed);
 	std::cout << "FastFood: using seed " << seed << std::endl;
